@@ -17,12 +17,12 @@ IsoTrack is a static prototype for an adaptive therapeutic exercise platform foc
 
 ## Project Structure
 
-- [index.html](/Users/ignatiusho/Documents/MedSprint35/index.html): page structure and UI layout
-- [styles.css](/Users/ignatiusho/Documents/MedSprint35/styles.css): visual design, responsive layout, overlays
-- [script.js](/Users/ignatiusho/Documents/MedSprint35/script.js): app state, calibration flow, pose logic, demo/session behavior
-- [assets/prototype.png](/Users/ignatiusho/Documents/MedSprint35/assets/prototype.png): hero image
-- [assets/isotrack-logo.svg](/Users/ignatiusho/Documents/MedSprint35/assets/isotrack-logo.svg): top-left logo
-- [assets/muscle-model.jpeg](/Users/ignatiusho/Documents/MedSprint35/assets/muscle-model.jpeg): legacy visual asset
+- [index.html](/Users/ignatiusho/Documents/IsoTrack/index.html): page structure and UI layout
+- [styles.css](/Users/ignatiusho/Documents/IsoTrack/styles.css): visual design, responsive layout, overlays
+- [script.js](/Users/ignatiusho/Documents/IsoTrack/script.js): app state, calibration flow, pose logic, demo/session behavior
+- [assets/prototype.png](/Users/ignatiusho/Documents/IsoTrack/assets/prototype.png): hero image
+- [assets/isotrack-logo.svg](/Users/ignatiusho/Documents/IsoTrack/assets/isotrack-logo.svg): top-left logo
+- [assets/muscle-model.jpeg](/Users/ignatiusho/Documents/IsoTrack/assets/muscle-model.jpeg): legacy visual asset
 
 ## Running Locally
 
