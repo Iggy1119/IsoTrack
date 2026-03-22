@@ -4288,6 +4288,7 @@ function renderSession() {
   }
   renderDemoPreview();
   renderCalibrationCountdown();
+  renderReport();
 }
 
 function renderControlStates() {
@@ -4498,29 +4499,111 @@ function updateWorkflowCheck(element, complete) {
 }
 
 function renderReport() {
+  const liveReport = getLiveClinicianReport();
+
   els.reportViewButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.reportView === state.reportView);
   });
   if (els.downloadReportPdf) {
-    els.downloadReportPdf.disabled = !state.report;
+    els.downloadReportPdf.disabled = !liveReport;
   }
 
-  if (!state.report) {
+  if (!liveReport) {
     els.reportAdherence.textContent = "0%";
     els.reportFatigue.textContent = "Pre -- | Post --";
     els.reportIntensity.textContent = "--";
     els.reportStatus.textContent = "Awaiting first session";
-    els.reportText.textContent = "Generate a plan, enter manual RPE, and complete a session to create the report.";
+    els.reportText.textContent = "Generate a plan, then Session Lab will feed the clinician view as exercise data comes in.";
     renderReportChart();
     return;
   }
 
-  els.reportAdherence.textContent = `${state.report.adherence}%`;
-  els.reportFatigue.textContent = state.report.fatigueBand;
-  els.reportIntensity.textContent = state.report.intensity;
-  els.reportStatus.textContent = state.report.status;
-  els.reportText.textContent = state.report.text;
+  els.reportAdherence.textContent = `${liveReport.adherence}%`;
+  els.reportFatigue.textContent = liveReport.fatigueBand;
+  els.reportIntensity.textContent = liveReport.intensity;
+  els.reportStatus.textContent = liveReport.status;
+  els.reportText.textContent = liveReport.text;
   renderReportChart();
+}
+
+function getLiveClinicianReport() {
+  if (state.report) return state.report;
+  if (!state.plan) return null;
+
+  const hasLiveSessionData = Boolean(
+    state.session.reps > 0
+    || state.session.totalTension > 0
+    || state.session.exerciseHoldSeconds > 0
+    || state.session.completedExercises.length > 0
+    || state.session.running
+    || state.session.demoCompleted
+  );
+
+  if (!hasLiveSessionData) return null;
+  return buildClinicianReportSnapshot();
+}
+
+function buildClinicianReportSnapshot() {
+  const activePlan = state.plan || getDefaultPlan();
+  const preRpe = clampRpe(state.session.preRpe || 0);
+  const postRpe = clampRpe(state.session.postRpe || 0);
+  const rpeDelta = postRpe - preRpe;
+  const adherence = Math.min(100, 52 + state.session.reps * 4 + Math.floor(state.session.totalTension / 20));
+  const completedCount = state.session.completedExercises.length;
+  const totalExercises = Math.max(1, buildSessionDemoLibrary().length);
+  const selectedDemo = getSelectedDemo();
+  const sessionExerciseLabel = completedCount
+    ? `${completedCount} of ${totalExercises} prescribed exercises cleared`
+    : (selectedDemo?.title || activePlan.focuses?.[0] || "guided session");
+  const liveStatus = state.session.completed
+    ? "Ready for clinician review"
+    : state.session.running
+      ? "Session in progress"
+      : state.session.demoCompleted
+        ? "Exercise block ready"
+        : "Collecting session data";
+
+  return {
+    adherence,
+    fatigueBand: `Pre ${preRpe}/10 | Post ${postRpe}/10`,
+    intensity: rpeDelta > 0 ? `+${rpeDelta} RPE` : rpeDelta < 0 ? `${rpeDelta} RPE` : "No change",
+    status: liveStatus,
+    text: `${activePlan.patientName} has ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension recorded in Session Lab across ${sessionExerciseLabel}. Clinician view updates live as the session progresses.`,
+  };
+}
+
+function buildLiveSessionHistoryEntry() {
+  if (!state.plan) return null;
+
+  const hasLiveSessionData = Boolean(
+    state.session.reps > 0
+    || state.session.totalTension > 0
+    || state.session.exerciseHoldSeconds > 0
+    || state.session.completedExercises.length > 0
+    || state.session.running
+  );
+  if (!hasLiveSessionData || state.session.completed) return null;
+
+  const selectedDemo = getSelectedDemo();
+  return {
+    id: "live-session-preview",
+    date: new Date().toISOString(),
+    exercise: selectedDemo?.title || "Current exercise",
+    focus: (state.plan.focuses || []).join(", "),
+    timeUnderTension: state.session.totalTension,
+    holdSeconds: state.session.holdSeconds,
+    preRpe: clampRpe(state.session.preRpe || 0),
+    postRpe: clampRpe(state.session.postRpe || 0),
+    adherence: Math.min(100, 52 + state.session.reps * 4 + Math.floor(state.session.totalTension / 20)),
+    reps: state.session.reps,
+  };
+}
+
+function getClinicianHistoryRows() {
+  const rows = [...state.sessionHistory];
+  const liveEntry = buildLiveSessionHistoryEntry();
+  if (liveEntry) rows.push(liveEntry);
+  return rows;
 }
 
 function escapeHtml(value) {
@@ -4545,13 +4628,15 @@ function formatExportDate(value) {
 }
 
 function buildClinicianPdfSummaryRows() {
+  const historyRows = getClinicianHistoryRows();
   return state.reportView === "exercise"
-    ? buildExerciseHistoryRows(state.sessionHistory)
-    : buildDailyHistoryRows(state.sessionHistory);
+    ? buildExerciseHistoryRows(historyRows)
+    : buildDailyHistoryRows(historyRows);
 }
 
 function downloadClinicianPdf() {
-  if (!state.report) {
+  const liveReport = getLiveClinicianReport();
+  if (!liveReport) {
     els.reportText.textContent = "Complete a session first, then download the clinician PDF from this page.";
     els.reportStatus.textContent = "Awaiting export-ready data";
     return;
@@ -4559,7 +4644,8 @@ function downloadClinicianPdf() {
 
   const activePlan = state.plan || getDefaultPlan();
   const summaryRows = buildClinicianPdfSummaryRows();
-  const recentSessions = [...state.sessionHistory]
+  const recentSessions = getClinicianHistoryRows()
+    .filter((entry) => entry.id !== "live-session-preview" || entry.timeUnderTension > 0 || entry.reps > 0)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 8);
   const exportWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
@@ -4572,10 +4658,10 @@ function downloadClinicianPdf() {
 
   const summaryCards = [
     { label: "Patient", value: activePlan.patientName || "IsoTrack User" },
-    { label: "Adherence", value: `${state.report.adherence}%` },
-    { label: "User-entered RPE", value: state.report.fatigueBand },
-    { label: "RPE delta", value: state.report.intensity },
-    { label: "Care status", value: state.report.status },
+    { label: "Adherence", value: `${liveReport.adherence}%` },
+    { label: "User-entered RPE", value: liveReport.fatigueBand },
+    { label: "RPE delta", value: liveReport.intensity },
+    { label: "Care status", value: liveReport.status },
     { label: "Focus areas", value: (activePlan.focuses || []).join(", ") || "General therapy" },
   ];
 
@@ -4747,7 +4833,7 @@ function downloadClinicianPdf() {
       <div>
         <p class="eyebrow">IsoTrack clinician export</p>
         <h1>${escapeHtml(activePlan.patientName || "IsoTrack User")} care summary</h1>
-        <p>${escapeHtml(state.report.text)}</p>
+        <p>${escapeHtml(liveReport.text)}</p>
       </div>
       <div>
         <p class="eyebrow">Generated</p>
@@ -4785,9 +4871,10 @@ function downloadClinicianPdf() {
 function renderReportChart() {
   if (!els.reportChart) return;
 
+  const clinicianHistory = getClinicianHistoryRows();
   const chartRows = state.reportView === "exercise"
-    ? buildExerciseHistoryRows(state.sessionHistory)
-    : buildDailyHistoryRows(state.sessionHistory);
+    ? buildExerciseHistoryRows(clinicianHistory)
+    : buildDailyHistoryRows(clinicianHistory);
 
   if (!chartRows.length) {
     els.reportChart.innerHTML = `<p class="report-chart-empty">Complete a session to populate the clinician graph with TUT and user-entered RPE.</p>`;
