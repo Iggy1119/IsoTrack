@@ -44,7 +44,7 @@ const LIMB_CONNECTIONS = [
   ["rightHeel", "rightFootIndex"],
 ];
 const LIMB_VISIBILITY_THRESHOLD = 0.58;
-const LIMB_CAPTURE_THRESHOLD = 8;
+const LIMB_CAPTURE_THRESHOLD = 6;
 const DEFAULT_PROGRAM_VALUE = 120;
 const DEFAULT_REIMBURSEMENT_SESSIONS = 12;
 const CALIBRATION_FALLBACK_GUIDE = {
@@ -1703,8 +1703,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       Math.abs(leftWrist.y - targetY) < 0.2 &&
       Math.abs(rightWrist.y - targetY) < 0.2;
     const wristsRaisedFromBaseline =
-      (baselineLeftWrist.y - leftWrist.y) > 0.12 &&
-      (baselineRightWrist.y - rightWrist.y) > 0.12;
+      (baselineLeftWrist.y - leftWrist.y) > 0.09 &&
+      (baselineRightWrist.y - rightWrist.y) > 0.09;
     const wristHeightReady = wristsNearHeight || wristsRaisedFromBaseline;
     const wristsWideEnough =
       (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.28 &&
@@ -1719,7 +1719,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.22;
     const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
     const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 108 && rightArmAngle > 108;
+    const armsMostlyStraight = leftArmAngle > 100 && rightArmAngle > 100;
     const elbowsNearGuide = armGuide
       ? Math.abs(leftElbow.x - armGuide.leftElbow.x) < shoulderWidth * 0.55
         && Math.abs(rightElbow.x - armGuide.rightElbow.x) < shoulderWidth * 0.55
@@ -1728,7 +1728,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       ? Math.abs(leftWrist.x - armGuide.leftWrist.x) < shoulderWidth * 0.7
         && Math.abs(rightWrist.x - armGuide.rightWrist.x) < shoulderWidth * 0.7
       : false;
-    const armSpreadReady = wristsWideEnough || wristsNearGuide || elbowsNearGuide;
+    const armSpreadReady = wristsWideEnough || elbowsWideEnough || wristsNearGuide || elbowsNearGuide;
 
     const assessment = buildCalibrationAssessment([
       {
@@ -1738,8 +1738,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       },
       {
         pass: armSpreadReady,
-        hint: "Open your arms a little wider to match the smaller T-shape.",
-        shortHint: "Reach wider",
+        hint: "Match the smaller arm outline instead of reaching farther out.",
+        shortHint: "Match outline",
       },
       {
         pass: armsMostlyStraight,
