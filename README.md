@@ -55,8 +55,7 @@ http://127.0.0.1:4173
 5. Begin the working session after demo completion.
 
 ## Authors
-
-- Djordje Spasovic
-- Dong Jin
 - Ignatius Ho
+- Dong Jin
 - Hrish Dave
+- Djordje Spasovic
