@@ -714,7 +714,7 @@ bootstrap();
 
 function bootstrap() {
   restoreState();
-  state.activeTab = state.auth.authenticated ? (state.activeTab || "session") : "overview";
+  state.activeTab = "overview";
   bindEvents();
   renderAuth();
   renderActiveTab();
@@ -1323,7 +1323,7 @@ function handleAssessmentSubmit(event) {
   renderCalibration();
   renderWorkflow();
   renderReport();
-  state.activeTab = "session";
+  state.activeTab = "assessment";
   renderActiveTab();
   persistState();
 }
@@ -1403,6 +1403,8 @@ function chooseDemoForFocus(focus, index = 0) {
 }
 
 function buildSessionDemoLibrary() {
+  if (!state.plan) return [];
+
   const plan = getActivePlan();
   const focuses = (plan.focuses?.length ? plan.focuses : DEFAULT_DEMO_FOCUSES.slice(0, 3)).slice(0, 3);
   const perSessionRepTarget = getPerSessionRepTarget(plan);
@@ -1568,6 +1570,38 @@ function renderSessionDemos() {
   const completedCount = state.session.completedExercises.length;
 
   els.sessionPlanTitle.textContent = planLabel;
+  if (!demos.length) {
+    els.sessionPlanNote.textContent = "Assessment required";
+    els.selectedDemoTitle.textContent = "Complete Assessment First";
+    els.selectedDemoCopy.textContent = "Session Lab builds the exercise flow directly from the assessment plan.";
+    els.selectedDemoVideoStatus.textContent = "Locked";
+    if (els.selectedDemoPlayer) {
+      els.selectedDemoPlayer.removeAttribute("src");
+      els.selectedDemoPlayer.load();
+    }
+    els.selectedDemoFocus.textContent = "Plan needed";
+    els.selectedDemoVariant.textContent = "Assessment-gated";
+    els.selectedDemoTarget.textContent = "No prescription yet";
+    els.selectedDemoSetup.textContent = "Finish the assessment and generate a plan to populate the prescribed session exercises.";
+    els.selectedDemoScript.textContent = "After assessment, Session Lab will load the patient-specific exercise order, targets, and demo videos.";
+    els.selectedDemoSteps.innerHTML = `
+      <article class="demo-step">
+        <span>01</span>
+        <p>Open the Assessment tab.</p>
+      </article>
+      <article class="demo-step">
+        <span>02</span>
+        <p>Choose diagnosis, focus areas, energy profile, and weekly rep target.</p>
+      </article>
+      <article class="demo-step">
+        <span>03</span>
+        <p>Generate the plan, then return to Session Lab for the prescribed exercise flow.</p>
+      </article>
+    `;
+    renderDemoPreview(null);
+    return;
+  }
+
   els.sessionPlanNote.textContent = isPrescribedSessionComplete(demos)
     ? "Prescribed session complete"
     : `Exercise ${Math.min((state.session.selectedDemo || 0) + 1, Math.max(1, demos.length))} of ${Math.max(1, demos.length)} • ${completedCount} done`;
@@ -3448,8 +3482,8 @@ function renderControlStates() {
   els.stopCamera.disabled = !state.session.cameraReady;
   els.captureCalibration.disabled = !state.session.cameraReady || state.session.calibrated || getCalibrationCountdownSeconds() > 0;
   els.resetCalibration.disabled = !state.session.cameraReady && !hasSavedCalibration();
-  els.startDemo.disabled = !state.session.cameraReady || !state.session.calibrated || isPrescribedSessionComplete();
-  els.toggleSession.disabled = !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted || isPrescribedSessionComplete();
+  els.startDemo.disabled = !state.plan || !state.session.cameraReady || !state.session.calibrated || isPrescribedSessionComplete();
+  els.toggleSession.disabled = !state.plan || !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted || isPrescribedSessionComplete();
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
   els.completeSession.disabled = state.session.completed
@@ -3545,6 +3579,18 @@ function hasSavedCalibration() {
 }
 
 function renderWorkflow() {
+  if (!state.plan) {
+    updateStepChip(els.workflowStepCamera, state.session.cameraReady, !state.session.cameraReady);
+    updateStepChip(els.workflowStepCalibration, false, false);
+    updateStepChip(els.workflowStepDemo, false, false);
+    updateStepChip(els.workflowStepSession, false, false);
+    els.workflowTitle.textContent = "Start With Assessment";
+    els.workflowCopy.textContent = "Open Assessment first to build the prescribed exercise session.";
+    els.workflowCheckPrimary.textContent = "Overview -> Assessment";
+    els.workflowCheckSecondary.textContent = "Session Lab unlocks after plan creation";
+    return;
+  }
+
   const stepStates = {
     camera: state.session.cameraReady,
     calibration: state.session.calibrated,
