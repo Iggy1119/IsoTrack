@@ -564,6 +564,15 @@ const demoCatalog = [
   },
 ];
 
+const DEMO_LIBRARY_GROUP_SUMMARIES = {
+  Ankles: "Foot and ankle demos focused on balance, toe lift, heel raise control, and tibialis strength.",
+  Shoulders: "Upper-body demos for shoulder stability, arm control, pressing strength, and controlled isometrics.",
+  Grip: "Hand and forearm demos built around grip endurance and distal control.",
+  Hips: "Lower-body demos for hip drive, bridge strength, hamstring tension, and unilateral stability.",
+  Core: "Floor and mobility demos for trunk control, spinal movement, and core stiffness.",
+  Quadriceps: "Leg endurance demos that support sit-to-stand strength and walking tolerance.",
+};
+
 const els = {
   form: document.querySelector("#assessment-form"),
   authForm: document.querySelector("#auth-form"),
@@ -1806,7 +1815,7 @@ function renderAllDemos() {
 
   if (selected) {
     if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
-    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = selected.statusLabel;
+    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = `${demos.length} demos ready`;
     if (els.libraryDemoPlayer) {
       els.libraryDemoPlayer.src = selected.videoPath || "";
       els.libraryDemoPlayer.poster = "";
@@ -1824,20 +1833,52 @@ function renderAllDemos() {
   }
 
   if (!els.allDemoList) return;
-  els.allDemoList.innerHTML = demos
-    .map((item, index) => `
-      <article class="demo-card ${index === selectedIndex ? "is-selected" : ""}" data-demo-index="${index}">
-        <div class="demo-card-top">
-          <span class="demo-card-kicker">${item.focus}</span>
-          <span class="demo-card-status">${item.statusLabel}</span>
+  const groupedDemos = demos.reduce((groups, item, index) => {
+    const key = item.focus || "Other";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ ...item, catalogIndex: index });
+    return groups;
+  }, {});
+
+  const focusOrder = ["Ankles", "Shoulders", "Grip", "Hips", "Core", "Quadriceps"];
+  const orderedGroups = Object.keys(groupedDemos)
+    .sort((a, b) => {
+      const aIndex = focusOrder.indexOf(a);
+      const bIndex = focusOrder.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+
+  els.allDemoList.innerHTML = orderedGroups
+    .map((focus) => `
+      <section class="demo-library-group">
+        <div class="demo-library-group-head">
+          <div>
+            <strong>${focus}</strong>
+            <p>${DEMO_LIBRARY_GROUP_SUMMARIES[focus] || "Exercise demos matched from the assets library."}</p>
+          </div>
+          <span class="demo-chip">${groupedDemos[focus].length} demos</span>
         </div>
-        <strong>${item.title}</strong>
-        <p>${item.summary}</p>
-        <div class="demo-card-tags">
-          <span class="demo-chip">${item.targetLabel}</span>
-          <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+        <div class="demo-library-group-grid">
+          ${groupedDemos[focus].map((item) => `
+            <article class="demo-card ${item.catalogIndex === selectedIndex ? "is-selected" : ""}" data-demo-index="${item.catalogIndex}">
+              <div class="demo-card-top">
+                <span class="demo-card-kicker">${item.focus}</span>
+                <span class="demo-card-status">${item.statusLabel}</span>
+              </div>
+              <strong>${item.title}</strong>
+              <p>${item.summary}</p>
+              <p class="demo-card-tip">Helpful Tip: ${item.cue}</p>
+              <div class="demo-card-tags">
+                <span class="demo-chip">${item.targetLabel}</span>
+                <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+              </div>
+            </article>
+          `).join("")}
         </div>
-      </article>
+      </section>
     `)
     .join("");
 
@@ -2431,6 +2472,8 @@ async function requestCameraAccess() {
     return;
   }
 
+  let cameraStarted = false;
+
   try {
     setFeedback("Waiting for camera permission...");
     if (els.cameraPermissionTitle) {
@@ -2472,20 +2515,47 @@ async function requestCameraAccess() {
 
     els.camera.srcObject = mediaStream;
     await els.camera.play();
+    cameraStarted = true;
     closeCameraPermissionModal();
     resetCalibrationSequenceForCameraStart();
     state.session.cameraReady = true;
     state.session.trackingStatus = "Camera live";
-    await ensurePoseTracking();
-    scheduleCalibrationStepDelay();
-    setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
     renderSession();
     renderControlStates();
-    renderCalibration();
-    renderWorkflow();
-    startMotionAnalysis();
-    persistState();
+
+    try {
+      await ensurePoseTracking();
+      scheduleCalibrationStepDelay();
+      setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
+      renderCalibration();
+      renderWorkflow();
+      startMotionAnalysis();
+      persistState();
+    } catch (setupError) {
+      state.session.trackingStatus = "Camera live";
+      closeCameraPermissionModal();
+      renderSession();
+      renderControlStates();
+      renderCalibration();
+      renderWorkflow();
+      persistState();
+      setFeedback("Camera is on. Tracking setup needs a moment, but permission is already granted.");
+      console.error(setupError);
+    }
   } catch (error) {
+    if (cameraStarted || state.session.cameraReady) {
+      closeCameraPermissionModal();
+      state.session.trackingStatus = "Camera live";
+      renderSession();
+      renderControlStates();
+      renderCalibration();
+      renderWorkflow();
+      persistState();
+      setFeedback("Camera is on. Permission is already granted.");
+      console.error(error);
+      return;
+    }
+
     if (els.cameraPermissionModal) {
       els.cameraPermissionModal.classList.remove("hidden");
       els.cameraPermissionModal.setAttribute("aria-hidden", "false");
