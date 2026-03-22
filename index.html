@@ -43,13 +43,13 @@
 
       <section class="tabs-shell">
         <div class="tab-rail" role="tablist" aria-label="IsoTrack sections">
-          <button class="tab-button" type="button" data-tab-target="overview" role="tab" aria-selected="false">Overview</button>
+          <button class="tab-button is-active" type="button" data-tab-target="overview" role="tab" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab-target="assessment" role="tab" aria-selected="false">Assessment</button>
-          <button class="tab-button is-active" type="button" data-tab-target="session" role="tab" aria-selected="true">Session Lab</button>
+          <button class="tab-button" type="button" data-tab-target="session" role="tab" aria-selected="false">Session Lab</button>
           <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
           <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
         </div>
-      <section class="tab-panel" data-tab-panel="overview">
+      <section class="tab-panel is-active" data-tab-panel="overview">
         <div class="overview-grid overview-grid--hero">
           <article class="panel overview-story overview-story--main">
             <p class="eyebrow">Overview</p>
@@ -335,7 +335,7 @@
           </div>
         </section>
 
-        <section class="tab-panel is-active" data-tab-panel="session">
+        <section class="tab-panel" data-tab-panel="session">
           <div class="session-grid">
             <div class="panel camera-panel">
               <div class="camera-panel-head">
