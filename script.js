@@ -2479,7 +2479,7 @@ function renderWorkflow() {
   } else if (!state.session.calibrated) {
     const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
     const countdown = calibrationHoldStartedAt
-      ? Math.max(1, Math.ceil((getCalibrationHoldMs() - (performance.now() - calibrationHoldStartedAt)) / 1000))
+      ? Math.max(0, Math.ceil((getCalibrationHoldMs() - (performance.now() - calibrationHoldStartedAt)) / 1000))
       : 0;
     const stepCountdown = getCalibrationCountdownSeconds();
     const assessment = currentStep
