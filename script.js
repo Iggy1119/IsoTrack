@@ -1784,52 +1784,29 @@ function renderAllDemos() {
     statusLabel: "MP4 ready",
     targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
   }));
-  const selected = getSelectedLibraryDemo();
-
-  if (selected) {
-    if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
-    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = selected.statusLabel;
-    if (els.libraryDemoPlayer) {
-      els.libraryDemoPlayer.src = selected.videoPath || "";
-      els.libraryDemoPlayer.poster = "";
-      els.libraryDemoPlayer.load();
-    }
-    if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
-    if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
-    if (els.libraryDemoTarget) els.libraryDemoTarget.textContent = selected.targetLabel;
-    if (els.libraryDemoFile) {
-      const fileName = String(selected.videoPath || "").split("/").pop() || "MP4 file";
-      els.libraryDemoFile.textContent = fileName;
-    }
-    if (els.libraryDemoTip) els.libraryDemoTip.textContent = `Helpful Tip: ${selected.cue}`;
-    if (els.libraryDemoPurpose) els.libraryDemoPurpose.textContent = `Purpose: ${selected.summary}`;
-  }
 
   if (!els.allDemoList) return;
   els.allDemoList.innerHTML = demos
-    .map((item, index) => `
-      <article class="demo-card ${index === state.session.librarySelectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+    .map((item) => `
+      <article class="demo-library-card">
         <div class="demo-card-top">
           <span class="demo-card-kicker">${item.focus}</span>
           <span class="demo-card-status">${item.statusLabel}</span>
         </div>
         <strong>${item.title}</strong>
-        <p>${item.summary}</p>
+        <div class="demo-player-shell demo-library-player-shell">
+          <video class="demo-player" controls playsinline preload="metadata" src="${item.videoPath || ""}"></video>
+        </div>
+        <p class="demo-detail-copy">${item.summary}</p>
         <div class="demo-card-tags">
           <span class="demo-chip">${item.targetLabel}</span>
           <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
         </div>
+        <p class="demo-detail-copy"><strong>Helpful Tip:</strong> ${item.cue}</p>
+        <p class="demo-detail-copy"><strong>Purpose:</strong> ${item.summary}</p>
       </article>
     `)
     .join("");
-
-  els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
-      renderAllDemos();
-      persistState();
-    });
-  });
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
