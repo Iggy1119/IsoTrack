@@ -698,6 +698,7 @@ const els = {
   reportText: document.querySelector("#report-text"),
   reportChart: document.querySelector("#report-chart"),
   reportViewButtons: Array.from(document.querySelectorAll("[data-report-view]")),
+  downloadReportPdf: document.querySelector("#download-report-pdf"),
   walletTotal: document.querySelector("#wallet-total"),
   walletStreak: document.querySelector("#wallet-streak"),
   walletTier: document.querySelector("#wallet-tier"),
@@ -906,6 +907,8 @@ function bindEvents() {
       persistState();
     });
   });
+
+  els.downloadReportPdf?.addEventListener("click", downloadClinicianPdf);
 }
 
 function renderActiveTab() {
@@ -4399,6 +4402,9 @@ function renderReport() {
   els.reportViewButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.reportView === state.reportView);
   });
+  if (els.downloadReportPdf) {
+    els.downloadReportPdf.disabled = !state.report;
+  }
 
   if (!state.report) {
     els.reportAdherence.textContent = "0%";
@@ -4416,6 +4422,265 @@ function renderReport() {
   els.reportStatus.textContent = state.report.status;
   els.reportText.textContent = state.report.text;
   renderReportChart();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatExportDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unavailable";
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function buildClinicianPdfSummaryRows() {
+  return state.reportView === "exercise"
+    ? buildExerciseHistoryRows(state.sessionHistory)
+    : buildDailyHistoryRows(state.sessionHistory);
+}
+
+function downloadClinicianPdf() {
+  if (!state.report) {
+    els.reportText.textContent = "Complete a session first, then download the clinician PDF from this page.";
+    els.reportStatus.textContent = "Awaiting export-ready data";
+    return;
+  }
+
+  const activePlan = state.plan || getDefaultPlan();
+  const summaryRows = buildClinicianPdfSummaryRows();
+  const recentSessions = [...state.sessionHistory]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 8);
+  const exportWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
+
+  if (!exportWindow) {
+    els.reportStatus.textContent = "Pop-up blocked";
+    els.reportText.textContent = "Pop-up blocked. Allow pop-ups for this site, then try Download PDF again.";
+    return;
+  }
+
+  const summaryCards = [
+    { label: "Patient", value: activePlan.patientName || "IsoTrack User" },
+    { label: "Adherence", value: `${state.report.adherence}%` },
+    { label: "User-entered RPE", value: state.report.fatigueBand },
+    { label: "RPE delta", value: state.report.intensity },
+    { label: "Care status", value: state.report.status },
+    { label: "Focus areas", value: (activePlan.focuses || []).join(", ") || "General therapy" },
+  ];
+
+  const summaryMarkup = summaryCards.map((item) => `
+    <article class="summary-card">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+    </article>
+  `).join("");
+
+  const trendMarkup = summaryRows.length
+    ? `
+      <table>
+        <thead>
+          <tr>
+            <th>${escapeHtml(state.reportView === "exercise" ? "Exercise" : "Day")}</th>
+            <th>Time Under Tension</th>
+            <th>User RPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summaryRows.map((row) => `
+            <tr>
+              <td>${escapeHtml(row.label)}</td>
+              <td>${escapeHtml(`${row.timeUnderTension}s`)}</td>
+              <td>${escapeHtml(row.postRpe.toFixed(1))}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `
+    : `<p class="empty-state">No clinician trend rows yet.</p>`;
+
+  const historyMarkup = recentSessions.length
+    ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Exercise</th>
+            <th>Focus</th>
+            <th>Reps</th>
+            <th>TUT</th>
+            <th>Pre RPE</th>
+            <th>Post RPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${recentSessions.map((entry) => `
+            <tr>
+              <td>${escapeHtml(formatExportDate(entry.date))}</td>
+              <td>${escapeHtml(entry.exercise || "--")}</td>
+              <td>${escapeHtml(entry.focus || "--")}</td>
+              <td>${escapeHtml(entry.reps ?? 0)}</td>
+              <td>${escapeHtml(`${entry.timeUnderTension ?? 0}s`)}</td>
+              <td>${escapeHtml(entry.preRpe ?? "--")}</td>
+              <td>${escapeHtml(entry.postRpe ?? "--")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `
+    : `<p class="empty-state">No session history saved yet.</p>`;
+
+  exportWindow.document.open();
+  exportWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IsoTrack Clinician Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182024;
+      --muted: #5b6670;
+      --line: #d6dde3;
+      --panel: #f6f8fa;
+      --accent: #1e7f72;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    .report-shell {
+      display: grid;
+      gap: 24px;
+    }
+    .report-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 16px;
+    }
+    .eyebrow {
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .summary-card {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+    .summary-card span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .summary-card strong {
+      font-size: 16px;
+      line-height: 1.35;
+    }
+    .section {
+      display: grid;
+      gap: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef3f5;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .empty-state {
+      margin: 0;
+      color: var(--muted);
+    }
+    @page {
+      size: auto;
+      margin: 16mm;
+    }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="report-shell">
+    <section class="report-head">
+      <div>
+        <p class="eyebrow">IsoTrack clinician export</p>
+        <h1>${escapeHtml(activePlan.patientName || "IsoTrack User")} care summary</h1>
+        <p>${escapeHtml(state.report.text)}</p>
+      </div>
+      <div>
+        <p class="eyebrow">Generated</p>
+        <strong>${escapeHtml(formatExportDate(new Date().toISOString()))}</strong>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Session summary</h2>
+      <div class="summary-grid">${summaryMarkup}</div>
+    </section>
+
+    <section class="section">
+      <h2>Trend view: ${escapeHtml(state.reportView === "exercise" ? "Per exercise" : "Daily")}</h2>
+      ${trendMarkup}
+    </section>
+
+    <section class="section">
+      <h2>Recent session history</h2>
+      ${historyMarkup}
+    </section>
+  </main>
+  <script>
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        window.print();
+      }, 250);
+    });
+  </script>
+</body>
+</html>`);
+  exportWindow.document.close();
 }
 
 function renderReportChart() {

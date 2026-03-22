@@ -688,9 +688,12 @@
                     <p class="panel-label">Trend view</p>
                     <h3>Time under tension and user-entered RPE</h3>
                   </div>
-                  <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
-                    <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
-                    <button class="segmented-button" type="button" data-report-view="exercise">Per exercise</button>
+                  <div class="report-trend-actions">
+                    <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
+                      <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
+                      <button class="segmented-button" type="button" data-report-view="exercise">Per exercise</button>
+                    </div>
+                    <button class="button button-secondary report-export-button" id="download-report-pdf" type="button">Download PDF</button>
                   </div>
                 </div>
                 <div class="report-chart" id="report-chart">
@@ -848,7 +851,7 @@
                     <strong>Dong Jin</strong>
                     <span>Team member</span>
                   </div>
-                  <p>Demo lead.</p>
+                  <p>Demo lead and workout designer.</p>
                 </article>
                 <article class="tier-item">
                   <div class="tier-item-head">
