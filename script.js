@@ -632,7 +632,7 @@ function getCalibrationHoldMs() {
 
 function getCalibrationReadyFrames() {
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  return currentStep?.key === "arms" ? 2 : AUTO_CALIBRATION_READY_FRAMES;
+  return currentStep?.key === "neutral" ? AUTO_CALIBRATION_READY_FRAMES : 2;
 }
 
 function hasReliablePoint(point, minVisibility = 0.42) {
@@ -654,6 +654,18 @@ function buildCalibrationAssessment(checks, threshold, fallbackHint, fallbackSho
     hint: firstFailed?.hint || fallbackHint,
     shortHint: firstFailed?.shortHint || fallbackShortHint,
   };
+}
+
+function getMeanNormalizedGuideOffset(pointPairs, normalizer) {
+  const offsets = pointPairs
+    .map(([livePoint, guidePoint]) => {
+      if (!livePoint || !guidePoint || !normalizer) return null;
+      return distance(livePoint, guidePoint) / normalizer;
+    })
+    .filter((offset) => typeof offset === "number" && Number.isFinite(offset));
+
+  if (!offsets.length) return Infinity;
+  return offsets.reduce((sum, offset) => sum + offset, 0) / offsets.length;
 }
 
 function getLiftDelta(fromPoint, toPoint) {
@@ -1836,52 +1848,36 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     }
 
     const shoulderWidth = Math.max(0.09, distance(leftShoulder, rightShoulder));
-    const targetY = average(leftShoulder.y, rightShoulder.y);
     const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.09;
-    const elbowsNearHeight =
-      Math.abs(leftElbow.y - targetY) < 0.22 &&
-      Math.abs(rightElbow.y - targetY) < 0.22;
     const wristsNearHeight =
-      Math.abs(leftWrist.y - targetY) < 0.22 &&
-      Math.abs(rightWrist.y - targetY) < 0.22;
+      Math.abs(leftWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.22 &&
+      Math.abs(rightWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.22;
     const wristsRaisedFromBaseline =
       (baselineLeftWrist.y - leftWrist.y) > 0.09 &&
       (baselineRightWrist.y - rightWrist.y) > 0.09;
     const wristHeightReady = wristsNearHeight || wristsRaisedFromBaseline;
     const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.24;
     const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.24;
-    const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
-    const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 92 && rightArmAngle > 92;
-    const leftElbowGuideOffset = armGuide ? distance(leftElbow, armGuide.leftElbow) / shoulderWidth : 1;
-    const rightElbowGuideOffset = armGuide ? distance(rightElbow, armGuide.rightElbow) / shoulderWidth : 1;
-    const leftWristGuideOffset = armGuide ? distance(leftWrist, armGuide.leftWrist) / shoulderWidth : 1;
-    const rightWristGuideOffset = armGuide ? distance(rightWrist, armGuide.rightWrist) / shoulderWidth : 1;
-    const meanGuideOffset = (
-      leftElbowGuideOffset
-      + rightElbowGuideOffset
-      + leftWristGuideOffset
-      + rightWristGuideOffset
-    ) / 4;
-    const elbowsNearGuide = leftElbowGuideOffset < 0.8 && rightElbowGuideOffset < 0.8;
-    const wristsNearGuide = leftWristGuideOffset < 0.9 && rightWristGuideOffset < 0.9;
-    const armGuideReady = meanGuideOffset < 0.82 || wristsNearGuide || elbowsNearGuide;
+    const meanGuideOffset = getMeanNormalizedGuideOffset([
+      [leftElbow, armGuide?.leftElbow],
+      [rightElbow, armGuide?.rightElbow],
+      [leftWrist, armGuide?.leftWrist],
+      [rightWrist, armGuide?.rightWrist],
+    ], shoulderWidth);
+    const armGuideReady = meanGuideOffset < 0.9;
+    const armGuideTight = meanGuideOffset < 0.72;
+    const armLevelReady = wristsMatched || elbowsMatched || armGuideTight;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: wristHeightReady,
-        hint: "Lift both hands out from your sides a bit more.",
-        shortHint: "Lift wrists",
-      },
-      {
         pass: armGuideReady,
-        hint: "Move your arms toward the smaller outline and hold there.",
+        hint: "Match the bright arm outline and hold there.",
         shortHint: "Match outline",
       },
       {
-        pass: armsMostlyStraight,
-        hint: "Keep both arms gently open and steady.",
-        shortHint: "Straighten arms",
+        pass: wristHeightReady || armGuideTight,
+        hint: "Lift both arms into the T-shape outline.",
+        shortHint: "Lift arms",
       },
       {
         pass: shouldersLevel,
@@ -1889,26 +1885,13 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         shortHint: "Level shoulders",
       },
       {
-        pass: elbowsNearHeight,
-        hint: "Bring both elbows a little closer to the arm outline.",
-        shortHint: "Lift elbows",
-      },
-      {
-        pass: wristsMatched,
-        hint: "Keep both hands even.",
+        pass: armLevelReady,
+        hint: "Keep both arms even with the outline.",
         shortHint: "Even hands",
-      },
-      {
-        pass: elbowsMatched,
-        hint: "Keep both elbows even.",
-        shortHint: "Even elbows",
       },
     ], 3, "Hold the T-shape to save this step.", "Hold steady");
 
-    return {
-      ...assessment,
-      matched: armGuideReady && shouldersLevel && (wristHeightReady || elbowsNearHeight || wristsNearGuide),
-    };
+    return assessment;
   }
 
   if (stepKey === "knee") {
@@ -1949,24 +1932,30 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       getLiftDelta(baseline.rightAnkle, rightAnkle) * 1.15
     );
     const bestLift = Math.max(leftLift, rightLift);
-    const targetLift = heelRaiseGuide
-      ? Math.max(
-        getLiftDelta(baseline.leftHeel, heelRaiseGuide.leftHeel),
-        getLiftDelta(baseline.rightHeel, heelRaiseGuide.rightHeel),
-        getLiftDelta(baseline.leftAnkle, heelRaiseGuide.leftAnkle) * 1.15,
-        getLiftDelta(baseline.rightAnkle, heelRaiseGuide.rightAnkle) * 1.15
-      )
-      : 0.018;
-    const liftReadyThreshold = Math.max(0.014, targetLift * 0.58);
     const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
     const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.1;
     const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
+    const lowerBodyScale = Math.max(
+      0.12,
+      average(distance(baseline.leftHip, baseline.leftAnkle), distance(baseline.rightHip, baseline.rightAnkle))
+    );
+    const leftGuideOffset = getMeanNormalizedGuideOffset([
+      [leftAnkle, heelRaiseGuide?.leftAnkle],
+      [leftHeel, heelRaiseGuide?.leftHeel],
+      [landmarks[31], heelRaiseGuide?.leftFootIndex],
+    ], lowerBodyScale);
+    const rightGuideOffset = getMeanNormalizedGuideOffset([
+      [rightAnkle, heelRaiseGuide?.rightAnkle],
+      [rightHeel, heelRaiseGuide?.rightHeel],
+      [landmarks[32], heelRaiseGuide?.rightFootIndex],
+    ], lowerBodyScale);
+    const heelGuideReady = leftGuideOffset < 0.24 || rightGuideOffset < 0.24;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: bestLift > liftReadyThreshold,
-        hint: "Lift one heel toward the outline while keeping the rest of your posture still.",
-        shortHint: "Match heel lift",
+        pass: heelGuideReady || bestLift > 0.016,
+        hint: "Match one foot to the bright heel-raise outline.",
+        shortHint: "Match foot",
       },
       {
         pass: shouldersLevel,
@@ -1985,10 +1974,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       },
     ], 3, "Hold the heel raise to save this step.", "Hold steady");
 
-    return {
-      ...assessment,
-      matched: bestLift > liftReadyThreshold && shouldersLevel && (hipsLevel || centered),
-    };
+    return assessment;
   }
 
   return {
@@ -2072,20 +2058,6 @@ function matchesDemoTarget(movementPattern, landmarks, baseline) {
 
 function average(a, b) {
   return (a + b) / 2;
-}
-
-function angleAtPoint(a, b, c) {
-  if (!a || !b || !c) return 0;
-
-  const abX = a.x - b.x;
-  const abY = a.y - b.y;
-  const cbX = c.x - b.x;
-  const cbY = c.y - b.y;
-  const denominator = Math.hypot(abX, abY) * Math.hypot(cbX, cbY);
-  if (!denominator) return 0;
-
-  const cosine = Math.max(-1, Math.min(1, ((abX * cbX) + (abY * cbY)) / denominator));
-  return (Math.acos(cosine) * 180) / Math.PI;
 }
 
 function distance(a, b) {
