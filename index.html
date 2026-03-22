@@ -317,6 +317,28 @@
         <section class="tab-panel is-active" data-tab-panel="session">
           <div class="session-grid">
             <div class="panel camera-panel">
+              <div class="camera-panel-head">
+                <div>
+                  <p class="eyebrow">Session capture</p>
+                  <h2>Camera flow</h2>
+                  <p class="camera-panel-copy">Keep your full body in frame and follow one cue at a time.</p>
+                </div>
+                <div class="camera-stats" aria-label="Camera status">
+                  <article class="camera-stat">
+                    <span>Camera</span>
+                    <strong id="camera-status">Offline</strong>
+                  </article>
+                  <article class="camera-stat">
+                    <span>Tracking</span>
+                    <strong id="tracking-state">Tracking off</strong>
+                  </article>
+                  <article class="camera-stat">
+                    <span>Points</span>
+                    <strong id="tracked-joints">0 points</strong>
+                  </article>
+                </div>
+              </div>
+
               <div class="camera-shell">
                 <video id="camera" playsinline muted></video>
                 <canvas id="tracking-canvas" width="960" height="720"></canvas>
@@ -335,44 +357,55 @@
                 </div>
                 <div class="calibration-countdown hidden" id="calibration-countdown" aria-live="polite">10</div>
                 <div class="camera-overlay">
-                  <div class="overlay-status-row">
-                    <span class="status-pill" id="camera-status">Offline</span>
-                    <div class="tracking-meta">
-                      <span id="tracking-state">Tracking off</span>
-                      <span id="tracked-joints">0 points</span>
-                    </div>
-                  </div>
-                  <strong id="session-feedback">Start the camera to begin.</strong>
                   <div class="video-guide">
+                    <span class="video-guide-label">Current step</span>
                     <strong id="workflow-title">Start camera</strong>
                     <p id="workflow-copy">Stand full-body in frame.</p>
-                    <div class="workflow-steps">
-                      <span class="workflow-step" id="step-camera">Camera</span>
-                      <span class="workflow-step" id="step-calibration">Calibration</span>
-                      <span class="workflow-step" id="step-demo">Demo</span>
-                      <span class="workflow-step" id="step-session">Work</span>
-                    </div>
-                    <div class="workflow-checks">
-                      <span id="workflow-check-primary">Tracking not ready</span>
-                      <span id="workflow-check-secondary">Calibration not captured</span>
-                    </div>
                   </div>
+                  <strong id="session-feedback">Start the camera to begin.</strong>
                 </div>
               </div>
 
-              <div class="control-row">
-                <div class="control-group control-group-primary">
-                  <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
-                  <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
-                  <button class="button button-secondary" id="start-demo" type="button">Start Demo</button>
-                  <button class="button button-secondary" id="toggle-session" type="button">Start Working Session</button>
-                  <button class="button button-secondary" id="complete-session" type="button">Complete Session</button>
+              <div class="camera-support-grid">
+                <div class="camera-support-card">
+                  <p class="panel-label">Progress</p>
+                  <div class="workflow-steps">
+                    <span class="workflow-step" id="step-camera">Camera</span>
+                    <span class="workflow-step" id="step-calibration">Calibration</span>
+                    <span class="workflow-step" id="step-demo">Demo</span>
+                    <span class="workflow-step" id="step-session">Work</span>
+                  </div>
+                  <div class="workflow-checks">
+                    <span id="workflow-check-primary">Tracking not ready</span>
+                    <span id="workflow-check-secondary">Calibration not captured</span>
+                  </div>
                 </div>
-                <div class="control-group control-group-secondary">
-                  <button class="button button-secondary" id="capture-calibration" type="button">Manual Capture</button>
-                  <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
-                  <button class="button button-secondary" id="toggle-hold" type="button">Begin Hold</button>
-                  <button class="button button-secondary" id="manual-rep" type="button">Log Manual Rep</button>
+
+                <div class="camera-support-card camera-actions-card">
+                  <div class="camera-action-section">
+                    <p class="panel-label">Main actions</p>
+                    <div class="control-row">
+                      <div class="control-group control-group-primary">
+                        <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
+                        <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
+                        <button class="button button-secondary" id="start-demo" type="button">Run Demo</button>
+                        <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
+                        <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="camera-action-section">
+                    <p class="panel-label">Manual tools</p>
+                    <div class="control-row">
+                      <div class="control-group control-group-secondary">
+                        <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
+                        <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
+                        <button class="button button-secondary" id="toggle-hold" type="button">Start Hold</button>
+                        <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

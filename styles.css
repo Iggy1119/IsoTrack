@@ -814,14 +814,64 @@ h3 {
   min-height: auto;
 }
 
-.camera-panel .control-row {
-  margin-top: 1.1rem;
+.camera-panel-head,
+.camera-stats,
+.camera-support-grid,
+.camera-action-section {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.camera-panel-head {
+  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+  align-items: end;
+  margin-bottom: 1.1rem;
+}
+
+.camera-panel-head h2 {
+  margin-bottom: 0.35rem;
+}
+
+.camera-panel-copy {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--muted);
+}
+
+.camera-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.camera-stat,
+.camera-support-card {
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.camera-stat span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--soft);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+}
+
+.camera-stat strong {
+  display: block;
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  font-size: clamp(1.15rem, 2.1vw, 1.55rem);
+  letter-spacing: -0.03em;
 }
 
 .camera-shell {
   position: relative;
   overflow: hidden;
-  min-height: min(82vh, 56rem);
+  aspect-ratio: 16 / 10;
+  min-height: 0;
+  max-height: min(72vh, 52rem);
   border: 1px solid var(--line);
   border-radius: 1.6rem;
   background:
@@ -831,8 +881,10 @@ h3 {
 }
 
 #camera {
+  display: block;
   width: 100%;
-  min-height: min(82vh, 56rem);
+  height: 100%;
+  min-height: 0;
   object-fit: cover;
   transform: scaleX(-1);
   background: #030303;
@@ -943,43 +995,23 @@ h3 {
   left: 1rem;
   right: 1rem;
   bottom: 1rem;
-  display: grid;
-  gap: 0.55rem;
-  max-width: min(28rem, calc(100% - 2rem));
-}
-
-.overlay-status-row {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: space-between;
-  gap: 0.55rem;
-  flex-wrap: wrap;
+  gap: 0.8rem;
 }
 
-.tracking-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  color: var(--muted);
-  font-size: 0.76rem;
-}
-
-.overlay-status-row,
 .video-guide,
 .camera-overlay > #session-feedback {
-  padding: 0.8rem 1rem;
+  padding: 0.9rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 1rem;
-  background: rgba(0, 0, 0, 0.56);
+  border-radius: 1.1rem;
+  background: rgba(0, 0, 0, 0.54);
   backdrop-filter: blur(14px);
 }
 
-.overlay-status-row {
-  padding: 0.55rem 0.7rem;
-}
-
 .video-guide {
-  padding: 0.85rem 0.95rem;
+  max-width: min(24rem, 100%);
 }
 
 .video-guide p {
@@ -987,10 +1019,19 @@ h3 {
   color: var(--muted);
 }
 
+.video-guide-label {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: rgba(255, 255, 255, 0.64);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+}
+
 #workflow-title {
   margin: 0;
   font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
-  font-size: clamp(2.35rem, 5.8vw, 4.6rem);
+  font-size: clamp(2rem, 5.1vw, 4.1rem);
   line-height: 0.9;
   letter-spacing: -0.05em;
   text-transform: uppercase;
@@ -999,10 +1040,70 @@ h3 {
 }
 
 #workflow-copy {
-  margin-top: 0.45rem;
-  font-size: 1.08rem;
-  line-height: 1.4;
+  margin-top: 0.4rem;
+  font-size: 1rem;
+  line-height: 1.35;
   color: rgba(255, 255, 255, 0.84);
+}
+
+.camera-overlay > #session-feedback {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  max-width: min(16rem, 46%);
+  font-size: 0.98rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.camera-support-grid {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.camera-support-card {
+  min-height: 100%;
+}
+
+.camera-actions-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.camera-actions-card .panel-label,
+.camera-support-card .panel-label {
+  margin-bottom: 0.55rem;
+}
+
+.camera-panel .control-row {
+  margin-top: 0;
+}
+
+.camera-actions-card .control-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 0.7rem;
+}
+
+.camera-actions-card .control-group-secondary {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.camera-actions-card .button {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  min-height: 3.45rem;
+  padding: 0.92rem 1rem;
+  border-radius: 1rem;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
 .session-side {
@@ -1086,15 +1187,14 @@ h3 {
 }
 
 .live-demo-panel .panel-head h2,
-.camera-panel .status-pill,
 #session-feedback {
   max-width: 24ch;
 }
 
 #session-feedback {
-  font-size: clamp(1.15rem, 2vw, 1.65rem);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: clamp(0.98rem, 1.5vw, 1.2rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .workflow-steps,
@@ -1102,18 +1202,25 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
-  margin: 0.6rem 0 0;
+}
+
+.workflow-steps {
+  margin: 0;
+}
+
+.workflow-checks {
+  margin: 0.85rem 0 0;
 }
 
 .workflow-step,
 .workflow-checks span {
   display: inline-flex;
   align-items: center;
-  padding: 0.34rem 0.56rem;
+  padding: 0.42rem 0.7rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .workflow-step.is-active,
@@ -1292,6 +1399,11 @@ h3 {
   .metric-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .camera-panel-head,
+  .camera-support-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1335,9 +1447,53 @@ h3 {
     min-height: auto;
   }
 
-  .camera-shell,
+  .camera-shell {
+    aspect-ratio: 4 / 5;
+    max-height: min(66vh, 34rem);
+  }
+
   #camera {
-    min-height: 24rem;
+    min-height: 0;
+  }
+
+  .camera-panel {
+    padding: 1rem;
+  }
+
+  .camera-panel-head,
+  .camera-stats,
+  .camera-actions-card .control-group {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-overlay {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .video-guide,
+  .camera-overlay > #session-feedback {
+    max-width: none;
+  }
+
+  .video-guide {
+    padding: 0.8rem 0.85rem;
+  }
+
+  #workflow-title {
+    font-size: clamp(1.8rem, 11vw, 2.6rem);
+  }
+
+  #workflow-copy {
+    font-size: 0.94rem;
+  }
+
+  .camera-overlay > #session-feedback {
+    padding: 0.72rem 0.85rem;
+    font-size: 0.9rem;
   }
 
   .calibration-stage-list,
