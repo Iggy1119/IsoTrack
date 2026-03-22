@@ -638,6 +638,7 @@ const els = {
   resetCalibration: document.querySelector("#reset-calibration"),
   startDemo: document.querySelector("#start-demo"),
   toggleSession: document.querySelector("#toggle-session"),
+  nextExercise: document.querySelector("#next-exercise"),
   toggleHold: document.querySelector("#toggle-hold"),
   manualRep: document.querySelector("#manual-rep"),
   completeSession: document.querySelector("#complete-session"),
@@ -898,6 +899,7 @@ function bindEvents() {
     persistState();
   });
   els.toggleSession.addEventListener("click", toggleSession);
+  els.nextExercise?.addEventListener("click", moveToNextExercise);
   els.toggleHold.addEventListener("click", toggleHold);
   els.manualRep.addEventListener("click", () => {
     registerExerciseRep(1, 8, "Manual rep logged. Keep the movement slow and repeatable.");
@@ -1621,6 +1623,11 @@ function isPrescribedSessionComplete(demos = buildSessionDemoLibrary()) {
   return demos.length > 0 && state.session.completedExercises.length >= demos.length;
 }
 
+function hasNextPrescribedExercise(selectedDemo = getSelectedDemo(), demos = buildSessionDemoLibrary()) {
+  if (!selectedDemo) return false;
+  return selectedDemo.sessionIndex < demos.length - 1;
+}
+
 function resetCurrentExerciseProgress() {
   state.session.exerciseReps = 0;
   state.session.exerciseHoldSeconds = 0;
@@ -1630,11 +1637,15 @@ function resetCurrentExerciseProgress() {
 
 function getCurrentExerciseProgressLabel(selectedDemo = getSelectedDemo()) {
   if (!selectedDemo) return "No prescribed exercise selected.";
-  if (isCurrentExerciseComplete(selectedDemo)) return "Complete. Move on when ready.";
+  if (isCurrentExerciseComplete(selectedDemo)) {
+    return hasNextPrescribedExercise(selectedDemo)
+      ? "Complete. Press Next Exercise."
+      : "Complete. Press Finish Session.";
+  }
   return `${state.session.exerciseReps}/${selectedDemo.repTarget} reps • ${state.session.exerciseHoldSeconds}/${selectedDemo.holdTarget}s TUT`;
 }
 
-function advancePrescribedExercise() {
+function completeCurrentExerciseBlock() {
   const demos = buildSessionDemoLibrary();
   const current = getSelectedDemo();
   if (!current) return;
@@ -1651,23 +1662,47 @@ function advancePrescribedExercise() {
 
   const nextIndex = current.sessionIndex + 1;
   if (nextIndex < demos.length) {
-    state.session.selectedDemo = nextIndex;
-    state.session.previewDemoIndex = nextIndex;
-    state.session.demoCompleted = false;
-    state.session.demoProgress = 0;
-    state.session.exerciseMatchState = "idle";
-    state.session.exerciseMatchScore = 0;
-    resetCurrentExerciseProgress();
-    setFeedback(`${current.title} complete. Run the next prescribed demo: ${demos[nextIndex].title}.`);
+    setFeedback(`${current.title} complete. Press Next Exercise for ${demos[nextIndex].title}.`);
   } else {
     state.session.previewDemoIndex = current.sessionIndex;
     state.session.demoCompleted = true;
     state.session.demoProgress = 100;
     state.session.exerciseMatchState = "matched";
     state.session.exerciseMatchScore = 1;
-    setFeedback("Prescribed session complete. Submit post-session RPE and finish the session.");
+    setFeedback("All prescribed exercises complete. Submit post-session RPE and finish the session.");
   }
 
+  renderSessionDemos();
+  renderSession();
+  renderControlStates();
+  renderWorkflow();
+  persistState();
+}
+
+function moveToNextExercise() {
+  const demos = buildSessionDemoLibrary();
+  const current = getSelectedDemo();
+  if (!current) return;
+
+  if (!isCurrentExerciseComplete(current)) {
+    setFeedback("Finish the current exercise first, then move to the next one.");
+    return;
+  }
+
+  const nextIndex = current.sessionIndex + 1;
+  if (nextIndex >= demos.length) {
+    setFeedback("All prescribed exercises are complete. Press Finish Session.");
+    return;
+  }
+
+  state.session.selectedDemo = nextIndex;
+  state.session.previewDemoIndex = nextIndex;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  state.session.exerciseMatchState = "idle";
+  state.session.exerciseMatchScore = 0;
+  resetCurrentExerciseProgress();
+  startDemoWalkthrough({ automatic: true });
   renderSessionDemos();
   renderSession();
   renderControlStates();
@@ -1678,7 +1713,8 @@ function advancePrescribedExercise() {
 function checkCurrentExerciseCompletion() {
   if (!state.session.running || isPrescribedSessionComplete()) return;
   if (!isCurrentExerciseTargetMet()) return;
-  advancePrescribedExercise();
+  if (isCurrentExerciseComplete()) return;
+  completeCurrentExerciseBlock();
 }
 
 function renderPlan() {
@@ -1925,9 +1961,13 @@ function renderAllDemos() {
             >
               <span class="demo-library-button-main">
                 <strong>${item.title}</strong>
-                <small>${item.focus} • ${item.targetLabel}</small>
+                <small>${item.summary}</small>
               </span>
-              <span class="demo-library-button-file">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+              <span class="demo-library-button-meta">
+                <span class="demo-library-button-chip">${item.focus}</span>
+                <span class="demo-library-button-chip">${item.targetLabel}</span>
+                <span class="demo-library-button-file">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+              </span>
             </button>
           `).join("")}
         </div>
@@ -3197,7 +3237,7 @@ function renderCalibrationCountdown() {
 
   const seconds = getCalibrationCountdownSeconds();
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 1) {
+  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 0) {
     els.calibrationCountdown.classList.add("hidden");
     els.calibrationCountdown.dataset.label = "";
     return;
@@ -3972,6 +4012,15 @@ function toggleSession() {
     return;
   }
 
+  if (isCurrentExerciseComplete()) {
+    setFeedback(
+      hasNextPrescribedExercise()
+        ? "This exercise is complete. Press Next Exercise."
+        : "All exercises are complete. Press Finish Session."
+    );
+    return;
+  }
+
   if (!state.session.running) {
     if (state.session.rpeDirty) {
       submitRpe({ feedback: false });
@@ -4251,7 +4300,17 @@ function renderControlStates() {
     els.startDemo.disabled = true;
     els.startDemo.hidden = true;
   }
-  els.toggleSession.disabled = !state.plan || !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted || isPrescribedSessionComplete();
+  const currentExerciseComplete = isCurrentExerciseComplete();
+  const nextExerciseAvailable = currentExerciseComplete && hasNextPrescribedExercise();
+  els.toggleSession.disabled = !state.plan
+    || !state.session.cameraReady
+    || !state.session.calibrated
+    || !state.session.demoCompleted
+    || isPrescribedSessionComplete()
+    || currentExerciseComplete;
+  if (els.nextExercise) {
+    els.nextExercise.disabled = !nextExerciseAvailable;
+  }
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
   els.completeSession.disabled = state.session.completed
@@ -4265,6 +4324,7 @@ function renderControlStates() {
     els.startCamera,
     els.stopCamera,
     els.toggleSession,
+    els.nextExercise,
     els.completeSession,
   ].filter(Boolean);
   const secondaryButtons = [

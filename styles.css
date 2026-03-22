@@ -1685,12 +1685,13 @@ h3 {
 
 .demo-library-group {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.9rem;
+  padding: 1rem 0 0;
 }
 
 .demo-library-group + .demo-library-group {
-  margin-top: 0.35rem;
-  padding-top: 1rem;
+  margin-top: 0.15rem;
+  padding-top: 1.1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1717,22 +1718,24 @@ h3 {
 
 .demo-library-group-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
 }
 
 .demo-library-button {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: start;
   gap: 0.9rem;
   width: 100%;
-  padding: 0.9rem 1rem;
+  min-height: 8.75rem;
+  padding: 1rem 1rem 0.95rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
+  border-radius: 1.1rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
-    rgba(10, 12, 18, 0.55);
+    radial-gradient(circle at top left, rgba(216, 166, 161, 0.08), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(10, 12, 18, 0.58);
   color: var(--soft);
   text-align: left;
   cursor: pointer;
@@ -1755,7 +1758,7 @@ h3 {
 
 .demo-library-button-main {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 
@@ -1769,20 +1772,37 @@ h3 {
 
 .demo-library-button small {
   color: var(--muted);
-  font-size: 0.83rem;
-  line-height: 1.4;
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
+.demo-library-button-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.demo-library-button-chip,
 .demo-library-button-file {
   display: inline-flex;
   align-items: center;
-  max-width: 16rem;
   padding: 0.32rem 0.6rem;
   border: 1px solid rgba(216, 166, 161, 0.24);
   border-radius: 999px;
   color: var(--accent);
   background: rgba(216, 166, 161, 0.06);
   font-size: 0.76rem;
+}
+
+.demo-library-button-chip {
+  border-color: rgba(143, 215, 191, 0.2);
+  background: rgba(143, 215, 191, 0.08);
+  color: var(--accent-2);
+}
+
+.demo-library-button-file {
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1937,6 +1957,23 @@ h3 {
   gap: 1rem;
 }
 
+.demo-library-preview-head {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.demo-library-preview-head .panel-label {
+  margin-bottom: 0;
+}
+
+.demo-library-preview-head strong {
+  display: block;
+  color: var(--soft);
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
 .demo-library-feature-panel .demo-player-shell-large {
   margin-top: 0.75rem;
 }
@@ -1948,13 +1985,13 @@ h3 {
 
 .demo-library-feature-panel .demo-grid {
   grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-top: 0.35rem;
+  gap: 1.1rem;
+  margin-top: 0.55rem;
 }
 
 .demo-library-feature-panel .demo-library-head {
-  padding-bottom: 0.9rem;
-  margin-top: 0.75rem;
+  padding-bottom: 1rem;
+  margin-top: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 

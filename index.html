@@ -548,6 +548,7 @@
                       <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
                       <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
                       <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
+                      <button class="button button-secondary" id="next-exercise" type="button">Next Exercise</button>
                       <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
                     </div>
 
@@ -629,15 +630,18 @@
             <div class="panel demo-library-feature-panel">
               <div class="panel-head">
                 <div>
-                  <p class="eyebrow">Selected Demo</p>
-                  <h2 id="library-demo-title">All exercise demos</h2>
+                  <p class="eyebrow">All Demos</p>
+                  <h2>Demo Library</h2>
                 </div>
                 <span class="status-pill muted-pill" id="library-demo-status">MP4 library</span>
+              </div>
+              <div class="demo-library-preview-head">
+                <span class="panel-label">Previewing</span>
+                <strong id="library-demo-title">All exercise demos</strong>
               </div>
               <div class="demo-player-shell demo-player-shell-large">
                 <video id="library-demo-player" class="demo-player" controls playsinline preload="none"></video>
               </div>
-              <p class="panel-label">Embedded MP4 + explanation</p>
               <p class="demo-detail-copy" id="library-demo-copy">Choose any exercise from the library below to load its video, helpful tip, and purpose here.</p>
               <div class="demo-detail-meta" aria-label="Library demo metadata">
                 <span id="library-demo-focus">Demo focus</span>
