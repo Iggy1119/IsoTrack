@@ -45,8 +45,10 @@ const LIMB_CONNECTIONS = [
 ];
 const LIMB_VISIBILITY_THRESHOLD = 0.58;
 const LIMB_CAPTURE_THRESHOLD = 6;
-const DEFAULT_PROGRAM_VALUE = 120;
+const DEFAULT_PROGRAM_VALUE = 15;
 const DEFAULT_REIMBURSEMENT_SESSIONS = 12;
+const PROTECTED_MONTHLY_BALANCE = 12;
+const STANDARD_MONTHLY_BALANCE = 15;
 const CALIBRATION_FALLBACK_GUIDE = {
   points: {
     leftShoulder: { x: 0.45, y: 0.33 },
@@ -79,6 +81,12 @@ const CALIBRATION_GUIDE_CONNECTIONS = [
   ["rightHeel", "rightFootIndex"],
 ];
 
+function getRewardPeriodKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
 const state = {
   activeTab: "session",
   plan: null,
@@ -87,6 +95,7 @@ const state = {
     streak: 0,
     tier: "Starter",
     targetValue: DEFAULT_PROGRAM_VALUE,
+    periodKey: getRewardPeriodKey(),
   },
   report: null,
   reportView: "daily",
@@ -651,7 +660,7 @@ const AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD = 0.018;
 const CALIBRATION_HOLD_GRACE_MS = 240;
 const ARM_CALIBRATION_TARGET_SCALE = 0.8;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
-const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
+const FIRST_CALIBRATION_STEP_DELAY_MS = 3000;
 const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 3000;
 let calibrationMatchFrames = 0;
 let calibrationHoldStartedAt = 0;
@@ -812,20 +821,42 @@ function syncSliderLabels() {
   els.fatigueValue.textContent = els.fatigue.value;
   els.confidenceValue.textContent = els.confidence.value;
   if (els.preRpe) {
-    els.preRpe.value = String(state.session.preRpe ?? Number(els.preRpe.value));
-    els.preRpeValue.textContent = els.preRpe.value;
+    const preRpe = clampRpe(state.session.preRpe ?? Number(els.preRpe.value));
+    els.preRpe.value = String(preRpe);
+    els.preRpeValue.textContent = String(preRpe);
   }
   if (els.postRpe) {
-    els.postRpe.value = String(state.session.postRpe ?? Number(els.postRpe.value));
-    els.postRpeValue.textContent = els.postRpe.value;
+    const postRpe = clampRpe(state.session.postRpe ?? Number(els.postRpe.value));
+    els.postRpe.value = String(postRpe);
+    els.postRpeValue.textContent = String(postRpe);
   }
 }
 
 function handleRpeInput() {
-  state.session.preRpe = Number(els.preRpe.value);
-  state.session.postRpe = Number(els.postRpe.value);
+  state.session.preRpe = clampRpe(els.preRpe.value);
+  state.session.postRpe = clampRpe(els.postRpe.value);
   syncSliderLabels();
   persistState();
+}
+
+function clampRpe(value) {
+  const normalized = Number.parseInt(value, 10);
+  if (!Number.isFinite(normalized)) return 4;
+  return Math.min(10, Math.max(1, normalized));
+}
+
+function getMonthlyRepTarget(plan) {
+  const weeklyReps = Number(plan?.weeklyReps || 24);
+  return Math.max(1, weeklyReps * 4);
+}
+
+function ensureRewardPeriod() {
+  const currentPeriodKey = getRewardPeriodKey();
+  if (state.rewards.periodKey === currentPeriodKey) return;
+
+  state.rewards.periodKey = currentPeriodKey;
+  state.rewards.cashback = 0;
+  state.rewards.targetValue = state.plan?.programValue || DEFAULT_PROGRAM_VALUE;
 }
 
 function getCalibrationStepDelayMs() {
@@ -935,9 +966,9 @@ function handleAssessmentSubmit(event) {
   const cadence = `${weeklyReps} reps/week | ${sessionsPerWeek} sessions`;
   const holdSeconds = protectedMode ? 15 : confidence >= 8 ? 30 : 22;
   const baseSets = protectedMode ? 2 : weeklyReps >= 48 ? 4 : 3;
-  const rewardRate = protectedMode ? 0.18 : 0.26;
-  const programValue = protectedMode ? 96 : 120;
-  const reimbursementSessions = protectedMode ? 16 : 12;
+  const programValue = protectedMode ? PROTECTED_MONTHLY_BALANCE : STANDARD_MONTHLY_BALANCE;
+  const rewardRate = Number((programValue / getMonthlyRepTarget({ weeklyReps })).toFixed(3));
+  const reimbursementSessions = sessionsPerWeek * 4;
   const focuses = focus.length ? focus : ["Shoulders", "Core"];
 
   state.plan = {
@@ -957,7 +988,9 @@ function handleAssessmentSubmit(event) {
     reimbursementSessions,
     focuses,
   };
+  state.rewards.cashback = 0;
   state.rewards.targetValue = programValue;
+  state.rewards.periodKey = getRewardPeriodKey();
 
   state.report = null;
   state.session.reps = 0;
@@ -970,8 +1003,8 @@ function handleAssessmentSubmit(event) {
   state.session.intensityLabel = protectedMode ? "Protected mode" : "Moderate guided mode";
   state.session.selectedDemo = 0;
   state.session.completed = false;
-  state.session.preRpe = Math.min(7, Math.max(2, fatigue - 1));
-  state.session.postRpe = state.session.preRpe;
+  state.session.preRpe = clampRpe(els.preRpe?.value ?? state.session.preRpe);
+  state.session.postRpe = clampRpe(els.postRpe?.value ?? state.session.postRpe);
   state.session.calibrated = false;
   state.session.baseline = null;
   state.session.calibrationShots = {
@@ -1119,7 +1152,7 @@ function renderPlan() {
   els.planDiagnosis.textContent = state.plan.diagnosis;
   els.planGoal.textContent = `${weeklyReps} reps / week`;
   els.planCadence.textContent = state.plan.cadence;
-  els.planReward.textContent = `$${state.plan.programValue} returned over time`;
+  els.planReward.textContent = `$${state.plan.programValue} monthly balance available`;
   els.planStatus.textContent = state.plan.protectedMode ? "Protected plan active" : "Adaptive plan ready";
   els.careNote.textContent = `${state.plan.patientName} starts with a ${state.plan.protectedMode ? "conservative" : "moderate"} program focused on ${state.plan.focuses.join(", ")} with a weekly target of ${weeklyReps} reps. Prioritize clean movement and stable breathing.`;
 
@@ -1402,7 +1435,7 @@ async function requestCameraAccess() {
     state.session.cameraReady = true;
     await ensurePoseTracking();
     scheduleCalibrationStepDelay();
-    setFeedback("Camera ready. Neutral calibration begins in 10 seconds.");
+    setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
     renderSession();
     renderControlStates();
     renderCalibration();
@@ -1918,7 +1951,7 @@ function resetCalibration() {
   resetAutoCalibrationTracking();
   scheduleCalibrationStepDelay();
   updateCalibrationButtonLabel();
-  setFeedback("Calibration reset. Neutral stance begins in 10 seconds.");
+  setFeedback("Calibration reset. Neutral stance begins in 3 seconds.");
   renderCalibration();
   renderWorkflow();
   renderControlStates();
@@ -2699,8 +2732,8 @@ function toggleSession() {
   }
 
   if (!state.session.running) {
-    state.session.preRpe = Number(els.preRpe.value);
-    state.session.postRpe = Number(els.postRpe.value);
+    state.session.preRpe = clampRpe(els.preRpe.value);
+    state.session.postRpe = clampRpe(els.postRpe.value);
   }
 
   state.session.running = !state.session.running;
@@ -2710,7 +2743,7 @@ function toggleSession() {
   els.toggleSession.textContent = state.session.running ? "Pause Session" : "Start Session";
 
   if (state.session.running) {
-    setFeedback(`Session active. Starting RPE ${state.session.preRpe}/10.`);
+    setFeedback(`Session active. User-entered starting RPE ${state.session.preRpe}/10.`);
   } else {
     setFeedback("Session paused.");
   }
@@ -2798,7 +2831,8 @@ function completeSession() {
     return;
   }
 
-  state.session.postRpe = Number(els.postRpe.value);
+  ensureRewardPeriod();
+  state.session.postRpe = clampRpe(els.postRpe.value);
 
   stopHoldTimer();
   resetExerciseHoldTracking();
@@ -2819,17 +2853,15 @@ function completeSession() {
     reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
     focuses: [getSelectedFocus()],
   };
-  const preRpe = Number(state.session.preRpe || 0);
-  const postRpe = Number(state.session.postRpe || 0);
+  const preRpe = clampRpe(state.session.preRpe || 0);
+  const postRpe = clampRpe(state.session.postRpe || 0);
   const reimbursementTarget = activePlan.programValue || DEFAULT_PROGRAM_VALUE;
-  const reimbursementSessions = activePlan.reimbursementSessions || DEFAULT_REIMBURSEMENT_SESSIONS;
   const remainingBalance = Math.max(0, reimbursementTarget - state.rewards.cashback);
-  const sessionBaseReturn = reimbursementTarget / reimbursementSessions;
-  const adherenceMultiplier = 0.7 + (adherence / 200);
-  const rpeGuardrail = postRpe >= 8 ? 0.8 : 1;
+  const monthlyRepTarget = getMonthlyRepTarget(activePlan);
+  const sessionRepProgress = Math.min(1, state.session.reps / monthlyRepTarget);
   const cashbackEarned = Number(Math.min(
     remainingBalance,
-    sessionBaseReturn * adherenceMultiplier * rpeGuardrail
+    reimbursementTarget * sessionRepProgress
   ).toFixed(2));
   const rpeDelta = postRpe - preRpe;
   const rpeSummary = `Pre ${preRpe}/10 | Post ${postRpe}/10`;
@@ -2846,7 +2878,7 @@ function completeSession() {
     fatigueBand: rpeSummary,
     intensity: rpeChange,
     status: careStatus,
-    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension on ${selectedDemo?.title || activePlan.focuses[0]}. Session RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
+    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension on ${selectedDemo?.title || activePlan.focuses[0]}. User-entered RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
   };
   state.sessionHistory = [
     ...state.sessionHistory,
@@ -2873,7 +2905,7 @@ function completeSession() {
   state.rewards.targetValue = reimbursementTarget;
   state.session.completed = true;
 
-  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} returned.`);
+  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's balance.`);
   renderSession();
   renderControlStates();
   renderReport();
@@ -3134,7 +3166,7 @@ function renderReport() {
     els.reportFatigue.textContent = "Pre -- | Post --";
     els.reportIntensity.textContent = "--";
     els.reportStatus.textContent = "Awaiting first session";
-    els.reportText.textContent = "Generate a plan and complete a session to create the report.";
+    els.reportText.textContent = "Generate a plan, enter manual RPE, and complete a session to create the report.";
     renderReportChart();
     return;
   }
@@ -3155,7 +3187,7 @@ function renderReportChart() {
     : buildDailyHistoryRows(state.sessionHistory);
 
   if (!chartRows.length) {
-    els.reportChart.innerHTML = `<p class="report-chart-empty">Complete a session to populate the clinician graph.</p>`;
+    els.reportChart.innerHTML = `<p class="report-chart-empty">Complete a session to populate the clinician graph with TUT and user-entered RPE.</p>`;
     return;
   }
 
@@ -3173,7 +3205,7 @@ function renderReportChart() {
             </div>
             <strong>${row.label}</strong>
             <small>${row.timeUnderTension}s TUT</small>
-            <small>RPE ${row.postRpe.toFixed(1)}</small>
+            <small>User RPE ${row.postRpe.toFixed(1)}</small>
           </article>
         `;
       }).join("")}
@@ -3240,6 +3272,7 @@ function buildExerciseHistoryRows(history) {
 }
 
 function renderRewards() {
+  ensureRewardPeriod();
   const targetValue = state.rewards.targetValue || DEFAULT_PROGRAM_VALUE;
   const returned = Math.min(targetValue, state.rewards.cashback);
   const remaining = Math.max(0, targetValue - returned);
@@ -3252,9 +3285,9 @@ function renderRewards() {
   els.walletProgress.textContent = `${progress}%`;
   els.walletNote.textContent = state.rewards.streak
     ? remaining > 0
-      ? `${state.rewards.streak} sessions completed. ${state.rewards.tier} tier active. $${remaining.toFixed(2)} remaining until full reimbursement.`
-      : `Full reimbursement reached. ${state.rewards.tier} tier active.`
-    : "Each completed session returns part of the program cost until the full amount is reimbursed.";
+      ? `${state.rewards.streak} sessions completed. ${state.rewards.tier} tier active. Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)}.`
+      : `Monthly balance fully earned back. ${state.rewards.tier} tier active.`
+    : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} balance.`;
 }
 
 function setFeedback(message, force = true) {
@@ -3424,6 +3457,10 @@ function restoreState() {
     Object.assign(state.session, parsed.session || {});
     state.reportView = parsed.reportView || "daily";
     state.sessionHistory = Array.isArray(parsed.sessionHistory) ? parsed.sessionHistory : [];
+    state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
+    state.session.preRpe = clampRpe(state.session.preRpe);
+    state.session.postRpe = clampRpe(state.session.postRpe);
+    ensureRewardPeriod();
     state.session.exerciseMatchState = "idle";
     state.session.exerciseMatchScore = 0;
   } catch (error) {

@@ -492,19 +492,27 @@
               <div class="panel rpe-panel">
                 <div class="panel-head">
                   <div>
-                    <p class="eyebrow">Session check-in</p>
-                    <h2>How are you feeling?</h2>
+                    <p class="eyebrow">Manual RPE</p>
+                    <h2>Enter your own effort rating.</h2>
                   </div>
-                  <span class="status-pill muted-pill">RPE</span>
+                  <span class="status-pill muted-pill">User input</span>
                 </div>
                 <div class="slider-grid session-checkin-grid">
-                  <label class="slider-card">
-                    <span>Before session <strong id="pre-rpe-value">4</strong>/10</span>
-                    <input id="pre-rpe" type="range" min="1" max="10" value="4">
+                  <label class="slider-card rpe-input-card">
+                    <span>Before session</span>
+                    <div class="rpe-input-row">
+                      <input id="pre-rpe" class="rpe-input" type="number" min="1" max="10" step="1" inputmode="numeric" value="4">
+                      <strong><span id="pre-rpe-value">4</span>/10</strong>
+                    </div>
+                    <small>Use your own 1-10 rating before you begin.</small>
                   </label>
-                  <label class="slider-card">
-                    <span>After session <strong id="post-rpe-value">4</strong>/10</span>
-                    <input id="post-rpe" type="range" min="1" max="10" value="4">
+                  <label class="slider-card rpe-input-card">
+                    <span>After session</span>
+                    <div class="rpe-input-row">
+                      <input id="post-rpe" class="rpe-input" type="number" min="1" max="10" step="1" inputmode="numeric" value="4">
+                      <strong><span id="post-rpe-value">4</span>/10</strong>
+                    </div>
+                    <small>Update this yourself when the session ends.</small>
                   </label>
                 </div>
               </div>
@@ -584,11 +592,11 @@
                   <strong id="report-adherence">0%</strong>
                 </article>
                 <article>
-                  <span>RPE check-in</span>
+                  <span>User-entered RPE</span>
                   <strong id="report-fatigue">Pre -- | Post --</strong>
                 </article>
                 <article>
-                  <span>RPE change</span>
+                  <span>RPE delta</span>
                   <strong id="report-intensity">--</strong>
                 </article>
                 <article>
@@ -601,7 +609,7 @@
                 <div class="report-trend-head">
                   <div>
                     <p class="panel-label">Trend view</p>
-                    <h3>Time under tension and RPE</h3>
+                    <h3>Time under tension and user-entered RPE</h3>
                   </div>
                   <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
                     <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
@@ -639,7 +647,7 @@
             <div class="panel wallet-panel">
               <p class="eyebrow">Reward wallet</p>
               <div class="wallet-total">
-                <span>Returned so far</span>
+                <span>Earned this month</span>
                 <strong id="wallet-total">$0.00</strong>
               </div>
               <div class="wallet-metrics">
@@ -652,7 +660,7 @@
                   <strong id="wallet-tier">Starter</strong>
                 </article>
                 <article>
-                  <span>Remaining balance</span>
+                  <span>Left this month</span>
                   <strong id="wallet-remaining">$0.00</strong>
                 </article>
                 <article>
@@ -660,7 +668,7 @@
                   <strong id="wallet-progress">0%</strong>
                 </article>
               </div>
-              <p id="wallet-note">Each completed session returns part of the program cost until the full amount is reimbursed.</p>
+              <p id="wallet-note">Finish your planned reps this month to earn back the full balance.</p>
             </div>
 
             <div class="panel reward-tier-panel">
