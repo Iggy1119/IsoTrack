@@ -1134,7 +1134,7 @@ function cancelCameraPermissionModal() {
 
 function startCamera() {
   if (state.session.cameraReady) return;
-  openCameraPermissionModal();
+  requestCameraAccess();
 }
 
 function resetCalibrationSequenceForCameraStart() {
@@ -1192,6 +1192,10 @@ async function requestCameraAccess() {
     closeCameraPermissionModal();
     persistState();
   } catch (error) {
+    if (els.cameraPermissionModal) {
+      els.cameraPermissionModal.classList.remove("hidden");
+      els.cameraPermissionModal.setAttribute("aria-hidden", "false");
+    }
     if (els.cameraPermissionTitle) {
       els.cameraPermissionTitle.textContent = "Camera access is still needed";
     }
@@ -2398,7 +2402,6 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
     close,
     active,
   };
-}
 }
 
 function average(a, b) {
