@@ -447,6 +447,8 @@ const FEEDBACK_COOLDOWN_MS = 1800;
 const MOTION_CONFIRMATION_FRAMES = 18;
 const AUTO_CALIBRATION_READY_FRAMES = 8;
 const AUTO_CALIBRATION_HOLD_MS = 1200;
+const AUTO_CALIBRATION_STEADY_CAPTURE_MS = 3600;
+const AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD = 0.018;
 const CALIBRATION_HOLD_GRACE_MS = 240;
 const ARM_CALIBRATION_TARGET_SCALE = 0.68;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
@@ -457,6 +459,8 @@ let calibrationHoldStartedAt = 0;
 let calibrationStepReadyAt = 0;
 let calibrationLastMatchedAt = 0;
 let calibrationSamples = [];
+let calibrationSteadyStartedAt = 0;
+let calibrationSteadySnapshot = null;
 
 bootstrap();
 
@@ -1521,6 +1525,8 @@ function resetAutoCalibrationTracking() {
   calibrationHoldStartedAt = 0;
   calibrationLastMatchedAt = 0;
   calibrationSamples = [];
+  calibrationSteadyStartedAt = 0;
+  calibrationSteadySnapshot = null;
 }
 
 function scheduleCalibrationStepDelay() {
@@ -1573,8 +1579,13 @@ function updateAutoCalibration(landmarks) {
   }
 
   const now = performance.now();
-  const matched = getCalibrationPoseAssessment(currentStep.key, landmarks, state.session.baseline).matched;
+  const assessment = getCalibrationPoseAssessment(currentStep.key, landmarks, state.session.baseline);
+  const matched = assessment.matched;
   if (!matched) {
+    if (updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now)) {
+      return;
+    }
+
     if (calibrationHoldStartedAt && now - calibrationLastMatchedAt <= CALIBRATION_HOLD_GRACE_MS) {
       return;
     }
@@ -1590,6 +1601,8 @@ function updateAutoCalibration(landmarks) {
   }
 
   calibrationLastMatchedAt = now;
+  calibrationSteadyStartedAt = 0;
+  calibrationSteadySnapshot = null;
   calibrationMatchFrames += 1;
   if (calibrationMatchFrames < getCalibrationReadyFrames()) return;
 
@@ -1608,6 +1621,81 @@ function updateAutoCalibration(landmarks) {
   if (now - calibrationHoldStartedAt >= getCalibrationHoldMs()) {
     saveCalibrationStep(currentStep, landmarks, false);
   }
+}
+
+function updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now) {
+  const snapshot = getPoseSnapshot(landmarks);
+  if (!snapshot) {
+    calibrationSteadyStartedAt = 0;
+    calibrationSteadySnapshot = null;
+    return false;
+  }
+
+  const threshold = getSteadyCalibrationScoreThreshold(currentStep.key);
+  if (assessment.score < threshold) {
+    calibrationSteadyStartedAt = 0;
+    calibrationSteadySnapshot = null;
+    return false;
+  }
+
+  if (!calibrationSteadyStartedAt || !calibrationSteadySnapshot) {
+    calibrationSteadyStartedAt = now;
+    calibrationSteadySnapshot = snapshot;
+    calibrationSamples = [snapshot];
+    return false;
+  }
+
+  const movement = getCalibrationSnapshotMovement(currentStep.key, calibrationSteadySnapshot, snapshot);
+  if (movement > AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD) {
+    calibrationSteadyStartedAt = now;
+    calibrationSteadySnapshot = snapshot;
+    calibrationSamples = [snapshot];
+    return false;
+  }
+
+  calibrationSteadySnapshot = snapshot;
+  calibrationSamples.push(snapshot);
+
+  if (now - calibrationSteadyStartedAt < AUTO_CALIBRATION_STEADY_CAPTURE_MS) {
+    return false;
+  }
+
+  setFeedback(`${currentStep.title} held steady. Saving calibration.`);
+  saveCalibrationStep(currentStep, landmarks, false);
+  return true;
+}
+
+function getSteadyCalibrationScoreThreshold(stepKey) {
+  if (stepKey === "arms") return 0.36;
+  if (stepKey === "knee") return 0.45;
+  return 0.55;
+}
+
+function getCalibrationSnapshotMovement(stepKey, previousSnapshot, nextSnapshot) {
+  const pointNames = getCalibrationMovementPointNames(stepKey);
+  const deltas = pointNames
+    .map((name) => {
+      const previousPoint = previousSnapshot?.[name];
+      const nextPoint = nextSnapshot?.[name];
+      if (!previousPoint || !nextPoint) return null;
+      return distance(previousPoint, nextPoint);
+    })
+    .filter((delta) => typeof delta === "number");
+
+  if (!deltas.length) return Infinity;
+  return deltas.reduce((sum, delta) => sum + delta, 0) / deltas.length;
+}
+
+function getCalibrationMovementPointNames(stepKey) {
+  if (stepKey === "arms") {
+    return ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"];
+  }
+
+  if (stepKey === "knee") {
+    return ["leftShoulder", "rightShoulder", "leftHip", "rightHip", "leftAnkle", "rightAnkle", "leftHeel", "rightHeel"];
+  }
+
+  return ["leftShoulder", "rightShoulder", "leftHip", "rightHip", "leftWrist", "rightWrist"];
 }
 
 function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
