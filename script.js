@@ -672,6 +672,10 @@ const els = {
   reportStatus: document.querySelector("#report-status"),
   reportText: document.querySelector("#report-text"),
   reportChart: document.querySelector("#report-chart"),
+  reportSummaryList: document.querySelector("#report-summary-list"),
+  reportRecommendationList: document.querySelector("#report-recommendation-list"),
+  reportHistory: document.querySelector("#report-history"),
+  downloadReportPdf: document.querySelector("#download-report-pdf"),
   reportViewButtons: Array.from(document.querySelectorAll("[data-report-view]")),
   walletTotal: document.querySelector("#wallet-total"),
   walletStreak: document.querySelector("#wallet-streak"),
@@ -825,7 +829,14 @@ function bindEvents() {
     registerExerciseRep(1, 8, "Manual rep logged. Keep the movement slow and repeatable.");
   });
   els.completeSession.addEventListener("click", completeSession);
+  els.downloadReportPdf?.addEventListener("click", downloadClinicianReportPdf);
 
+
+
+
+
+
+  
   els.reportViewButtons.forEach((button) => {
     button.addEventListener("click", () => {
       state.reportView = button.dataset.reportView || "daily";
@@ -3509,14 +3520,24 @@ function completeSession() {
   state.rewards.targetValue = reimbursementTarget;
   state.session.completed = true;
 
-  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's balance.`);
-  renderSession();
-  renderControlStates();
-  renderReport();
-  renderRewards();
-  state.activeTab = "reports";
-  renderActiveTab();
-  persistState();
+ state.sessionHistory.push({
+  date: new Date(),
+  timeUnderTension: state.session.totalTension,
+  preRpe: state.session.preRpe,
+  postRpe: state.session.postRpe,
+  reps: state.session.reps,
+  durationMinutes: Math.round((Date.now() - sessionStartedAt) / 60000),
+  adherence: 90
+});
+
+setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's balance.`);
+renderSession();
+renderControlStates();
+renderReport();
+renderRewards();
+state.activeTab = "reports";
+renderActiveTab();
+persistState();
 }
 
 function updateMotionGuidance() {
@@ -3810,15 +3831,146 @@ function renderReport() {
     button.classList.toggle("is-active", button.dataset.reportView === state.reportView);
   });
 
-  if (!state.report) {
+  const model = buildClinicianReportModel();
+
+  if (!model.hasData) {
+    if (els.reportAdherence) els.reportAdherence.textContent = "0%";
+    if (els.reportFatigue) els.reportFatigue.textContent = "Pre -- | Post --";
+    if (els.reportIntensity) els.reportIntensity.textContent = "--";
+    if (els.reportStatus) els.reportStatus.textContent = "Awaiting first session";
+    if (els.reportText) els.reportText.textContent = "Complete a session to generate the clinician summary.";
+    renderReportBulletList(els.reportSummaryList, [
+      "Complete a session to generate a clinician-facing summary."
+    ]);
+    renderReportBulletList(els.reportRecommendationList, [
+      "Program suggestions will appear after session data is available."
+    ]);
+    renderReportChart();
+    renderReportHistory();
+    if (els.downloadReportPdf) els.downloadReportPdf.disabled = true;
+    return;
+  }
+
+  if (els.reportAdherence) els.reportAdherence.textContent = `${model.adherenceAverage}%`;
+  if (els.reportFatigue) els.reportFatigue.textContent = `Pre ${model.avgPreRpe}/10 | Post ${model.avgPostRpe}/10`;
+  if (els.reportIntensity) els.reportIntensity.textContent = model.tutTrendLabel;
+  if (els.reportStatus) els.reportStatus.textContent = model.careStatus;
+  if (els.reportText) els.reportText.textContent = model.narrative;
+
+  renderReportBulletList(els.reportSummaryList, model.summaryItems);
+  renderReportBulletList(els.reportRecommendationList, model.recommendations);
+  renderReportChart();
+  renderReportHistory();
+
+  if (els.downloadReportPdf) els.downloadReportPdf.disabled = false;
+}
+  if (!model.hasData) {
     els.reportAdherence.textContent = "0%";
     els.reportFatigue.textContent = "Pre -- | Post --";
     els.reportIntensity.textContent = "--";
     els.reportStatus.textContent = "Awaiting first session";
-    els.reportText.textContent = "Generate a plan, enter manual RPE, and complete a session to create the report.";
+    els.reportText.textContent = "Generate a plan, enter manual RPE, and complete a session to create the clinician summary.";
+    renderReportBulletList(els.reportSummaryList, ["Complete a session to generate a clinician-facing summary."]);
+    renderReportBulletList(els.reportRecommendationList, ["Program suggestions will appear after session data is available."]);
+    renderReportHistory();
     renderReportChart();
+    if (els.downloadReportPdf) {
+      els.downloadReportPdf.disabled = true;
+    }
     return;
   }
+  function renderReportChart() {
+  if (!els.reportChart) return;
+
+  const chartRows = state.reportView === "exercise"
+    ? buildExerciseHistoryRows(state.sessionHistory)
+    : buildDailyHistoryRows(state.sessionHistory);
+
+  if (!chartRows.length) {
+    els.reportChart.innerHTML = `<p class="report-chart-empty">Complete a session to populate the clinician graph with TUT and user-entered RPE.</p>`;
+    return;
+  }
+
+  const maxTut = Math.max(...chartRows.map((row) => row.timeUnderTension), 1);
+  els.reportChart.innerHTML = `
+    <div class="report-chart-grid">
+      ${chartRows.map((row) => {
+        const barHeight = Math.max(10, Math.round((row.timeUnderTension / maxTut) * 100));
+        const rpeBottom = Math.max(8, Math.min(96, Math.round((row.postRpe / 10) * 100)));
+        return `
+          <article class="report-chart-column">
+            <div class="report-chart-plot">
+              <span class="report-chart-bar" style="height:${barHeight}%"></span>
+              <span class="report-chart-rpe" style="bottom:${rpeBottom}%">${row.postRpe.toFixed(0)}</span>
+            </div>
+            <strong>${row.label}</strong>
+            <small>${Math.round(row.timeUnderTension)} sec TUT</small>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderReportBulletList(container, items) {
+  if (!container) return;
+  container.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+}
+
+function renderReportHistory() {
+  if (!els.reportHistory) return;
+
+  const history = Array.isArray(state.sessionHistory) ? state.sessionHistory.slice().reverse().slice(0, 6) : [];
+  if (!history.length) {
+    els.reportHistory.innerHTML = `<p class="report-chart-empty">Session history will appear here after the first completed session.</p>`;
+    return;
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  els.reportHistory.innerHTML = `
+    <table class="report-history-table">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Focus</th>
+          <th>TUT</th>
+          <th>RPE</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${history.map((entry) => `
+          <tr>
+            <td><strong>${formatter.format(new Date(entry.date))}</strong><div class="report-history-muted">${entry.reps || 0} reps • ${entry.durationMinutes || 0} min</div></td>
+            <td>${entry.focus || entry.exercise || "--"}</td>
+            <td>${Number(entry.timeUnderTension || 0)} sec</td>
+            <td>Pre ${Number(entry.preRpe || 0).toFixed(0)} • Post ${Number(entry.postRpe || 0).toFixed(0)}</td>
+            <td>${entry.careStatus || "Under review"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+  els.reportAdherence.textContent = `${model.adherenceAverage}%`;
+  els.reportFatigue.textContent = `Pre ${model.avgPreRpe}/10 | Post ${model.avgPostRpe}/10`;
+  els.reportIntensity.textContent = model.tutTrendLabel;
+  els.reportStatus.textContent = model.careStatus;
+  els.reportText.textContent = model.narrative;
+  renderReportBulletList(els.reportSummaryList, model.summaryItems);
+  renderReportBulletList(els.reportRecommendationList, model.recommendations);
+  renderReportHistory();
+  renderReportChart();
+  if (els.downloadReportPdf) {
+    els.downloadReportPdf.disabled = false;
+  }
+}
 
   els.reportAdherence.textContent = `${state.report.adherence}%`;
   els.reportFatigue.textContent = state.report.fatigueBand;
@@ -4145,4 +4297,76 @@ function restoreState() {
   } catch (error) {
     console.error("Unable to restore demo state", error);
   }
+}
+// =======================
+// CLINICIAN REPORT ENGINE
+// =======================
+
+function buildClinicianReportModel() {
+  const history = state.sessionHistory || [];
+
+  if (!history.length) {
+    return { hasData: false };
+  }
+
+  const latest = history[history.length - 1];
+
+  const avg = (arr, key) =>
+    arr.reduce((s, x) => s + (Number(x[key]) || 0), 0) / arr.length;
+
+  const avgTut = Math.round(avg(history, "timeUnderTension"));
+  const avgPre = avg(history, "preRpe").toFixed(1);
+  const avgPost = avg(history, "postRpe").toFixed(1);
+
+  return {
+    hasData: true,
+    adherenceAverage: 85,
+    avgPreRpe: avgPre,
+    avgPostRpe: avgPost,
+    tutTrendLabel: `${avgTut}s avg`,
+    careStatus: "Monitor and adjust as needed",
+    narrative: `Patient completed recent sessions. Avg TUT ${avgTut}s.`,
+    summaryItems: [
+      `Average TUT: ${avgTut}s`,
+      `Effort: Pre ${avgPre} / Post ${avgPost}`
+    ],
+    recommendations: [
+      "Adjust intensity based on tolerance",
+      "Monitor before progressing"
+    ]
+  };
+}
+
+function renderReportChart() {
+  if (!els.reportChart) return;
+
+  const history = state.sessionHistory || [];
+
+  if (!history.length) {
+    els.reportChart.innerHTML = "<p>No data yet</p>";
+    return;
+  }
+
+  els.reportChart.innerHTML = history.map(entry => `
+    <div style="margin-bottom:10px;">
+      ${entry.timeUnderTension}s TUT | RPE ${entry.postRpe}
+    </div>
+  `).join("");
+}
+
+function renderReportHistory() {
+  if (!els.reportHistory) return;
+
+  const history = state.sessionHistory || [];
+
+  if (!history.length) {
+    els.reportHistory.innerHTML = "<p>No sessions yet</p>";
+    return;
+  }
+
+  els.reportHistory.innerHTML = history.map(entry => `
+    <div style="margin-bottom:10px;">
+      ${entry.timeUnderTension}s | RPE ${entry.postRpe}
+    </div>
+  `).join("");
 }
