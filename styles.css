@@ -1732,13 +1732,13 @@ h3 {
 /* ===== OVERVIEW PAGE UPGRADE ===== */
 
 .overview-grid--hero {
-  grid-template-columns: 1.28fr 0.72fr;
+  grid-template-columns: 1.4fr 0.6fr;
   align-items: start;
   gap: 1.5rem;
 }
 
 .overview-story--main {
-  padding: 1.8rem;
+  padding: 2rem 2.2rem;
 }
 .flow-panel {
   margin-top: 2.2rem;
@@ -1823,12 +1823,12 @@ h3 {
   transform: translateY(2rem);
 }
 .overview-story h2 {
-  max-width: 11ch;
+  max-width: 14ch;
   margin-bottom: 1rem;
 }
 
 .overview-story p {
-  max-width: 46ch;
+  max-width: 58ch;
 }
 
 .feature-card--featured h3 {
