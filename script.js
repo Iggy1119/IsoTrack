@@ -1743,6 +1743,7 @@ function renderSessionDemos() {
     if (els.selectedDemoPlayer) {
       els.selectedDemoPlayer.src = selected.videoPath || "";
       els.selectedDemoPlayer.poster = "";
+      els.selectedDemoPlayer.load();
     }
     els.selectedDemoFocus.textContent = `${selected.focus} focus`;
     els.selectedDemoVariant.textContent = selected.typeLabel;
@@ -1791,6 +1792,7 @@ function renderAllDemos() {
     if (els.libraryDemoPlayer) {
       els.libraryDemoPlayer.src = selected.videoPath || "";
       els.libraryDemoPlayer.poster = "";
+      els.libraryDemoPlayer.load();
     }
     if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
     if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
