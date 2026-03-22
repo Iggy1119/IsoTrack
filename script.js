@@ -334,6 +334,185 @@ const exerciseLibrary = {
   },
 };
 
+const demoCatalog = [
+  {
+    title: "Ankle Eversion",
+    helperTip: "Perform against a wall to ensure stability!",
+    purpose: "Train ankle mobility and ankle strength during eversion.",
+    focus: "Ankles",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Ankle Eversion Compress.mp4",
+  },
+  {
+    title: "Ankle Inversion",
+    helperTip: "Perform against a wall to ensure stability!",
+    purpose: "Train ankle mobility and ankle strength during inversion.",
+    focus: "Ankles",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Ankle Inversion Compress.mp4",
+  },
+  {
+    title: "Anterior Deltoid Isometric",
+    helperTip: "Imagine performing a front raise, toward the sky!",
+    purpose: "Train shoulder stability, and contribute to shoulder abduction.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Anterior Deltoid Isometric Compress.mp4",
+  },
+  {
+    title: "Ball Grip Isometric",
+    helperTip: "Think about driving your fingers toward the base of your palm!",
+    purpose: "Train grip strength and distal forearm muscle endurance.",
+    focus: "Grip",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Ball Grip Isometric Compress.mp4",
+  },
+  {
+    title: "Bicep Isometric",
+    helperTip: "Focus on the mind-muscle connection to the bicep!",
+    purpose: "Train biceps to assist during pulling exercises and stability of arm.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Bicep Isometric Compress.mp4",
+  },
+  {
+    title: "Calf Raise Isometric",
+    helperTip: "Rise onto your toes, hold against a wall to ensure stability!",
+    purpose: "Train stability during walking to minimize falls.",
+    focus: "Ankles",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Calf Raise Isometric Compress.mp4",
+  },
+  {
+    title: "Cat Cow Lower Back Mobility",
+    helperTip: "Move slowly to focus on spinal flexion and extension!",
+    purpose: "Train spinal mobility and reduce back stiffness.",
+    focus: "Core",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Cat Cow Lower Back Mobility Compress.mp4",
+  },
+  {
+    title: "Door Pull Lats Isometric",
+    helperTip: "Imagine the movement of pulling a door!",
+    purpose: "Train latissimus dorsi muscles for upper body stability and pulling strength.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Door Pull Lats Isometric Compress.mp4",
+  },
+  {
+    title: "Foot Dorsiflexion",
+    helperTip: "Imagine pulling your toes toward your forehead, keeping your heel planted.",
+    purpose: "Improve the tibialis anterior to minimize foot drop.",
+    focus: "Ankles",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Foot Dorsiflexion Compress.mp4",
+  },
+  {
+    title: "Forearm Flexion",
+    helperTip: "Rest your forearms on a table or your legs for stability!",
+    purpose: "Prevent loss of grip-related strength.",
+    focus: "Grip",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Forearm Flexion Compress.mp4",
+  },
+  {
+    title: "Glute Bridge",
+    helperTip: "Squeeze your glutes at the top, avoid arching the lower back and keep the pelvis forward!",
+    purpose: "Improve hip stability, glutes contribute to walking ability.",
+    focus: "Hips",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Glute Bridge Compress.mp4",
+  },
+  {
+    title: "Hamstring Isometric",
+    helperTip: "Dig your heel into the seat and imagine bringing it to the floor.",
+    purpose: "Improve knee joint stability.",
+    focus: "Hips",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Hamstring Isometric Compress.mp4",
+  },
+  {
+    title: "Hollow Body Holds",
+    helperTip: "Keep your lower back pressed into the ground.",
+    purpose: "Improve core strength for stability.",
+    focus: "Core",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Hollow Body Holds Compress.mp4",
+  },
+  {
+    title: "Lateral Deltoid Isometric",
+    helperTip: "Think about bringing your shoulder toward your ear in an arc.",
+    purpose: "Prevent loss of shoulder abduction ability.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Lateral Deltoid Isometric Compress.mp4",
+  },
+  {
+    title: "Pecs Isometric",
+    helperTip: "Imagine mind muscle connection and feel your pecs squeezing.",
+    purpose: "Improve pecs for maintaining pushing abilities.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Pecs Isometric Compress.mp4",
+  },
+  {
+    title: "Rotator Cuff Internal Rotation",
+    helperTip: "Perform rotation slowly, to prevent damage.",
+    purpose: "Improve shoulder joint stability.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Rotator Cuff Internal Rotation Compress.mp4",
+  },
+  {
+    title: "Shrug Isometric",
+    helperTip: "Lift your shoulders toward your ear.",
+    purpose: "Prevents loss of grip strength, strengthens traps for neck/shoulder stability.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Shrug Isometric Compress.mp4",
+  },
+  {
+    title: "Tricep Kickback Isometric",
+    helperTip: "Imagine mind muscle connection and feeling your triceps contracting.",
+    purpose: "Improve elbow stability, prevent loss of pushing motion ability.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Tricep Kickback Isometric Compress.mp4",
+  },
+  {
+    title: "Wall Calf Stretch + Tibialis Hold",
+    helperTip: "Lift your toes on the front foot.",
+    purpose: "Strengthen Tibialis Anterior to minimize foot drop.",
+    focus: "Ankles",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Wall Calf Stretch+Tibialis Hold Compress.mp4",
+  },
+  {
+    title: "Wall Sits Quads",
+    helperTip: "Put a chair under you to prevent awkward failing positions.",
+    purpose: "Improve quadriceps endurance for staying mobile.",
+    focus: "Quadriceps",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Wall Sits Quads Compress.mp4",
+  },
+  {
+    title: "Wall Slides",
+    helperTip: "Keep as much of your arm in contact with the wall as possible.",
+    purpose: "Improve shoulder mobility.",
+    focus: "Shoulders",
+    movementPattern: "upperHold",
+    videoPath: "assets/Demos/Wall Slides Compress.mp4",
+  },
+  {
+    title: "Wall Supported Lunge",
+    helperTip: "Use the wall for balance!",
+    purpose: "Strengthen unilateral balance and stability.",
+    focus: "Hips",
+    movementPattern: "lowerLift",
+    videoPath: "assets/Demos/Wall Supported Lunge Hold Compress.mp4",
+  },
+];
+
 const els = {
   form: document.querySelector("#assessment-form"),
   fatigue: document.querySelector("#fatigue"),
@@ -885,23 +1064,24 @@ function buildProgramItems() {
 }
 
 function buildSessionDemoLibrary() {
-  const plan = getActivePlan();
-  const focusSeed = [...new Set([...(plan.focuses || []), ...DEFAULT_DEMO_FOCUSES])].slice(0, 3);
-
-  return focusSeed.flatMap((focus) => {
-    const primary = buildProgramItem(focus, "main", plan);
-    const alternate = buildProgramItem(focus, "alt", plan);
-    return [
-      {
-        ...primary,
-        description: `${primary.summary} ${primary.targetLabel}.`,
-      },
-      {
-        ...alternate,
-        description: `${alternate.summary} ${alternate.targetLabel}.`,
-      },
-    ];
-  });
+  return demoCatalog.map((item) => ({
+    ...item,
+    description: item.purpose,
+    summary: item.purpose,
+    cue: item.helperTip,
+    setup: `Helpful Tip: ${item.helperTip}`,
+    equipment: "Demo video",
+    videoBrief: item.videoPath,
+    steps: [
+      `Helpful Tip: ${item.helperTip}`,
+      `Purpose: ${item.purpose}`,
+    ],
+    workflowPrompt: `Follow the ${item.title.toLowerCase()} demo and stay within a comfortable range.`,
+    startPrompt: `Demo started. Follow ${item.title.toLowerCase()} and stay controlled.`,
+    typeLabel: `${item.focus} demo`,
+    statusLabel: "MP4 ready",
+    targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
+  }));
 }
 
 function getSelectedDemo() {
@@ -954,13 +1134,13 @@ function renderSessionDemos() {
   const selected = demos[state.session.selectedDemo];
   if (selected) {
     els.selectedDemoTitle.textContent = selected.title;
-    els.selectedDemoCopy.textContent = `${selected.summary} ${selected.cue}`;
+    els.selectedDemoCopy.textContent = selected.summary;
     els.selectedDemoVideoStatus.textContent = selected.statusLabel;
     els.selectedDemoFocus.textContent = `${selected.focus} focus`;
     els.selectedDemoVariant.textContent = selected.typeLabel;
     els.selectedDemoTarget.textContent = selected.targetLabel;
-    els.selectedDemoSetup.textContent = `Setup: ${selected.setup} Equipment: ${selected.equipment}.`;
-    els.selectedDemoScript.textContent = `Recording brief: ${selected.videoBrief}`;
+    els.selectedDemoSetup.textContent = `Helpful Tip: ${selected.cue}`;
+    els.selectedDemoScript.textContent = `Video file: ${selected.videoBrief}`;
     els.selectedDemoSteps.innerHTML = selected.steps
       .map((step, index) => `
         <article class="demo-step">
@@ -1753,7 +1933,7 @@ function renderCalibrationCountdown() {
 
   const seconds = getCalibrationCountdownSeconds();
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 1) {
+  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 0) {
     els.calibrationCountdown.classList.add("hidden");
     els.calibrationCountdown.dataset.label = "";
     return;
