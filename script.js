@@ -448,7 +448,7 @@ const MOTION_CONFIRMATION_FRAMES = 18;
 const AUTO_CALIBRATION_READY_FRAMES = 8;
 const AUTO_CALIBRATION_HOLD_MS = 1200;
 const CALIBRATION_HOLD_GRACE_MS = 240;
-const ARM_CALIBRATION_TARGET_SCALE = 0.82;
+const ARM_CALIBRATION_TARGET_SCALE = 0.68;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
 const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
 const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 3000;
@@ -1309,7 +1309,7 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
   const hipCenterY = liveLeftHip && liveRightHip
     ? average(liveLeftHip.y, liveRightHip.y)
     : average(baseline.leftHip.y, baseline.rightHip.y);
-  const targetY = Math.min(shoulderY + 0.012, hipCenterY - 0.14);
+  const targetY = Math.min(shoulderY + 0.022, hipCenterY - 0.12);
   const halfShoulderWidth = liveShoulderWidth / 2;
   const leftShoulder = {
     x: shoulderCenterX - halfShoulderWidth,
@@ -1324,19 +1324,19 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
   const leftForearmLength = Math.max(0.08, distance(baseline.leftElbow, baseline.leftWrist) * scale);
   const rightForearmLength = Math.max(0.08, distance(baseline.rightElbow, baseline.rightWrist) * scale);
   const leftElbow = {
-    x: Math.max(0.1, leftShoulder.x - leftUpperArmLength),
+    x: Math.max(0.14, leftShoulder.x - leftUpperArmLength),
     y: targetY,
   };
   const rightElbow = {
-    x: Math.min(0.9, rightShoulder.x + rightUpperArmLength),
+    x: Math.min(0.86, rightShoulder.x + rightUpperArmLength),
     y: targetY,
   };
   const leftWrist = {
-    x: Math.max(0.08, leftElbow.x - leftForearmLength),
+    x: Math.max(0.14, leftElbow.x - leftForearmLength),
     y: targetY,
   };
   const rightWrist = {
-    x: Math.min(0.92, rightElbow.x + rightForearmLength),
+    x: Math.min(0.86, rightElbow.x + rightForearmLength),
     y: targetY,
   };
 
@@ -1682,6 +1682,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const rightWrist = landmarks[16];
     const baselineLeftWrist = baseline.leftWrist;
     const baselineRightWrist = baseline.rightWrist;
+    const armGuide = buildArmsGuideFromBaseline(baseline, landmarks)?.points;
 
     if (![leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist].every((point) => hasReliablePoint(point, 0.35))) {
       return {
@@ -1706,19 +1707,28 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       (baselineRightWrist.y - rightWrist.y) > 0.12;
     const wristHeightReady = wristsNearHeight || wristsRaisedFromBaseline;
     const wristsWideEnough =
-      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.44 &&
-      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.44;
+      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.28 &&
+      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.28;
     const elbowsWideEnough =
-      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.14 &&
-      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.14;
+      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.08 &&
+      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.08;
     const elbowsBetweenShouldersAndWrists =
-      leftElbow.x < leftShoulder.x - shoulderWidth * 0.02 && leftElbow.x > leftWrist.x + shoulderWidth * 0.02 &&
-      rightElbow.x > rightShoulder.x + shoulderWidth * 0.02 && rightElbow.x < rightWrist.x - shoulderWidth * 0.02;
-    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.18;
-    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.18;
+      leftElbow.x < leftShoulder.x - shoulderWidth * 0.01 && leftElbow.x > leftWrist.x + shoulderWidth * 0.01 &&
+      rightElbow.x > rightShoulder.x + shoulderWidth * 0.01 && rightElbow.x < rightWrist.x - shoulderWidth * 0.01;
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.22;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.22;
     const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
     const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 128 && rightArmAngle > 128;
+    const armsMostlyStraight = leftArmAngle > 108 && rightArmAngle > 108;
+    const elbowsNearGuide = armGuide
+      ? Math.abs(leftElbow.x - armGuide.leftElbow.x) < shoulderWidth * 0.55
+        && Math.abs(rightElbow.x - armGuide.rightElbow.x) < shoulderWidth * 0.55
+      : false;
+    const wristsNearGuide = armGuide
+      ? Math.abs(leftWrist.x - armGuide.leftWrist.x) < shoulderWidth * 0.7
+        && Math.abs(rightWrist.x - armGuide.rightWrist.x) < shoulderWidth * 0.7
+      : false;
+    const armSpreadReady = wristsWideEnough || wristsNearGuide || elbowsNearGuide;
 
     const assessment = buildCalibrationAssessment([
       {
@@ -1727,7 +1737,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         shortHint: "Lift wrists",
       },
       {
-        pass: wristsWideEnough,
+        pass: armSpreadReady,
         hint: "Open your arms a little wider to match the smaller T-shape.",
         shortHint: "Reach wider",
       },
@@ -1748,7 +1758,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       },
       {
         pass: elbowsWideEnough,
-        hint: "Open both elbows a little wider.",
+        hint: "Open both elbows slightly away from your body.",
         shortHint: "Widen elbows",
       },
       {
@@ -1766,11 +1776,16 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         hint: "Keep both elbows even.",
         shortHint: "Even elbows",
       },
-    ], 6, "Hold the T-shape to save this step.", "Hold steady");
+      {
+        pass: wristsNearGuide || elbowsNearGuide,
+        hint: "Match the smaller arm outline instead of reaching all the way out.",
+        shortHint: "Match outline",
+      },
+    ], 5, "Hold the T-shape to save this step.", "Hold steady");
 
     return {
       ...assessment,
-      matched: assessment.matched && wristHeightReady && wristsWideEnough,
+      matched: assessment.matched && wristHeightReady && armSpreadReady,
     };
   }
 
