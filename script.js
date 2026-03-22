@@ -103,6 +103,7 @@ const state = {
   rewards: {
     cashback: 0,
     streak: 0,
+    lastSessionCashback: 0,
     tier: "Flat $15 plan",
     targetValue: DEFAULT_PROGRAM_VALUE,
     periodKey: getRewardPeriodKey(),
@@ -702,8 +703,10 @@ const els = {
   walletTotal: document.querySelector("#wallet-total"),
   walletStreak: document.querySelector("#wallet-streak"),
   walletTier: document.querySelector("#wallet-tier"),
+  walletSessionReturn: document.querySelector("#wallet-session-return"),
   walletRemaining: document.querySelector("#wallet-remaining"),
   walletProgress: document.querySelector("#wallet-progress"),
+  walletSessionsLeft: document.querySelector("#wallet-sessions-left"),
   walletNote: document.querySelector("#wallet-note"),
   walletNextUnlock: document.querySelector("#wallet-next-unlock"),
   walletTierCopy: document.querySelector("#wallet-tier-copy"),
@@ -1250,6 +1253,8 @@ function ensureRewardPeriod() {
 
   state.rewards.periodKey = currentPeriodKey;
   state.rewards.cashback = 0;
+  state.rewards.streak = 0;
+  state.rewards.lastSessionCashback = 0;
   state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
 }
 
@@ -1394,6 +1399,8 @@ function handleAssessmentSubmit(event) {
     focuses,
   };
   state.rewards.cashback = 0;
+  state.rewards.streak = 0;
+  state.rewards.lastSessionCashback = 0;
   state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.rewards.periodKey = getRewardPeriodKey();
 
@@ -4126,6 +4133,7 @@ function completeSession() {
     state.rewards.cashback + cashbackEarned
   ).toFixed(2));
   state.rewards.streak += 1;
+  state.rewards.lastSessionCashback = cashbackEarned;
   state.rewards.tier = "Flat $15 plan";
   state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.session.completed = true;
@@ -4785,12 +4793,28 @@ function renderRewards() {
   const sessions = state.rewards.streak;
   const monthlyRepTarget = getMonthlyRepTarget(activePlan);
   const rewardRate = getMonthlyRewardRate(activePlan);
+  const averageReturnPerSession = sessions ? returned / sessions : 0;
+  const estimatedSessionsLeft = remaining <= 0
+    ? 0
+    : averageReturnPerSession > 0
+      ? Math.ceil(remaining / averageReturnPerSession)
+      : Math.ceil(monthlyRepTarget / Math.max(1, activePlan.sessionsPerWeek || 3));
 
   els.walletTotal.textContent = `$${returned.toFixed(2)}`;
-  els.walletStreak.textContent = `${state.rewards.streak} sessions`;
+  els.walletStreak.textContent = `${sessions} sessions`;
   els.walletTier.textContent = `$${MONTHLY_SUBSCRIPTION_FEE} / month`;
+  if (els.walletSessionReturn) {
+    els.walletSessionReturn.textContent = sessions
+      ? `$${Number(state.rewards.lastSessionCashback || 0).toFixed(2)}`
+      : "$0.00";
+  }
   els.walletRemaining.textContent = `$${remaining.toFixed(2)}`;
   els.walletProgress.textContent = `${progress}%`;
+  if (els.walletSessionsLeft) {
+    els.walletSessionsLeft.textContent = remaining <= 0
+      ? "0 sessions"
+      : `${estimatedSessionsLeft} session${estimatedSessionsLeft === 1 ? "" : "s"}`;
+  }
   if (els.walletTierBar) {
     els.walletTierBar.style.width = `${progress}%`;
   }
@@ -4813,12 +4837,12 @@ function renderRewards() {
   }
   if (els.walletSubscriptionSummary) {
     els.walletSubscriptionSummary.textContent = remaining > 0
-      ? `You have earned back $${returned.toFixed(2)} of the $${MONTHLY_SUBSCRIPTION_FEE} monthly fee so far.`
+      ? `You have earned back $${returned.toFixed(2)} of the $${MONTHLY_SUBSCRIPTION_FEE} monthly fee so far, averaging about $${averageReturnPerSession.toFixed(2)} per completed session.`
       : `You have earned back the full $${MONTHLY_SUBSCRIPTION_FEE} subscription for this month.`;
   }
   els.walletNote.textContent = state.rewards.streak
     ? remaining > 0
-      ? `${state.rewards.streak} sessions completed. Keep going to earn back the full $${targetValue.toFixed(2)} this month.`
+      ? `${sessions} sessions completed this month. The last finished session returned $${Number(state.rewards.lastSessionCashback || 0).toFixed(2)} toward the subscription.`
       : `Monthly subscription fully earned back for this month.`
     : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} subscription cost.`;
 }
@@ -5013,6 +5037,7 @@ function restoreState() {
     normalizePlanSubscription(state.plan);
     state.rewards.tier = "Flat $15 plan";
     state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
+    state.rewards.lastSessionCashback = Number(state.rewards.lastSessionCashback || 0);
     state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
     state.session.preRpe = clampRpe(state.session.preRpe);
     state.session.postRpe = clampRpe(state.session.postRpe);
