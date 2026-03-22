@@ -263,12 +263,14 @@ const FEEDBACK_COOLDOWN_MS = 1800;
 const MOTION_CONFIRMATION_FRAMES = 18;
 const AUTO_CALIBRATION_READY_FRAMES = 8;
 const AUTO_CALIBRATION_HOLD_MS = 1200;
+const CALIBRATION_HOLD_GRACE_MS = 240;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
 const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
-const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 5000;
+const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 3000;
 let calibrationMatchFrames = 0;
 let calibrationHoldStartedAt = 0;
 let calibrationStepReadyAt = 0;
+let calibrationLastMatchedAt = 0;
 let calibrationSamples = [];
 
 bootstrap();
@@ -444,6 +446,32 @@ function getCalibrationReadyFrames() {
   return currentStep?.key === "arms" ? 5 : AUTO_CALIBRATION_READY_FRAMES;
 }
 
+function hasReliablePoint(point, minVisibility = 0.42) {
+  return Boolean(
+    point
+    && typeof point.x === "number"
+    && typeof point.y === "number"
+    && (point.visibility ?? 1) >= minVisibility
+  );
+}
+
+function buildCalibrationAssessment(checks, threshold, fallbackHint, fallbackShortHint = "Adjust pose") {
+  const passedCount = checks.filter((check) => check.pass).length;
+  const firstFailed = checks.find((check) => !check.pass);
+
+  return {
+    matched: passedCount >= threshold,
+    score: checks.length ? passedCount / checks.length : 0,
+    hint: firstFailed?.hint || fallbackHint,
+    shortHint: firstFailed?.shortHint || fallbackShortHint,
+  };
+}
+
+function getLiftDelta(fromPoint, toPoint) {
+  if (!fromPoint || !toPoint) return 0;
+  return fromPoint.y - toPoint.y;
+}
+
 function renderSelectedCards() {
   els.choiceCards.forEach((card) => {
     const input = card.querySelector("input");
@@ -550,8 +578,8 @@ function handleAssessmentSubmit(event) {
   demoHoldStartedAt = 0;
   resetAutoCalibrationTracking();
   scheduleCalibrationStepDelay();
-  els.toggleSession.textContent = "Start Working Session";
-  els.toggleHold.textContent = "Begin Hold";
+  els.toggleSession.textContent = "Start Session";
+  els.toggleHold.textContent = "Start Hold";
   updateCalibrationButtonLabel();
   syncSliderLabels();
 
@@ -1217,6 +1245,7 @@ function startDemoWalkthrough() {
 function resetAutoCalibrationTracking() {
   calibrationMatchFrames = 0;
   calibrationHoldStartedAt = 0;
+  calibrationLastMatchedAt = 0;
   calibrationSamples = [];
 }
 
@@ -1269,17 +1298,29 @@ function updateAutoCalibration(landmarks) {
     return;
   }
 
-  const matched = matchesCalibrationPose(currentStep.key, landmarks, state.session.baseline);
+  const now = performance.now();
+  const matched = getCalibrationPoseAssessment(currentStep.key, landmarks, state.session.baseline).matched;
   if (!matched) {
+    if (calibrationHoldStartedAt && now - calibrationLastMatchedAt <= CALIBRATION_HOLD_GRACE_MS) {
+      return;
+    }
+
+    if (!calibrationHoldStartedAt && calibrationMatchFrames > 0) {
+      calibrationMatchFrames = Math.max(0, calibrationMatchFrames - 2);
+      calibrationSamples = [];
+      return;
+    }
+
     resetAutoCalibrationTracking();
     return;
   }
 
+  calibrationLastMatchedAt = now;
   calibrationMatchFrames += 1;
   if (calibrationMatchFrames < getCalibrationReadyFrames()) return;
 
   if (!calibrationHoldStartedAt) {
-    calibrationHoldStartedAt = performance.now();
+    calibrationHoldStartedAt = now;
     calibrationSamples = [];
     const firstSnapshot = getPoseSnapshot(landmarks);
     if (firstSnapshot) calibrationSamples.push(firstSnapshot);
@@ -1290,37 +1331,87 @@ function updateAutoCalibration(landmarks) {
   const snapshot = getPoseSnapshot(landmarks);
   if (snapshot) calibrationSamples.push(snapshot);
 
-  if (performance.now() - calibrationHoldStartedAt >= getCalibrationHoldMs()) {
+  if (now - calibrationHoldStartedAt >= getCalibrationHoldMs()) {
     saveCalibrationStep(currentStep, landmarks, false);
   }
 }
 
-function isNeutralPose(landmarks) {
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-  const leftWrist = landmarks[15];
-  const rightWrist = landmarks[16];
-  const leftElbow = landmarks[13];
-  const rightElbow = landmarks[14];
+function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
+  if (!landmarks?.length) {
+    return {
+      matched: false,
+      score: 0,
+      hint: "Step into the bright outline so your full body is visible.",
+      shortHint: "Find outline",
+    };
+  }
 
-  const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.08;
-  const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.08;
-  const armsDown = leftWrist.y > leftElbow.y && rightWrist.y > rightElbow.y;
-  const centered = average(leftShoulder.x, rightShoulder.x) > 0.25 && average(leftShoulder.x, rightShoulder.x) < 0.75;
-
-  return shouldersLevel && hipsLevel && armsDown && centered;
-}
-
-function matchesCalibrationPose(stepKey, landmarks, baseline) {
   if (stepKey === "neutral") {
-    return isNeutralPose(landmarks);
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+    const leftWrist = landmarks[15];
+    const rightWrist = landmarks[16];
+    const leftElbow = landmarks[13];
+    const rightElbow = landmarks[14];
+    const visibleCore = [
+      leftShoulder,
+      rightShoulder,
+      leftHip,
+      rightHip,
+      leftWrist,
+      rightWrist,
+      leftElbow,
+      rightElbow,
+    ].every((point) => hasReliablePoint(point, 0.3));
+
+    if (!visibleCore) {
+      return {
+        matched: false,
+        score: 0,
+        hint: "Step back until shoulders and hips are clearly inside the outline.",
+        shortHint: "Step back",
+      };
+    }
+
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.08;
+    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.08;
+    const armsDown = leftWrist.y > leftElbow.y && rightWrist.y > rightElbow.y;
+    const centered = average(leftShoulder.x, rightShoulder.x) > 0.25 && average(leftShoulder.x, rightShoulder.x) < 0.75;
+
+    return buildCalibrationAssessment([
+      {
+        pass: shouldersLevel,
+        hint: "Keep your shoulders level inside the outline.",
+        shortHint: "Level shoulders",
+      },
+      {
+        pass: hipsLevel,
+        hint: "Square your hips so both sides stay level.",
+        shortHint: "Square hips",
+      },
+      {
+        pass: armsDown,
+        hint: "Relax both arms by your sides.",
+        shortHint: "Arms down",
+      },
+      {
+        pass: centered,
+        hint: "Shift so your body is centered in the outline.",
+        shortHint: "Re-center",
+      },
+    ], 4, "Hold the neutral stance to save this step.", "Hold steady");
   }
 
   if (stepKey === "arms") {
     if (!baseline?.leftShoulder || !baseline?.rightShoulder) {
-      return false;
+      return {
+        matched: false,
+        score: 0,
+        hint: "Save the neutral stance first so IsoTrack can size your arm target.",
+        shortHint: "Save neutral",
+      };
     }
 
     const leftShoulder = landmarks[11];
@@ -1329,75 +1420,191 @@ function matchesCalibrationPose(stepKey, landmarks, baseline) {
     const rightElbow = landmarks[14];
     const leftWrist = landmarks[15];
     const rightWrist = landmarks[16];
+
+    if (![leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist].every((point) => hasReliablePoint(point, 0.35))) {
+      return {
+        matched: false,
+        score: 0,
+        hint: "Keep both arms fully visible so the wrists and elbows stay inside the frame.",
+        shortHint: "Arms in frame",
+      };
+    }
+
     const shoulderWidth = Math.max(0.09, distance(leftShoulder, rightShoulder));
     const targetY = average(leftShoulder.y, rightShoulder.y);
-    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.075;
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.09;
     const elbowsNearHeight =
-      Math.abs(leftElbow.y - targetY) < 0.14 &&
-      Math.abs(rightElbow.y - targetY) < 0.14;
+      Math.abs(leftElbow.y - targetY) < 0.17 &&
+      Math.abs(rightElbow.y - targetY) < 0.17;
     const wristsNearHeight =
-      Math.abs(leftWrist.y - targetY) < 0.16 &&
-      Math.abs(rightWrist.y - targetY) < 0.16;
+      Math.abs(leftWrist.y - targetY) < 0.19 &&
+      Math.abs(rightWrist.y - targetY) < 0.19;
     const wristsWideEnough =
-      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.72 &&
-      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.72;
+      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.58 &&
+      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.58;
     const elbowsWideEnough =
-      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.28 &&
-      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.28;
+      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.2 &&
+      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.2;
     const elbowsBetweenShouldersAndWrists =
-      leftElbow.x < leftShoulder.x && leftElbow.x > leftWrist.x &&
-      rightElbow.x > rightShoulder.x && rightElbow.x < rightWrist.x;
-    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.12;
-    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.12;
+      leftElbow.x < leftShoulder.x - shoulderWidth * 0.04 && leftElbow.x > leftWrist.x + shoulderWidth * 0.04 &&
+      rightElbow.x > rightShoulder.x + shoulderWidth * 0.04 && rightElbow.x < rightWrist.x - shoulderWidth * 0.04;
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.16;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.16;
     const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
     const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 145 && rightArmAngle > 145;
+    const armsMostlyStraight = leftArmAngle > 138 && rightArmAngle > 138;
 
-    return shouldersLevel
-      && elbowsNearHeight
-      && wristsNearHeight
-      && elbowsWideEnough
-      && wristsWideEnough
-      && elbowsBetweenShouldersAndWrists
-      && wristsMatched
-      && elbowsMatched
-      && armsMostlyStraight;
+    const assessment = buildCalibrationAssessment([
+      {
+        pass: wristsNearHeight,
+        hint: "Lift both wrists to shoulder height.",
+        shortHint: "Lift wrists",
+      },
+      {
+        pass: wristsWideEnough,
+        hint: "Reach wider through both hands to match the T-shape.",
+        shortHint: "Reach wider",
+      },
+      {
+        pass: armsMostlyStraight,
+        hint: "Straighten both elbows as you hold the pose.",
+        shortHint: "Straighten arms",
+      },
+      {
+        pass: shouldersLevel,
+        hint: "Keep your shoulders level while the arms stay up.",
+        shortHint: "Level shoulders",
+      },
+      {
+        pass: elbowsNearHeight,
+        hint: "Bring both elbows closer to shoulder height.",
+        shortHint: "Lift elbows",
+      },
+      {
+        pass: elbowsWideEnough,
+        hint: "Open both elbows a little wider.",
+        shortHint: "Widen elbows",
+      },
+      {
+        pass: elbowsBetweenShouldersAndWrists,
+        hint: "Keep elbows between your shoulders and wrists.",
+        shortHint: "Align elbows",
+      },
+      {
+        pass: wristsMatched,
+        hint: "Keep both hands even.",
+        shortHint: "Even hands",
+      },
+      {
+        pass: elbowsMatched,
+        hint: "Keep both elbows even.",
+        shortHint: "Even elbows",
+      },
+    ], 7, "Hold the T-shape to save this step.", "Hold steady");
+
+    return {
+      ...assessment,
+      matched: assessment.matched && wristsNearHeight && wristsWideEnough,
+    };
   }
 
   if (stepKey === "knee") {
     if (!baseline?.leftHeel || !baseline?.rightHeel || !baseline?.leftAnkle || !baseline?.rightAnkle) {
-      return false;
+      return {
+        matched: false,
+        score: 0,
+        hint: "Save the neutral stance first so IsoTrack can compare your feet.",
+        shortHint: "Save neutral",
+      };
     }
 
-    const leftHeelRaised = (baseline.leftHeel.y - landmarks[29].y) > 0.025 || (baseline.leftAnkle.y - landmarks[27].y) > 0.02;
-    const rightHeelRaised = (baseline.rightHeel.y - landmarks[30].y) > 0.025 || (baseline.rightAnkle.y - landmarks[28].y) > 0.02;
-    return leftHeelRaised || rightHeelRaised;
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+    const leftAnkle = landmarks[27];
+    const rightAnkle = landmarks[28];
+    const leftHeel = landmarks[29];
+    const rightHeel = landmarks[30];
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+
+    if (![leftHip, rightHip, leftAnkle, rightAnkle, leftHeel, rightHeel, leftShoulder, rightShoulder].every((point) => hasReliablePoint(point, 0.28))) {
+      return {
+        matched: false,
+        score: 0,
+        hint: "Step back slightly so both ankles and heels stay visible.",
+        shortHint: "Feet in frame",
+      };
+    }
+
+    const leftLift = Math.max(
+      getLiftDelta(baseline.leftHeel, leftHeel),
+      getLiftDelta(baseline.leftAnkle, leftAnkle) * 1.15
+    );
+    const rightLift = Math.max(
+      getLiftDelta(baseline.rightHeel, rightHeel),
+      getLiftDelta(baseline.rightAnkle, rightAnkle) * 1.15
+    );
+    const bestLift = Math.max(leftLift, rightLift);
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
+    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.1;
+    const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
+
+    const assessment = buildCalibrationAssessment([
+      {
+        pass: bestLift > 0.018,
+        hint: "Lift one heel a little higher while keeping the rest of your posture still.",
+        shortHint: "Lift heel higher",
+      },
+      {
+        pass: shouldersLevel,
+        hint: "Keep your shoulders level and avoid leaning.",
+        shortHint: "No leaning",
+      },
+      {
+        pass: hipsLevel,
+        hint: "Stay tall and keep both hips level.",
+        shortHint: "Level hips",
+      },
+      {
+        pass: centered,
+        hint: "Re-center inside the outline before lifting the heel.",
+        shortHint: "Re-center",
+      },
+    ], 3, "Hold the heel raise to save this step.", "Hold steady");
+
+    return {
+      ...assessment,
+      matched: bestLift > 0.018 && shouldersLevel && (hipsLevel || centered),
+    };
   }
 
-  return false;
+  return {
+    matched: false,
+    score: 0,
+    hint: "Match the highlighted outline and hold still.",
+    shortHint: "Adjust pose",
+  };
 }
 
-function getCalibrationInstruction(stepKey) {
-  if (stepKey === "neutral") {
-    return "Match the bright outline with arms relaxed and shoulders level.";
-  }
+function matchesCalibrationPose(stepKey, landmarks, baseline) {
+  return getCalibrationPoseAssessment(stepKey, landmarks, baseline).matched;
+}
 
-  if (stepKey === "arms") {
-    return "Raise both arms straight out to the side in a T-shape and hold steady.";
-  }
+function getCalibrationInstruction(stepKey, landmarks = latestPoseLandmarks, baseline = state.session.baseline) {
+  const assessment = getCalibrationPoseAssessment(stepKey, landmarks, baseline);
+  if (assessment.hint) return assessment.hint;
 
+  if (stepKey === "neutral") return "Match the bright outline with arms relaxed and shoulders level.";
+  if (stepKey === "arms") return "Raise both arms straight out to the side in a T-shape and hold steady.";
   return "Lift either heel slightly while staying aligned to the bright outline.";
 }
 
-function getCalibrationSummary(stepKey) {
-  if (stepKey === "neutral") {
-    return "Match the bright outline with arms relaxed and shoulders level.";
-  }
+function getCalibrationSummary(stepKey, landmarks = latestPoseLandmarks, baseline = state.session.baseline) {
+  const assessment = getCalibrationPoseAssessment(stepKey, landmarks, baseline);
+  if (assessment.hint) return assessment.hint;
 
-  if (stepKey === "arms") {
-    return "Raise both arms straight out to the side in a steady T-shape.";
-  }
-
+  if (stepKey === "neutral") return "Match the bright outline with arms relaxed and shoulders level.";
+  if (stepKey === "arms") return "Raise both arms straight out to the side in a steady T-shape.";
   return "Stay tall and lift either heel slightly while matching the outline.";
 }
 
@@ -1495,8 +1702,8 @@ function stopCamera() {
   state.session.demoProgress = 0;
   state.session.pendingMotionLabel = "idle";
   state.session.pendingMotionFrames = 0;
-  els.toggleSession.textContent = "Start Working Session";
-  els.toggleHold.textContent = "Begin Hold";
+  els.toggleSession.textContent = "Start Session";
+  els.toggleHold.textContent = "Start Hold";
   updateCalibrationButtonLabel();
 
   if (motionFrameId) {
@@ -1543,7 +1750,7 @@ function toggleSession() {
   state.session.running = !state.session.running;
   sessionStartedAt = state.session.running ? Date.now() : sessionStartedAt;
   if (state.session.running) state.session.completed = false;
-  els.toggleSession.textContent = state.session.running ? "Pause Working Session" : "Start Working Session";
+  els.toggleSession.textContent = state.session.running ? "Pause Session" : "Start Session";
 
   if (state.session.running) {
     setFeedback(`Session active. Starting RPE ${state.session.preRpe}/10.`);
@@ -1563,7 +1770,7 @@ function toggleHold() {
   }
 
   state.session.holdActive = !state.session.holdActive;
-  els.toggleHold.textContent = state.session.holdActive ? "End Hold" : "Begin Hold";
+  els.toggleHold.textContent = state.session.holdActive ? "End Hold" : "Start Hold";
 
   if (state.session.holdActive) {
     holdIntervalId = window.setInterval(() => {
@@ -1658,8 +1865,8 @@ function completeSession() {
   stopHoldTimer();
   state.session.running = false;
   state.session.holdActive = false;
-  els.toggleSession.textContent = "Start Working Session";
-  els.toggleHold.textContent = "Begin Hold";
+  els.toggleSession.textContent = "Start Session";
+  els.toggleHold.textContent = "Start Hold";
 
   const sessionDurationMs = sessionStartedAt ? Date.now() - sessionStartedAt : state.session.totalTension * 1000;
   const estimatedMinutes = Math.max(1, Math.round(sessionDurationMs / 60000));
@@ -1797,6 +2004,10 @@ function renderCalibration() {
   stageMap.forEach((stage, index) => {
     const saved = Boolean(state.session.calibrationShots[stage.key]);
     const active = !state.session.calibrated && index === state.session.currentCalibrationStep;
+    const stepCountdown = getCalibrationCountdownSeconds();
+    const assessment = active && stepCountdown === 0 && latestPoseLandmarks
+      ? getCalibrationPoseAssessment(stage.key, latestPoseLandmarks, state.session.baseline)
+      : null;
     const stepDelaySeconds = Math.round((index === 0 ? FIRST_CALIBRATION_STEP_DELAY_MS : FOLLOWUP_CALIBRATION_STEP_DELAY_MS) / 1000);
     stage.element.classList.toggle("is-complete", saved);
     stage.element.classList.toggle("is-active", active);
@@ -1805,16 +2016,18 @@ function renderCalibration() {
       : active
         ? calibrationHoldStartedAt
           ? "Capturing"
-          : getCalibrationCountdownSeconds() > 0
-            ? `Starts in ${getCalibrationCountdownSeconds()}s`
-            : "Get ready"
+          : stepCountdown > 0
+            ? `Starts in ${stepCountdown}s`
+            : assessment?.matched
+              ? "Hold steady"
+              : assessment?.shortHint || "Get ready"
         : `Wait ${stepDelaySeconds}s`;
   });
 }
 
 function updateCalibrationButtonLabel() {
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  els.captureCalibration.textContent = currentStep ? "Manual Capture" : "Calibration Complete";
+  els.captureCalibration.textContent = currentStep ? "Capture Step" : "Calibration Complete";
 }
 
 function hasSavedCalibration() {
@@ -1845,21 +2058,28 @@ function renderWorkflow() {
       ? Math.max(1, Math.ceil((getCalibrationHoldMs() - (performance.now() - calibrationHoldStartedAt)) / 1000))
       : 0;
     const stepCountdown = getCalibrationCountdownSeconds();
+    const assessment = currentStep
+      ? getCalibrationPoseAssessment(currentStep.key, latestPoseLandmarks, state.session.baseline)
+      : null;
     els.workflowTitle.textContent = calibrationHoldStartedAt ? "Calibrating" : "Get Ready";
     els.workflowCopy.textContent = currentStep
       ? calibrationHoldStartedAt
         ? `${currentStep.title}. Hold still ${countdown}.`
         : stepCountdown > 0
           ? `${currentStep.title} begins in ${stepCountdown}.`
-          : currentStep.key === "neutral"
-            ? "Neutral stance. This step sets your personal guide."
+          : assessment?.matched
+            ? `${currentStep.title}. Hold steady to auto-save.`
             : `${currentStep.title}. ${getCalibrationSummary(currentStep.key)}`
       : "Capture the remaining steps.";
     els.workflowCheckPrimary.textContent = stepCountdown > 0
       ? `Starts in ${stepCountdown}s`
-      : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
-        ? "Match outline"
-        : "Step into outline";
+      : calibrationHoldStartedAt
+        ? "Hold still"
+        : assessment?.matched
+          ? "Ready to save"
+          : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
+            ? "Match outline"
+            : "Step into outline";
     els.workflowCheckSecondary.textContent = calibrationHoldStartedAt
       ? "Auto capture running"
       : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
