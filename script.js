@@ -3239,6 +3239,7 @@ function renderCalibrationCountdown() {
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
   if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 0) {
     els.calibrationCountdown.classList.add("hidden");
+    els.calibrationCountdown.textContent = "";
     els.calibrationCountdown.dataset.label = "";
     return;
   }
