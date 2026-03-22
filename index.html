@@ -377,7 +377,7 @@
                   <div class="control-group control-group-secondary" id="camera-secondary-controls">
                     <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
                     <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
-                    <button class="button button-secondary" id="toggle-hold" type="button">Start Hold</button>
+                    <button class="button button-secondary" id="toggle-hold" type="button">Auto Hold</button>
                     <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
                   </div>
                 </div>
@@ -435,13 +435,25 @@
                     <p class="panel-label">Selected demo brief</p>
                     <span class="status-pill muted-pill" id="selected-demo-video-status">MP4 pending</span>
                   </div>
-                  <div class="demo-detail-meta" aria-label="Selected demo metadata">
-                    <span id="selected-demo-focus">Shoulders</span>
-                    <span id="selected-demo-variant">Primary demo</span>
-                    <span id="selected-demo-target">3 sets</span>
+                  <div class="demo-preview-layout">
+                    <div class="demo-preview-card" id="demo-preview-card">
+                      <div class="demo-preview-head">
+                        <p class="panel-label">Live target</p>
+                        <span class="status-pill muted-pill" id="demo-match-pill">Waiting</span>
+                      </div>
+                      <div class="demo-preview-figure" id="demo-preview-figure" aria-hidden="true"></div>
+                      <p class="demo-preview-copy" id="demo-preview-copy">Start the demo or session and match the figure loosely to light it up.</p>
+                    </div>
+                    <div class="demo-preview-copy-block">
+                      <div class="demo-detail-meta" aria-label="Selected demo metadata">
+                        <span id="selected-demo-focus">Shoulders</span>
+                        <span id="selected-demo-variant">Primary demo</span>
+                        <span id="selected-demo-target">3 sets</span>
+                      </div>
+                      <p class="demo-detail-copy" id="selected-demo-setup">Select an exercise card to preview the setup and recording brief.</p>
+                      <p class="demo-detail-copy" id="selected-demo-script">Upload MP4 later with the setup, one clean rep or hold, the pacing cue, and the stop cue.</p>
+                    </div>
                   </div>
-                  <p class="demo-detail-copy" id="selected-demo-setup">Select an exercise card to preview the setup and recording brief.</p>
-                  <p class="demo-detail-copy" id="selected-demo-script">Upload MP4 later with the setup, one clean rep or hold, the pacing cue, and the stop cue.</p>
                   <div class="demo-step-list" id="selected-demo-steps" aria-label="Selected demo instruction steps"></div>
                 </div>
                 <div class="demo-library-head">
@@ -526,6 +538,21 @@
                 </article>
               </div>
               <p class="report-text" id="report-text">Generate a plan and complete a session to create the report.</p>
+              <div class="report-trend-panel">
+                <div class="report-trend-head">
+                  <div>
+                    <p class="panel-label">Trend view</p>
+                    <h3>Time under tension and RPE</h3>
+                  </div>
+                  <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
+                    <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
+                    <button class="segmented-button" type="button" data-report-view="exercise">Per exercise</button>
+                  </div>
+                </div>
+                <div class="report-chart" id="report-chart">
+                  <p class="report-chart-empty">Complete a session to populate the clinician graph.</p>
+                </div>
+              </div>
             </div>
 
             <div class="panel care-path-panel">

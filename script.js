@@ -89,6 +89,8 @@ const state = {
     targetValue: DEFAULT_PROGRAM_VALUE,
   },
   report: null,
+  reportView: "daily",
+  sessionHistory: [],
   session: {
     cameraReady: false,
     running: false,
@@ -119,6 +121,8 @@ const state = {
     smoothedMotionScore: 0,
     pendingMotionLabel: "idle",
     pendingMotionFrames: 0,
+    exerciseMatchState: "idle",
+    exerciseMatchScore: 0,
   },
 };
 
@@ -390,6 +394,10 @@ const els = {
   selectedDemoSetup: document.querySelector("#selected-demo-setup"),
   selectedDemoScript: document.querySelector("#selected-demo-script"),
   selectedDemoSteps: document.querySelector("#selected-demo-steps"),
+  demoPreviewCard: document.querySelector("#demo-preview-card"),
+  demoPreviewFigure: document.querySelector("#demo-preview-figure"),
+  demoPreviewCopy: document.querySelector("#demo-preview-copy"),
+  demoMatchPill: document.querySelector("#demo-match-pill"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
@@ -422,6 +430,8 @@ const els = {
   reportIntensity: document.querySelector("#report-intensity"),
   reportStatus: document.querySelector("#report-status"),
   reportText: document.querySelector("#report-text"),
+  reportChart: document.querySelector("#report-chart"),
+  reportViewButtons: Array.from(document.querySelectorAll("[data-report-view]")),
   walletTotal: document.querySelector("#wallet-total"),
   walletStreak: document.querySelector("#wallet-streak"),
   walletTier: document.querySelector("#wallet-tier"),
@@ -461,6 +471,8 @@ let calibrationLastMatchedAt = 0;
 let calibrationSamples = [];
 let calibrationSteadyStartedAt = 0;
 let calibrationSteadySnapshot = null;
+let exerciseMatchStartedAt = 0;
+let exerciseMatchCarryMs = 0;
 
 bootstrap();
 
@@ -537,6 +549,14 @@ function bindEvents() {
     persistState();
   });
   els.completeSession.addEventListener("click", completeSession);
+
+  els.reportViewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.reportView = button.dataset.reportView || "daily";
+      renderReport();
+      persistState();
+    });
+  });
 }
 
 function renderActiveTab() {
@@ -775,12 +795,15 @@ function handleAssessmentSubmit(event) {
   state.session.demoProgress = 0;
   state.session.pendingMotionLabel = "idle";
   state.session.pendingMotionFrames = 0;
+  state.session.exerciseMatchState = "idle";
+  state.session.exerciseMatchScore = 0;
   sessionStartedAt = 0;
   demoHoldStartedAt = 0;
   resetAutoCalibrationTracking();
+  resetExerciseHoldTracking();
   scheduleCalibrationStepDelay();
   els.toggleSession.textContent = "Start Session";
-  els.toggleHold.textContent = "Start Hold";
+  els.toggleHold.textContent = "Auto Hold";
   updateCalibrationButtonLabel();
   syncSliderLabels();
 
@@ -948,6 +971,8 @@ function renderSessionDemos() {
       .join("");
   }
 
+  renderDemoPreview(selected);
+
   els.recommendedDemoList.innerHTML = demos
     .map((item, index) => `
       <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
@@ -973,6 +998,106 @@ function renderSessionDemos() {
       persistState();
     });
   });
+}
+
+function renderDemoPreview(selectedDemo = getSelectedDemo()) {
+  if (!els.demoPreviewCard || !els.demoPreviewFigure || !els.demoMatchPill || !els.demoPreviewCopy) return;
+
+  const movementPattern = selectedDemo?.movementPattern || "upperHold";
+  const focus = selectedDemo?.focus || getSelectedFocus();
+  const matchState = state.session.exerciseMatchState || "idle";
+  const isForwardPress = movementPattern === "upperHold" && focus !== "Shoulders";
+
+  els.demoPreviewCard.dataset.matchState = matchState;
+  els.demoPreviewFigure.innerHTML = buildDemoPreviewFigureMarkup({
+    movementPattern,
+    isForwardPress,
+  });
+
+  const matchLabels = {
+    idle: "Waiting",
+    searching: "Align body",
+    off: "Not matched",
+    close: "Close enough",
+    matched: "On target",
+  };
+  const previewCopy = {
+    idle: "Start the demo or session and match the figure loosely to light it up.",
+    searching: "Bring your full body back into frame so the demo figure can react.",
+    off: "Move toward the figure. The match area is intentionally forgiving.",
+    close: "You are close. Tighten the shape slightly to lock the hold.",
+    matched: "Good match. Stay there and hold to keep time under tension counting.",
+  };
+
+  els.demoMatchPill.textContent = matchLabels[matchState] || "Waiting";
+  els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
+}
+
+function buildDemoPreviewFigureMarkup({ movementPattern, isForwardPress }) {
+  if (movementPattern === "lowerLift") {
+    return `
+      <svg viewBox="0 0 160 180" role="presentation">
+        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
+        <path class="figure-line" d="M80 26 L80 56"></path>
+        <path class="figure-line" d="M80 56 L80 96"></path>
+        <path class="figure-line" d="M80 56 L53 84"></path>
+        <path class="figure-line" d="M80 56 L107 84"></path>
+        <path class="figure-line" d="M80 96 L58 132"></path>
+        <path class="figure-line" d="M58 132 L54 160"></path>
+        <path class="figure-line" d="M80 96 L108 116"></path>
+        <path class="figure-line" d="M108 116 L126 96"></path>
+        <circle class="figure-joint" cx="80" cy="19" r="10"></circle>
+        <circle class="figure-joint" cx="53" cy="84" r="5"></circle>
+        <circle class="figure-joint" cx="107" cy="84" r="5"></circle>
+        <circle class="figure-joint" cx="58" cy="132" r="5"></circle>
+        <circle class="figure-joint" cx="108" cy="116" r="5"></circle>
+      </svg>
+    `;
+  }
+
+  if (isForwardPress) {
+    return `
+      <svg viewBox="0 0 160 180" role="presentation">
+        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
+        <path class="figure-line" d="M80 24 L80 56"></path>
+        <path class="figure-line" d="M80 56 L80 100"></path>
+        <path class="figure-line" d="M80 60 L62 80"></path>
+        <path class="figure-line" d="M62 80 L70 95"></path>
+        <path class="figure-line" d="M80 60 L98 80"></path>
+        <path class="figure-line" d="M98 80 L90 95"></path>
+        <path class="figure-line" d="M80 100 L62 140"></path>
+        <path class="figure-line" d="M62 140 L58 160"></path>
+        <path class="figure-line" d="M80 100 L98 140"></path>
+        <path class="figure-line" d="M98 140 L102 160"></path>
+        <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
+        <circle class="figure-joint" cx="62" cy="80" r="5"></circle>
+        <circle class="figure-joint" cx="98" cy="80" r="5"></circle>
+        <circle class="figure-joint" cx="70" cy="95" r="5"></circle>
+        <circle class="figure-joint" cx="90" cy="95" r="5"></circle>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 160 180" role="presentation">
+      <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
+      <path class="figure-line" d="M80 24 L80 56"></path>
+      <path class="figure-line" d="M80 56 L80 102"></path>
+      <path class="figure-line" d="M80 58 L38 58"></path>
+      <path class="figure-line" d="M38 58 L20 58"></path>
+      <path class="figure-line" d="M80 58 L122 58"></path>
+      <path class="figure-line" d="M122 58 L140 58"></path>
+      <path class="figure-line" d="M80 102 L62 142"></path>
+      <path class="figure-line" d="M62 142 L58 160"></path>
+      <path class="figure-line" d="M80 102 L98 142"></path>
+      <path class="figure-line" d="M98 142 L102 160"></path>
+      <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
+      <circle class="figure-joint" cx="38" cy="58" r="5"></circle>
+      <circle class="figure-joint" cx="122" cy="58" r="5"></circle>
+      <circle class="figure-joint" cx="20" cy="58" r="5"></circle>
+      <circle class="figure-joint" cx="140" cy="58" r="5"></circle>
+    </svg>
+  `;
 }
 
 function openCameraPermissionModal() {
@@ -1121,6 +1246,8 @@ function handlePoseResults(results) {
     state.session.trackedJoints = 0;
     state.session.trackingStatus = state.session.cameraReady ? "Searching" : "Tracking off";
     state.session.trackingQuality = 0;
+    updateExerciseMatchState(null);
+    renderDemoPreview();
     drawCalibrationGuide(ctx, canvas.width, canvas.height, null);
     renderSession();
     renderCalibration();
@@ -1141,7 +1268,9 @@ function handlePoseResults(results) {
   drawTrackedLimbOverlay(ctx, results.poseLandmarks, canvas.width, canvas.height);
   updateAutoCalibration(results.poseLandmarks);
 
+  updateExerciseMatchState(results.poseLandmarks);
   updateDemoProgress(results.poseLandmarks);
+  renderDemoPreview();
   renderSession();
   renderCalibration();
   renderWorkflow();
@@ -1555,7 +1684,10 @@ function startDemoWalkthrough() {
   state.session.demoActive = true;
   state.session.demoCompleted = false;
   state.session.demoProgress = 0;
+  state.session.exerciseMatchState = "off";
+  state.session.exerciseMatchScore = 0;
   demoHoldStartedAt = 0;
+  resetExerciseHoldTracking();
   setFeedback(getSelectedDemo()?.startPrompt || "Demo started. Follow the selected drill and hold the target position.");
   renderWorkflow();
   renderControlStates();
@@ -2011,9 +2143,9 @@ function updateDemoProgress(landmarks) {
   if (!state.session.demoActive || !state.session.baseline || !landmarks?.length) return;
 
   const selectedDemo = getSelectedDemo();
-  const matched = matchesDemoTarget(selectedDemo?.movementPattern || "upperHold", landmarks, state.session.baseline);
+  const assessment = getExerciseMatchAssessment(landmarks, selectedDemo, state.session.baseline);
 
-  if (matched) {
+  if (assessment.active) {
     if (!demoHoldStartedAt) demoHoldStartedAt = performance.now();
     const heldMs = performance.now() - demoHoldStartedAt;
     state.session.demoProgress = Math.min(100, Math.round((heldMs / 1800) * 100));
@@ -2033,27 +2165,208 @@ function updateDemoProgress(landmarks) {
   }
 }
 
+function updateExerciseMatchState(landmarks) {
+  if (!state.session.baseline || (!state.session.demoActive && !state.session.running && !state.session.demoCompleted)) {
+    state.session.exerciseMatchState = "idle";
+    state.session.exerciseMatchScore = 0;
+    resetExerciseHoldTracking();
+    return;
+  }
+
+  const assessment = getExerciseMatchAssessment(landmarks);
+  state.session.exerciseMatchState = assessment.state;
+  state.session.exerciseMatchScore = assessment.score;
+
+  if (!state.session.running) {
+    resetExerciseHoldTracking();
+    return;
+  }
+
+  updateExerciseHoldTracking(assessment.active);
+}
+
+function updateExerciseHoldTracking(active) {
+  if (!state.session.running || !active) {
+    resetExerciseHoldTracking();
+    return;
+  }
+
+  const now = performance.now();
+  if (!exerciseMatchStartedAt) {
+    exerciseMatchStartedAt = now;
+    exerciseMatchCarryMs = 0;
+    return;
+  }
+
+  exerciseMatchCarryMs += now - exerciseMatchStartedAt;
+  exerciseMatchStartedAt = now;
+
+  const earnedSeconds = Math.floor(exerciseMatchCarryMs / 1000);
+  if (earnedSeconds <= 0) return;
+
+  exerciseMatchCarryMs -= earnedSeconds * 1000;
+  state.session.holdSeconds += earnedSeconds;
+  state.session.totalTension += earnedSeconds;
+  state.session.completed = false;
+  persistState();
+}
+
+function resetExerciseHoldTracking() {
+  exerciseMatchStartedAt = 0;
+  exerciseMatchCarryMs = 0;
+}
+
 function getSelectedFocus() {
   return getSelectedDemo()?.focus || "Shoulders";
 }
 
-function matchesDemoTarget(movementPattern, landmarks, baseline) {
-  if (movementPattern === "lowerLift") {
-    const leftKneeLift = (baseline.leftKnee?.y ?? 0) - (landmarks[25]?.y ?? 0) > 0.06;
-    const rightKneeLift = (baseline.rightKnee?.y ?? 0) - (landmarks[26]?.y ?? 0) > 0.06;
-    const leftHeelLift = (baseline.leftHeel?.y ?? 0) - (landmarks[29]?.y ?? 0) > 0.024;
-    const rightHeelLift = (baseline.rightHeel?.y ?? 0) - (landmarks[30]?.y ?? 0) > 0.024;
-    return leftKneeLift || rightKneeLift || leftHeelLift || rightHeelLift;
+function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(), baseline = state.session.baseline) {
+  if (!baseline || !landmarks?.length) {
+    return { state: "searching", score: 0, close: false, active: false };
   }
 
+  const movementPattern = selectedDemo?.movementPattern || "upperHold";
+  const focus = selectedDemo?.focus || getSelectedFocus();
   const leftShoulder = landmarks[11];
   const rightShoulder = landmarks[12];
   const leftWrist = landmarks[15];
   const rightWrist = landmarks[16];
-  if (!leftShoulder || !rightShoulder || !leftWrist || !rightWrist) return false;
-  const wristsRaised = leftWrist.y < leftShoulder.y + 0.03 && rightWrist.y < rightShoulder.y + 0.03;
-  const wristsAboveBaseline = leftWrist.y < (baseline.leftWrist?.y ?? 1) - 0.08 && rightWrist.y < (baseline.rightWrist?.y ?? 1) - 0.08;
-  return wristsRaised && wristsAboveBaseline;
+  const leftElbow = landmarks[13];
+  const rightElbow = landmarks[14];
+  const leftHip = landmarks[23];
+  const rightHip = landmarks[24];
+
+  if (movementPattern === "lowerLift") {
+    const leftKnee = landmarks[25];
+    const rightKnee = landmarks[26];
+    const leftAnkle = landmarks[27];
+    const rightAnkle = landmarks[28];
+    const leftHeel = landmarks[29];
+    const rightHeel = landmarks[30];
+    const leftFootIndex = landmarks[31];
+    const rightFootIndex = landmarks[32];
+    const visiblePoints = [leftShoulder, rightShoulder, leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle];
+
+    if (!visiblePoints.every((point) => hasReliablePoint(point, 0.28))) {
+      return { state: "searching", score: 0, close: false, active: false };
+    }
+
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.11;
+    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.12;
+    const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
+    const lowerBodyScale = Math.max(
+      0.12,
+      average(distance(baseline.leftHip, baseline.leftAnkle), distance(baseline.rightHip, baseline.rightAnkle))
+    );
+
+    const rightGuide = focus === "Ankles"
+      ? buildHeelRaiseGuideFromBaseline(baseline)?.points
+      : {
+        ...baseline,
+        rightKnee: { ...baseline.rightKnee, y: baseline.rightKnee.y - 0.075 },
+        rightAnkle: { ...baseline.rightAnkle, y: baseline.rightAnkle.y - 0.105, x: baseline.rightAnkle.x + 0.02 },
+        rightHeel: baseline.rightHeel ? { ...baseline.rightHeel, y: baseline.rightHeel.y - 0.085, x: baseline.rightHeel.x + 0.014 } : undefined,
+        rightFootIndex: baseline.rightFootIndex ? { ...baseline.rightFootIndex, y: baseline.rightFootIndex.y - 0.09, x: baseline.rightFootIndex.x + 0.03 } : undefined,
+      };
+
+    const leftGuide = rightGuide
+      ? {
+        ...rightGuide,
+        leftKnee: rightGuide.rightKnee ? { x: 1 - rightGuide.rightKnee.x, y: rightGuide.rightKnee.y } : undefined,
+        leftAnkle: rightGuide.rightAnkle ? { x: 1 - rightGuide.rightAnkle.x, y: rightGuide.rightAnkle.y } : undefined,
+        leftHeel: rightGuide.rightHeel ? { x: 1 - rightGuide.rightHeel.x, y: rightGuide.rightHeel.y } : undefined,
+        leftFootIndex: rightGuide.rightFootIndex ? { x: 1 - rightGuide.rightFootIndex.x, y: rightGuide.rightFootIndex.y } : undefined,
+      }
+      : null;
+
+    const leftGuideOffset = getMeanNormalizedGuideOffset([
+      [leftKnee, leftGuide?.leftKnee],
+      [leftAnkle, leftGuide?.leftAnkle],
+      [leftHeel, leftGuide?.leftHeel],
+      [leftFootIndex, leftGuide?.leftFootIndex],
+    ], lowerBodyScale);
+    const rightGuideOffset = getMeanNormalizedGuideOffset([
+      [rightKnee, rightGuide?.rightKnee],
+      [rightAnkle, rightGuide?.rightAnkle],
+      [rightHeel, rightGuide?.rightHeel],
+      [rightFootIndex, rightGuide?.rightFootIndex],
+    ], lowerBodyScale);
+    const bestGuideOffset = Math.min(leftGuideOffset, rightGuideOffset);
+    const leftLift = Math.max(
+      getLiftDelta(baseline.leftHeel, leftHeel),
+      getLiftDelta(baseline.leftAnkle, leftAnkle),
+      getLiftDelta(baseline.leftKnee, leftKnee)
+    );
+    const rightLift = Math.max(
+      getLiftDelta(baseline.rightHeel, rightHeel),
+      getLiftDelta(baseline.rightAnkle, rightAnkle),
+      getLiftDelta(baseline.rightKnee, rightKnee)
+    );
+    const bestLift = Math.max(leftLift, rightLift);
+    const close = shouldersLevel && (bestGuideOffset < 0.36 || bestLift > 0.014);
+    const active = shouldersLevel && (hipsLevel || centered) && (bestGuideOffset < 0.26 || bestLift > 0.022);
+    const score = Math.max(0, Math.min(1, ((0.42 - Math.min(bestGuideOffset, 0.42)) / 0.42) * 0.7 + Math.min(bestLift / 0.03, 1) * 0.3));
+
+    return {
+      state: active ? "matched" : close ? "close" : "off",
+      score,
+      close,
+      active,
+    };
+  }
+
+  if (![leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist].every((point) => hasReliablePoint(point, 0.3))) {
+    return { state: "searching", score: 0, close: false, active: false };
+  }
+
+  const shoulderWidth = Math.max(0.09, distance(leftShoulder, rightShoulder));
+  const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
+  const wristsLevel = Math.abs(leftWrist.y - rightWrist.y) < 0.24;
+  const wristsNearShoulderLine =
+    Math.abs(leftWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24 &&
+    Math.abs(rightWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24;
+
+  if (focus === "Shoulders") {
+    const armGuide = buildArmsGuideFromBaseline(baseline, landmarks)?.points;
+    const guideOffset = getMeanNormalizedGuideOffset([
+      [leftElbow, armGuide?.leftElbow],
+      [rightElbow, armGuide?.rightElbow],
+      [leftWrist, armGuide?.leftWrist],
+      [rightWrist, armGuide?.rightWrist],
+    ], shoulderWidth);
+    const wristsRaisedFromBaseline =
+      average((baseline.leftWrist?.y ?? 1) - leftWrist.y, (baseline.rightWrist?.y ?? 1) - rightWrist.y);
+    const close = shouldersLevel && (guideOffset < 1.02 || wristsRaisedFromBaseline > 0.05);
+    const active = shouldersLevel && wristsLevel && (guideOffset < 0.84 || wristsRaisedFromBaseline > 0.08);
+    const score = Math.max(0, Math.min(1, ((1.08 - Math.min(guideOffset, 1.08)) / 1.08) * 0.75 + Math.min(wristsRaisedFromBaseline / 0.1, 1) * 0.25));
+
+    return {
+      state: active ? "matched" : close ? "close" : "off",
+      score,
+      close,
+      active,
+    };
+  }
+
+  const centerX = average(leftShoulder.x, rightShoulder.x);
+  const baselineCenterX = average(baseline.leftShoulder.x, baseline.rightShoulder.x);
+  const wristInset = average(Math.abs(leftWrist.x - centerX), Math.abs(rightWrist.x - centerX));
+  const baselineInset = average(Math.abs((baseline.leftWrist?.x ?? 0.3) - baselineCenterX), Math.abs((baseline.rightWrist?.x ?? 0.7) - baselineCenterX));
+  const elbowInset = average(Math.abs(leftElbow.x - centerX), Math.abs(rightElbow.x - centerX));
+  const baselineElbowInset = average(Math.abs((baseline.leftElbow?.x ?? 0.38) - baselineCenterX), Math.abs((baseline.rightElbow?.x ?? 0.62) - baselineCenterX));
+  const inwardReach = Math.max(0, (baselineInset - wristInset) / shoulderWidth);
+  const elbowReach = Math.max(0, (baselineElbowInset - elbowInset) / shoulderWidth);
+  const close = shouldersLevel && wristsLevel && (inwardReach > 0.08 || elbowReach > 0.05);
+  const active = shouldersLevel && wristsNearShoulderLine && (inwardReach > 0.15 || (inwardReach > 0.08 && elbowReach > 0.08));
+  const score = Math.max(0, Math.min(1, Math.max(inwardReach / 0.22, elbowReach / 0.18)));
+
+  return {
+    state: active ? "matched" : close ? "close" : "off",
+    score,
+    close,
+    active,
+  };
+}
 }
 
 function average(a, b) {
@@ -2067,6 +2380,7 @@ function distance(a, b) {
 
 function stopCamera() {
   stopHoldTimer();
+  resetExerciseHoldTracking();
   state.session.running = false;
   state.session.holdActive = false;
   state.session.cameraReady = false;
@@ -2088,8 +2402,10 @@ function stopCamera() {
   state.session.demoProgress = 0;
   state.session.pendingMotionLabel = "idle";
   state.session.pendingMotionFrames = 0;
+  state.session.exerciseMatchState = "idle";
+  state.session.exerciseMatchScore = 0;
   els.toggleSession.textContent = "Start Session";
-  els.toggleHold.textContent = "Start Hold";
+  els.toggleHold.textContent = "Auto Hold";
   updateCalibrationButtonLabel();
 
   if (motionFrameId) {
@@ -2136,6 +2452,7 @@ function toggleSession() {
   state.session.running = !state.session.running;
   sessionStartedAt = state.session.running ? Date.now() : sessionStartedAt;
   if (state.session.running) state.session.completed = false;
+  resetExerciseHoldTracking();
   els.toggleSession.textContent = state.session.running ? "Pause Session" : "Start Session";
 
   if (state.session.running) {
@@ -2151,30 +2468,11 @@ function toggleSession() {
 
 function toggleHold() {
   if (!state.session.running) {
-    setFeedback("Start the session before beginning an isometric hold.");
+    setFeedback("Start the session before automatic hold tracking can begin.");
     return;
   }
 
-  state.session.holdActive = !state.session.holdActive;
-  els.toggleHold.textContent = state.session.holdActive ? "End Hold" : "Start Hold";
-
-  if (state.session.holdActive) {
-    holdIntervalId = window.setInterval(() => {
-      state.session.holdSeconds += 1;
-      state.session.totalTension += 1;
-      state.session.completed = false;
-      renderSession();
-      renderControlStates();
-      persistState();
-    }, 1000);
-    setFeedback("Hold started. Keep breathing easy.");
-  } else {
-    stopHoldTimer();
-    setFeedback("Hold completed.");
-  }
-
-  renderSession();
-  renderControlStates();
+  setFeedback("Hold time now tracks automatically while you stay close to the demo figure.");
 }
 
 function stopHoldTimer() {
@@ -2249,10 +2547,11 @@ function completeSession() {
   state.session.postRpe = Number(els.postRpe.value);
 
   stopHoldTimer();
+  resetExerciseHoldTracking();
   state.session.running = false;
   state.session.holdActive = false;
   els.toggleSession.textContent = "Start Session";
-  els.toggleHold.textContent = "Start Hold";
+  els.toggleHold.textContent = "Auto Hold";
 
   const sessionDurationMs = sessionStartedAt ? Date.now() - sessionStartedAt : state.session.totalTension * 1000;
   const estimatedMinutes = Math.max(1, Math.round(sessionDurationMs / 60000));
@@ -2286,14 +2585,30 @@ function completeSession() {
     : adherence >= 80
       ? "Ready for clinician review"
       : "Needs another supported session";
+  const selectedDemo = getSelectedDemo();
 
   state.report = {
     adherence,
     fatigueBand: rpeSummary,
     intensity: rpeChange,
     status: careStatus,
-    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension. Session RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
+    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension on ${selectedDemo?.title || activePlan.focuses[0]}. Session RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
   };
+  state.sessionHistory = [
+    ...state.sessionHistory,
+    {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      exercise: selectedDemo?.title || activePlan.focuses[0],
+      focus: selectedDemo?.focus || activePlan.focuses[0],
+      timeUnderTension: state.session.totalTension,
+      holdSeconds: state.session.holdSeconds,
+      preRpe,
+      postRpe,
+      adherence,
+      reps: state.session.reps,
+    },
+  ].slice(-42);
 
   state.rewards.cashback = Number(Math.min(
     reimbursementTarget,
@@ -2359,10 +2674,12 @@ function renderSession() {
     : state.session.cameraReady
       ? "Ready"
       : "Offline";
+  renderDemoPreview();
   renderCalibrationCountdown();
 }
 
 function renderControlStates() {
+  els.toggleHold.textContent = "Auto Hold";
   els.startCamera.disabled = state.session.cameraReady;
   els.stopCamera.disabled = !state.session.cameraReady;
   els.captureCalibration.disabled = !state.session.cameraReady || state.session.calibrated || getCalibrationCountdownSeconds() > 0;
@@ -2478,9 +2795,6 @@ function renderWorkflow() {
     els.workflowCheckSecondary.textContent = "Calibration pending";
   } else if (!state.session.calibrated) {
     const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-    const countdown = calibrationHoldStartedAt
-      ? Math.max(0, Math.ceil((getCalibrationHoldMs() - (performance.now() - calibrationHoldStartedAt)) / 1000))
-      : 0;
     const stepCountdown = getCalibrationCountdownSeconds();
     const assessment = currentStep
       ? getCalibrationPoseAssessment(currentStep.key, latestPoseLandmarks, state.session.baseline)
@@ -2488,7 +2802,7 @@ function renderWorkflow() {
     els.workflowTitle.textContent = calibrationHoldStartedAt ? "Calibrating" : "Get Ready";
     els.workflowCopy.textContent = currentStep
       ? calibrationHoldStartedAt
-        ? `${currentStep.title}. Hold still ${countdown}.`
+        ? `${currentStep.title}. Hold still to save.`
         : stepCountdown > 0
           ? `${currentStep.title} begins in ${stepCountdown}.`
           : assessment?.matched
@@ -2509,23 +2823,36 @@ function renderWorkflow() {
       : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
   } else if (!state.session.demoCompleted) {
     const selectedDemo = getSelectedDemo();
+    const matchState = state.session.exerciseMatchState;
+    const demoStateCopy = matchState === "matched"
+      ? "On target. Keep holding the figure."
+      : matchState === "close"
+        ? "Close enough. Tighten the shape a touch."
+        : selectedDemo?.workflowPrompt || "Match the selected demo hold.";
     els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Demo") : "Finished Calibrating";
     els.workflowCopy.textContent = state.session.demoActive
-      ? (selectedDemo?.workflowPrompt || "Match the selected demo hold.")
+      ? demoStateCopy
       : selectedDemo
         ? `Start the ${selectedDemo.title} demo.`
         : "Start the guided demo.";
     els.workflowCheckPrimary.textContent = selectedDemo ? `${selectedDemo.focus} focus` : "Calibration done";
-    els.workflowCheckSecondary.textContent = state.session.demoActive ? `Demo ${state.session.demoProgress}%` : "Start demo";
+    els.workflowCheckSecondary.textContent = state.session.demoActive
+      ? `${matchState === "matched" ? "Locked" : matchState === "close" ? "Close" : "Adjust"} • Demo ${state.session.demoProgress}%`
+      : "Start demo";
   } else if (!state.session.running) {
     els.workflowTitle.textContent = "Ready To Work";
     els.workflowCopy.textContent = "Calibration and demo are complete.";
     els.workflowCheckPrimary.textContent = "Calibration done";
     els.workflowCheckSecondary.textContent = "Demo done";
   } else {
+    const matchState = state.session.exerciseMatchState;
     els.workflowTitle.textContent = "Working";
-    els.workflowCopy.textContent = "Move slowly and stay controlled.";
-    els.workflowCheckPrimary.textContent = "Tracking live";
+    els.workflowCopy.textContent = matchState === "matched"
+      ? "Good match. Time under tension is counting."
+      : matchState === "close"
+        ? "Close enough. Stay with the figure to keep TUT counting."
+        : "Move back toward the figure before the hold continues.";
+    els.workflowCheckPrimary.textContent = matchState === "matched" ? "TUT live" : matchState === "close" ? "Almost there" : "Re-match figure";
     els.workflowCheckSecondary.textContent = "Work active";
   }
 
@@ -2544,12 +2871,17 @@ function updateWorkflowCheck(element, complete) {
 }
 
 function renderReport() {
+  els.reportViewButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.reportView === state.reportView);
+  });
+
   if (!state.report) {
     els.reportAdherence.textContent = "0%";
     els.reportFatigue.textContent = "Pre -- | Post --";
     els.reportIntensity.textContent = "--";
     els.reportStatus.textContent = "Awaiting first session";
     els.reportText.textContent = "Generate a plan and complete a session to create the report.";
+    renderReportChart();
     return;
   }
 
@@ -2558,6 +2890,99 @@ function renderReport() {
   els.reportIntensity.textContent = state.report.intensity;
   els.reportStatus.textContent = state.report.status;
   els.reportText.textContent = state.report.text;
+  renderReportChart();
+}
+
+function renderReportChart() {
+  if (!els.reportChart) return;
+
+  const chartRows = state.reportView === "exercise"
+    ? buildExerciseHistoryRows(state.sessionHistory)
+    : buildDailyHistoryRows(state.sessionHistory);
+
+  if (!chartRows.length) {
+    els.reportChart.innerHTML = `<p class="report-chart-empty">Complete a session to populate the clinician graph.</p>`;
+    return;
+  }
+
+  const maxTut = Math.max(...chartRows.map((row) => row.timeUnderTension), 1);
+  els.reportChart.innerHTML = `
+    <div class="report-chart-grid">
+      ${chartRows.map((row) => {
+        const barHeight = Math.max(10, Math.round((row.timeUnderTension / maxTut) * 100));
+        const rpeBottom = Math.max(8, Math.min(96, Math.round((row.postRpe / 10) * 100)));
+        return `
+          <article class="report-chart-column">
+            <div class="report-chart-plot">
+              <span class="report-chart-bar" style="height:${barHeight}%"></span>
+              <span class="report-chart-rpe" style="bottom:${rpeBottom}%">${row.postRpe.toFixed(0)}</span>
+            </div>
+            <strong>${row.label}</strong>
+            <small>${row.timeUnderTension}s TUT</small>
+            <small>RPE ${row.postRpe.toFixed(1)}</small>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function buildDailyHistoryRows(history) {
+  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const grouped = new Map();
+
+  history.forEach((entry) => {
+    const dayKey = entry.date.slice(0, 10);
+    const existing = grouped.get(dayKey) || {
+      label: formatter.format(new Date(entry.date)),
+      timeUnderTension: 0,
+      rpeTotal: 0,
+      count: 0,
+    };
+    existing.timeUnderTension += Number(entry.timeUnderTension || 0);
+    existing.rpeTotal += Number(entry.postRpe || 0);
+    existing.count += 1;
+    grouped.set(dayKey, existing);
+  });
+
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-7)
+    .map(([, value]) => ({
+      label: value.label,
+      timeUnderTension: value.timeUnderTension,
+      postRpe: value.rpeTotal / Math.max(1, value.count),
+    }));
+}
+
+function buildExerciseHistoryRows(history) {
+  const grouped = new Map();
+
+  history.forEach((entry) => {
+    const key = entry.exercise || "Exercise";
+    const existing = grouped.get(key) || {
+      label: key.length > 16 ? `${key.slice(0, 16)}...` : key,
+      timeUnderTension: 0,
+      rpeTotal: 0,
+      count: 0,
+      lastDate: entry.date,
+    };
+    existing.timeUnderTension += Number(entry.timeUnderTension || 0);
+    existing.rpeTotal += Number(entry.postRpe || 0);
+    existing.count += 1;
+    existing.lastDate = entry.date;
+    grouped.set(key, existing);
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.lastDate.localeCompare(a.lastDate))
+    .slice(0, 6)
+    .reverse()
+    .map((value) => ({
+      label: value.label,
+      timeUnderTension: value.timeUnderTension,
+      postRpe: value.rpeTotal / Math.max(1, value.count),
+    }));
 }
 
 function renderRewards() {
@@ -2603,8 +3028,49 @@ function getNamedLimbPoints(landmarks) {
   );
 }
 
+function getTrackedOverlayTheme() {
+  const matchState = state.session.exerciseMatchState;
+  if (matchState === "matched") {
+    return {
+      strongStroke: "rgba(143, 215, 191, 0.98)",
+      weakStroke: "rgba(143, 215, 191, 0.44)",
+      shadow: "rgba(143, 215, 191, 0.38)",
+      jointOuter: "rgba(9, 14, 12, 0.86)",
+      jointInner: "#e8fff6",
+      jointCore: "#8fd7bf",
+      weakJointInner: "rgba(232, 255, 246, 0.52)",
+      weakJointCore: "rgba(143, 215, 191, 0.45)",
+    };
+  }
+
+  if (matchState === "close") {
+    return {
+      strongStroke: "rgba(255, 196, 107, 0.98)",
+      weakStroke: "rgba(255, 196, 107, 0.42)",
+      shadow: "rgba(255, 196, 107, 0.36)",
+      jointOuter: "rgba(14, 11, 7, 0.86)",
+      jointInner: "#fff3dc",
+      jointCore: "#ffc46b",
+      weakJointInner: "rgba(255, 243, 220, 0.52)",
+      weakJointCore: "rgba(255, 196, 107, 0.45)",
+    };
+  }
+
+  return {
+    strongStroke: "rgba(89, 220, 255, 0.96)",
+    weakStroke: "rgba(89, 220, 255, 0.42)",
+    shadow: "rgba(89, 220, 255, 0.4)",
+    jointOuter: "rgba(9, 11, 14, 0.85)",
+    jointInner: "#e9fbff",
+    jointCore: "#59dcff",
+    weakJointInner: "rgba(233, 251, 255, 0.52)",
+    weakJointCore: "rgba(89, 220, 255, 0.45)",
+  };
+}
+
 function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
   const namedPoints = getNamedLimbPoints(landmarks);
+  const theme = getTrackedOverlayTheme();
 
   ctx.save();
   ctx.lineCap = "round";
@@ -2622,9 +3088,9 @@ function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
     ctx.moveTo(start.x * width, start.y * height);
     ctx.lineTo(end.x * width, end.y * height);
     ctx.lineWidth = visibility >= LIMB_VISIBILITY_THRESHOLD ? 7 : 4;
-    ctx.strokeStyle = visibility >= LIMB_VISIBILITY_THRESHOLD ? "rgba(89, 220, 255, 0.96)" : "rgba(89, 220, 255, 0.42)";
+    ctx.strokeStyle = visibility >= LIMB_VISIBILITY_THRESHOLD ? theme.strongStroke : theme.weakStroke;
     ctx.shadowBlur = visibility >= LIMB_VISIBILITY_THRESHOLD ? 12 : 0;
-    ctx.shadowColor = "rgba(89, 220, 255, 0.4)";
+    ctx.shadowColor = theme.shadow;
     ctx.stroke();
   });
 
@@ -2640,17 +3106,17 @@ function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
     ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.arc(x, y, radius + 2, 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? "rgba(9, 11, 14, 0.85)" : "rgba(9, 11, 14, 0.55)";
+    ctx.fillStyle = strongPoint ? theme.jointOuter : "rgba(9, 11, 14, 0.55)";
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? "#e9fbff" : "rgba(233, 251, 255, 0.52)";
+    ctx.fillStyle = strongPoint ? theme.jointInner : theme.weakJointInner;
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(x, y, Math.max(2.5, radius - 3), 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? "#59dcff" : "rgba(89, 220, 255, 0.45)";
+    ctx.fillStyle = strongPoint ? theme.jointCore : theme.weakJointCore;
     ctx.fill();
   });
 
@@ -2663,6 +3129,8 @@ function persistState() {
     plan: state.plan,
     rewards: state.rewards,
     report: state.report,
+    reportView: state.reportView,
+    sessionHistory: state.sessionHistory,
     session: {
       cameraReady: false,
       running: false,
@@ -2686,6 +3154,8 @@ function persistState() {
       demoActive: state.session.demoActive,
       demoCompleted: state.session.demoCompleted,
       demoProgress: state.session.demoProgress,
+      exerciseMatchState: "idle",
+      exerciseMatchScore: 0,
     },
   }));
 }
@@ -2698,6 +3168,10 @@ function restoreState() {
     const parsed = JSON.parse(raw);
     Object.assign(state, parsed);
     Object.assign(state.session, parsed.session || {});
+    state.reportView = parsed.reportView || "daily";
+    state.sessionHistory = Array.isArray(parsed.sessionHistory) ? parsed.sessionHistory : [];
+    state.session.exerciseMatchState = "idle";
+    state.session.exerciseMatchScore = 0;
   } catch (error) {
     console.error("Unable to restore demo state", error);
   }
