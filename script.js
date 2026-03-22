@@ -450,7 +450,7 @@ const AUTO_CALIBRATION_HOLD_MS = 1200;
 const AUTO_CALIBRATION_STEADY_CAPTURE_MS = 3600;
 const AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD = 0.018;
 const CALIBRATION_HOLD_GRACE_MS = 240;
-const ARM_CALIBRATION_TARGET_SCALE = 0.68;
+const ARM_CALIBRATION_TARGET_SCALE = 0.8;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
 const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
 const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 3000;
@@ -1340,38 +1340,38 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
     x: shoulderCenterX + halfShoulderWidth,
     y: targetY,
   };
-  const compactUpperArmLength = Math.max(0.055, liveShoulderWidth * 0.33);
-  const compactForearmLength = Math.max(0.055, liveShoulderWidth * 0.31);
+  const leftAvailableReach = Math.max(0.22, leftShoulder.x - 0.04);
+  const rightAvailableReach = Math.max(0.22, 0.96 - rightShoulder.x);
   const leftUpperArmLength = Math.min(
-    Math.max(0.07, distance(baseline.leftShoulder, baseline.leftElbow) * scale),
-    compactUpperArmLength
+    Math.max(0.08, distance(baseline.leftShoulder, baseline.leftElbow) * scale),
+    leftAvailableReach * 0.56
   );
   const rightUpperArmLength = Math.min(
-    Math.max(0.07, distance(baseline.rightShoulder, baseline.rightElbow) * scale),
-    compactUpperArmLength
+    Math.max(0.08, distance(baseline.rightShoulder, baseline.rightElbow) * scale),
+    rightAvailableReach * 0.56
   );
   const leftForearmLength = Math.min(
-    Math.max(0.07, distance(baseline.leftElbow, baseline.leftWrist) * scale),
-    compactForearmLength
+    Math.max(0.08, distance(baseline.leftElbow, baseline.leftWrist) * scale),
+    leftAvailableReach * 0.44
   );
   const rightForearmLength = Math.min(
-    Math.max(0.07, distance(baseline.rightElbow, baseline.rightWrist) * scale),
-    compactForearmLength
+    Math.max(0.08, distance(baseline.rightElbow, baseline.rightWrist) * scale),
+    rightAvailableReach * 0.44
   );
   const leftElbow = {
-    x: Math.max(0.16, leftShoulder.x - leftUpperArmLength),
+    x: Math.max(0.08, leftShoulder.x - leftUpperArmLength),
     y: targetY,
   };
   const rightElbow = {
-    x: Math.min(0.84, rightShoulder.x + rightUpperArmLength),
+    x: Math.min(0.92, rightShoulder.x + rightUpperArmLength),
     y: targetY,
   };
   const leftWrist = {
-    x: Math.max(0.14, leftElbow.x - leftForearmLength),
+    x: Math.max(0.04, leftElbow.x - leftForearmLength),
     y: targetY,
   };
   const rightWrist = {
-    x: Math.min(0.86, rightElbow.x + rightForearmLength),
+    x: Math.min(0.96, rightElbow.x + rightForearmLength),
     y: targetY,
   };
 
@@ -1396,15 +1396,28 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
 }
 
 function buildHeelRaiseGuideFromBaseline(baseline) {
+  const ankleLift = Math.max(
+    0.012,
+    average(distance(baseline.leftKnee, baseline.leftAnkle), distance(baseline.rightKnee, baseline.rightAnkle)) * 0.08
+  );
+  const heelLift = Math.max(
+    0.024,
+    average(distance(baseline.leftAnkle, baseline.leftHeel), distance(baseline.rightAnkle, baseline.rightHeel)) * 0.85
+  );
+  const footLift = Math.max(
+    0.018,
+    average(distance(baseline.leftHeel, baseline.leftFootIndex), distance(baseline.rightHeel, baseline.rightFootIndex)) * 0.72
+  );
+
   return {
     points: {
       ...baseline,
-      leftAnkle: { ...baseline.leftAnkle, y: baseline.leftAnkle.y - 0.012 },
-      rightAnkle: { ...baseline.rightAnkle, y: baseline.rightAnkle.y - 0.012 },
-      leftHeel: baseline.leftHeel ? { ...baseline.leftHeel, y: baseline.leftHeel.y - 0.03 } : undefined,
-      rightHeel: baseline.rightHeel ? { ...baseline.rightHeel, y: baseline.rightHeel.y - 0.03 } : undefined,
-      leftFootIndex: baseline.leftFootIndex ? { ...baseline.leftFootIndex, y: baseline.leftFootIndex.y - 0.022 } : undefined,
-      rightFootIndex: baseline.rightFootIndex ? { ...baseline.rightFootIndex, y: baseline.rightFootIndex.y - 0.022 } : undefined,
+      leftAnkle: { ...baseline.leftAnkle, y: baseline.leftAnkle.y - ankleLift },
+      rightAnkle: { ...baseline.rightAnkle, y: baseline.rightAnkle.y - ankleLift },
+      leftHeel: baseline.leftHeel ? { ...baseline.leftHeel, y: baseline.leftHeel.y - heelLift } : undefined,
+      rightHeel: baseline.rightHeel ? { ...baseline.rightHeel, y: baseline.rightHeel.y - heelLift } : undefined,
+      leftFootIndex: baseline.leftFootIndex ? { ...baseline.leftFootIndex, y: baseline.leftFootIndex.y - footLift } : undefined,
+      rightFootIndex: baseline.rightFootIndex ? { ...baseline.rightFootIndex, y: baseline.rightFootIndex.y - footLift } : undefined,
     },
     emphasis: ["leftAnkle", "rightAnkle", "leftHeel", "rightHeel"],
   };
@@ -1850,9 +1863,9 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       + leftWristGuideOffset
       + rightWristGuideOffset
     ) / 4;
-    const elbowsNearGuide = leftElbowGuideOffset < 0.72 && rightElbowGuideOffset < 0.72;
-    const wristsNearGuide = leftWristGuideOffset < 0.8 && rightWristGuideOffset < 0.8;
-    const armGuideReady = meanGuideOffset < 0.74 || wristsNearGuide || elbowsNearGuide;
+    const elbowsNearGuide = leftElbowGuideOffset < 0.8 && rightElbowGuideOffset < 0.8;
+    const wristsNearGuide = leftWristGuideOffset < 0.9 && rightWristGuideOffset < 0.9;
+    const armGuideReady = meanGuideOffset < 0.82 || wristsNearGuide || elbowsNearGuide;
 
     const assessment = buildCalibrationAssessment([
       {
@@ -1916,6 +1929,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const rightHeel = landmarks[30];
     const leftShoulder = landmarks[11];
     const rightShoulder = landmarks[12];
+    const heelRaiseGuide = buildHeelRaiseGuideFromBaseline(baseline)?.points;
 
     if (![leftHip, rightHip, leftAnkle, rightAnkle, leftHeel, rightHeel, leftShoulder, rightShoulder].every((point) => hasReliablePoint(point, 0.28))) {
       return {
@@ -1935,15 +1949,24 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       getLiftDelta(baseline.rightAnkle, rightAnkle) * 1.15
     );
     const bestLift = Math.max(leftLift, rightLift);
+    const targetLift = heelRaiseGuide
+      ? Math.max(
+        getLiftDelta(baseline.leftHeel, heelRaiseGuide.leftHeel),
+        getLiftDelta(baseline.rightHeel, heelRaiseGuide.rightHeel),
+        getLiftDelta(baseline.leftAnkle, heelRaiseGuide.leftAnkle) * 1.15,
+        getLiftDelta(baseline.rightAnkle, heelRaiseGuide.rightAnkle) * 1.15
+      )
+      : 0.018;
+    const liftReadyThreshold = Math.max(0.014, targetLift * 0.58);
     const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
     const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.1;
     const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: bestLift > 0.018,
-        hint: "Lift one heel a little higher while keeping the rest of your posture still.",
-        shortHint: "Lift heel higher",
+        pass: bestLift > liftReadyThreshold,
+        hint: "Lift one heel toward the outline while keeping the rest of your posture still.",
+        shortHint: "Match heel lift",
       },
       {
         pass: shouldersLevel,
@@ -1964,7 +1987,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
 
     return {
       ...assessment,
-      matched: bestLift > 0.018 && shouldersLevel && (hipsLevel || centered),
+      matched: bestLift > liftReadyThreshold && shouldersLevel && (hipsLevel || centered),
     };
   }
 
