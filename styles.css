@@ -653,6 +653,34 @@ h3 {
   color: var(--accent);
 }
 
+.rpe-input-card small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.rpe-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.rpe-input {
+  width: 5.25rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.95rem;
+  background: rgba(9, 11, 16, 0.82);
+  color: var(--soft);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.rpe-input:focus {
+  outline: 2px solid rgba(143, 215, 191, 0.45);
+  outline-offset: 2px;
+}
+
 .form-actions,
 .control-row {
   display: flex;
