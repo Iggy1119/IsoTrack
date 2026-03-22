@@ -46,6 +46,7 @@
           <button class="tab-button" type="button" data-tab-target="overview" role="tab" aria-selected="false">Overview</button>
           <button class="tab-button" type="button" data-tab-target="assessment" role="tab" aria-selected="false">Assessment</button>
           <button class="tab-button is-active" type="button" data-tab-target="session" role="tab" aria-selected="true">Session Lab</button>
+          <button class="tab-button" type="button" data-tab-target="demos" role="tab" aria-selected="false">Demos</button>
           <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
           <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
         </div>
@@ -435,6 +436,9 @@
                     <p class="panel-label">Selected demo brief</p>
                     <span class="status-pill muted-pill" id="selected-demo-video-status">MP4 pending</span>
                   </div>
+                  <div class="demo-player-shell">
+                    <video id="selected-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
+                  </div>
                   <div class="demo-preview-layout">
                     <div class="demo-preview-card" id="demo-preview-card">
                       <div class="demo-preview-head">
@@ -510,6 +514,39 @@
                   </article>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="demos">
+          <div class="report-grid demo-library-panel-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Demo library</p>
+                  <h2 id="library-demo-title">All exercise demos</h2>
+                </div>
+                <span class="status-pill muted-pill" id="library-demo-status">MP4 library</span>
+              </div>
+              <div class="demo-player-shell demo-player-shell-large">
+                <video id="library-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
+              </div>
+              <p class="demo-detail-copy" id="library-demo-copy">Select any demo card to preview the matching MP4, helper tip, and purpose.</p>
+              <div class="demo-detail-meta" aria-label="Library demo metadata">
+                <span id="library-demo-focus">Demo focus</span>
+                <span id="library-demo-target">Exercise demo</span>
+                <span id="library-demo-file">MP4 file</span>
+              </div>
+              <p class="demo-detail-copy" id="library-demo-tip">Helpful Tip: --</p>
+              <p class="demo-detail-copy" id="library-demo-purpose">Purpose: --</p>
+            </div>
+
+            <div class="panel">
+              <div class="demo-library-head">
+                <p class="panel-label">All demos</p>
+                <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder.</p>
+              </div>
+              <div class="demo-grid" id="all-demo-list"></div>
             </div>
           </div>
         </section>

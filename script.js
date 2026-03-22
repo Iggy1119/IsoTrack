@@ -545,6 +545,7 @@ const els = {
   sessionPlanTitle: document.querySelector("#session-plan-title"),
   sessionPlanNote: document.querySelector("#session-plan-note"),
   recommendedDemoList: document.querySelector("#recommended-demo-list"),
+  allDemoList: document.querySelector("#all-demo-list"),
   camera: document.querySelector("#camera"),
   trackingCanvas: document.querySelector("#tracking-canvas"),
   analysisCanvas: document.querySelector("#analysis-canvas"),
@@ -567,12 +568,22 @@ const els = {
   selectedDemoTitle: document.querySelector("#selected-demo-title"),
   selectedDemoCopy: document.querySelector("#selected-demo-copy"),
   selectedDemoVideoStatus: document.querySelector("#selected-demo-video-status"),
+  selectedDemoPlayer: document.querySelector("#selected-demo-player"),
   selectedDemoFocus: document.querySelector("#selected-demo-focus"),
   selectedDemoVariant: document.querySelector("#selected-demo-variant"),
   selectedDemoTarget: document.querySelector("#selected-demo-target"),
   selectedDemoSetup: document.querySelector("#selected-demo-setup"),
   selectedDemoScript: document.querySelector("#selected-demo-script"),
   selectedDemoSteps: document.querySelector("#selected-demo-steps"),
+  libraryDemoTitle: document.querySelector("#library-demo-title"),
+  libraryDemoStatus: document.querySelector("#library-demo-status"),
+  libraryDemoPlayer: document.querySelector("#library-demo-player"),
+  libraryDemoCopy: document.querySelector("#library-demo-copy"),
+  libraryDemoFocus: document.querySelector("#library-demo-focus"),
+  libraryDemoTarget: document.querySelector("#library-demo-target"),
+  libraryDemoFile: document.querySelector("#library-demo-file"),
+  libraryDemoTip: document.querySelector("#library-demo-tip"),
+  libraryDemoPurpose: document.querySelector("#library-demo-purpose"),
   demoPreviewCard: document.querySelector("#demo-preview-card"),
   demoPreviewFigure: document.querySelector("#demo-preview-figure"),
   demoPreviewCopy: document.querySelector("#demo-preview-copy"),
@@ -664,6 +675,7 @@ function bootstrap() {
   renderSelectionProgress();
   renderPlan();
   renderSessionDemos();
+  renderAllDemos();
   renderSession();
   renderControlStates();
   renderCalibration();
@@ -1136,6 +1148,10 @@ function renderSessionDemos() {
     els.selectedDemoTitle.textContent = selected.title;
     els.selectedDemoCopy.textContent = selected.summary;
     els.selectedDemoVideoStatus.textContent = selected.statusLabel;
+    if (els.selectedDemoPlayer) {
+      els.selectedDemoPlayer.src = selected.videoPath || "";
+      els.selectedDemoPlayer.poster = "";
+    }
     els.selectedDemoFocus.textContent = `${selected.focus} focus`;
     els.selectedDemoVariant.textContent = selected.typeLabel;
     els.selectedDemoTarget.textContent = selected.targetLabel;
@@ -1175,6 +1191,56 @@ function renderSessionDemos() {
     card.addEventListener("click", () => {
       state.session.selectedDemo = Number(card.dataset.demoIndex);
       renderSessionDemos();
+      persistState();
+    });
+  });
+}
+
+function renderAllDemos() {
+  const demos = buildSessionDemoLibrary();
+  const selected = getSelectedDemo();
+
+  if (selected) {
+    if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
+    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = selected.statusLabel;
+    if (els.libraryDemoPlayer) {
+      els.libraryDemoPlayer.src = selected.videoPath || "";
+      els.libraryDemoPlayer.poster = "";
+    }
+    if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
+    if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
+    if (els.libraryDemoTarget) els.libraryDemoTarget.textContent = selected.targetLabel;
+    if (els.libraryDemoFile) {
+      const fileName = String(selected.videoPath || "").split("/").pop() || "MP4 file";
+      els.libraryDemoFile.textContent = fileName;
+    }
+    if (els.libraryDemoTip) els.libraryDemoTip.textContent = `Helpful Tip: ${selected.cue}`;
+    if (els.libraryDemoPurpose) els.libraryDemoPurpose.textContent = `Purpose: ${selected.summary}`;
+  }
+
+  if (!els.allDemoList) return;
+  els.allDemoList.innerHTML = demos
+    .map((item, index) => `
+      <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+        <div class="demo-card-top">
+          <span class="demo-card-kicker">${item.focus}</span>
+          <span class="demo-card-status">${item.statusLabel}</span>
+        </div>
+        <strong>${item.title}</strong>
+        <p>${item.summary}</p>
+        <div class="demo-card-tags">
+          <span class="demo-chip">${item.targetLabel}</span>
+          <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+        </div>
+      </article>
+    `)
+    .join("");
+
+  els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.session.selectedDemo = Number(card.dataset.demoIndex);
+      renderSessionDemos();
+      renderAllDemos();
       persistState();
     });
   });
