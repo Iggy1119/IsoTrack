@@ -43,69 +43,91 @@
 
       <section class="tabs-shell">
         <div class="tab-rail" role="tablist" aria-label="IsoTrack sections">
-          <button class="tab-button" type="button" data-tab-target="overview" role="tab" aria-selected="false">Overview</button>
+          <button class="tab-button is-active" type="button" data-tab-target="overview" role="tab" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab-target="assessment" role="tab" aria-selected="false">Assessment</button>
+          <button class="tab-button" type="button" data-tab-target="session" role="tab" aria-selected="false">Session Lab</button>
           <button class="tab-button is-active" type="button" data-tab-target="session" role="tab" aria-selected="true">Session Lab</button>
           <button class="tab-button" type="button" data-tab-target="demos" role="tab" aria-selected="false">Demos</button>
           <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
           <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
         </div>
+      <section class="tab-panel is-active" data-tab-panel="overview">
+        <div class="overview-grid overview-grid--hero">
+          <article class="panel overview-story overview-story--main">
+            <p class="eyebrow">Overview</p>
+            <h2>A clearer, more supportive way to stay consistent with therapy.</h2>
+            <p>
+              IsoTrack helps patients complete guided therapeutic exercise with less friction,
+              more structure, and clinician-aware reporting that supports long-term adherence.
+            </p>
 
-        <section class="tab-panel" data-tab-panel="overview">
-          <div class="overview-grid">
-            <article class="panel overview-story">
-              <p class="eyebrow">Overview</p>
-              <h2>Therapeutic exercise built for preservation, clarity, and consistency.</h2>
-              <p>IsoTrack supports lower-load, diagnosis-aware sessions that adapt day to day.</p>
-              <div class="quote-band">
-                <span>Preserve strength</span>
-                <span>Train consistently</span>
-                <span>Review clearly</span>
+            <div class="benefit-row">
+              <div class="benefit-pill">
+                <strong>Personalized daily</strong>
+                <span>Built around diagnosis, focus area, and current capacity.</span>
               </div>
-            </article>
-
-            <article class="panel flow-panel">
-              <p class="eyebrow">Experience map</p>
-              <div class="flow-list">
-                <div>
-                  <strong>01. Calibrate</strong>
-                  <p>Set the patient profile and movement baseline.</p>
-                </div>
-                <div>
-                  <strong>02. Train</strong>
-                  <p>Run guided sessions with simpler motion support.</p>
-                </div>
-                <div>
-                  <strong>03. Report</strong>
-                  <p>Share adherence and session notes with care teams.</p>
-                </div>
+              <div class="benefit-pill">
+                <strong>Supportive guidance</strong>
+                <span>Clear exercise flow that helps patients know what to do next.</span>
               </div>
-            </article>
-          </div>
+              <div class="benefit-pill">
+                <strong>Clinician connected</strong>
+                <span>Useful summaries without showing discouraging metrics to patients.</span>
+              </div>
+            </div>
+          </article>
 
-          <div class="feature-grid">
+          <article class="panel flow-panel">
+            <p class="eyebrow">How IsoTrack works</p>
+            <div class="flow-list flow-list--stacked">
+              <div>
+                <strong>01. Start with a baseline</strong>
+                <p>Set a profile using diagnosis, movement focus, and day-to-day ability.</p>
+              </div>
+              <div>
+                <strong>02. Complete guided sessions</strong>
+                <p>Follow a calmer, lower-load therapy flow designed for consistency and repeatability.</p>
+              </div>
+              <div>
+                <strong>03. Share progress clearly</strong>
+                <p>Turn adherence and session notes into clinician-ready summaries that support care.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="overview-feature-stack">
+          <article class="feature-card feature-card--featured">
+            <span>Featured</span>
+            <h3>Personalized to daily capacity</h3>
+            <p>
+              Sessions adapt around what the patient can realistically do that day,
+              helping therapy feel more achievable and sustainable.
+            </p>
+          </article>
+
+          <div class="feature-grid feature-grid--secondary">
             <article class="feature-card">
               <span>01.</span>
-              <h3>Personalized plans</h3>
-              <p>Built from diagnosis, focus area, and daily capacity.</p>
+              <h3>Guided movement cues</h3>
+              <p>Readable prompts and calibration support help patients stay oriented throughout each session.</p>
             </article>
+
             <article class="feature-card">
               <span>02.</span>
-              <h3>Camera guidance</h3>
-              <p>Readable calibration and demo cues inside the session view.</p>
+              <h3>Built for adherence</h3>
+              <p>The experience reduces friction and supports routine through clarity, structure, and small wins.</p>
             </article>
+
             <article class="feature-card">
               <span>03.</span>
-              <h3>Cleaner setup</h3>
-              <p>Assessment choices stay structured and easy to scan.</p>
-            </article>
-            <article class="feature-card">
-              <span>04.</span>
-              <h3>Reward loop</h3>
-              <p>Completed sessions update adherence and rewards.</p>
+              <h3>Clinician-aware reporting</h3>
+              <p>Useful summaries support follow-up care while keeping discouraging trend data out of the patient view.</p>
             </article>
           </div>
-        </section>
+        </div>
+      </section>
+      
 
         <section class="tab-panel" data-tab-panel="assessment">
           <div class="assessment-grid">
@@ -315,7 +337,7 @@
           </div>
         </section>
 
-        <section class="tab-panel is-active" data-tab-panel="session">
+        <section class="tab-panel" data-tab-panel="session">
           <div class="session-grid">
             <div class="panel camera-panel">
               <div class="camera-shell">
