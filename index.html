@@ -46,6 +46,8 @@
           <button class="tab-button is-active" type="button" data-tab-target="overview" role="tab" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab-target="assessment" role="tab" aria-selected="false">Assessment</button>
           <button class="tab-button" type="button" data-tab-target="session" role="tab" aria-selected="false">Session Lab</button>
+          <button class="tab-button is-active" type="button" data-tab-target="session" role="tab" aria-selected="true">Session Lab</button>
+          <button class="tab-button" type="button" data-tab-target="demos" role="tab" aria-selected="false">Demos</button>
           <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
           <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
         </div>
@@ -338,28 +340,6 @@
         <section class="tab-panel" data-tab-panel="session">
           <div class="session-grid">
             <div class="panel camera-panel">
-              <div class="camera-panel-head">
-                <div>
-                  <p class="eyebrow">Session capture</p>
-                  <h2>Camera flow</h2>
-                  <p class="camera-panel-copy">Keep your full body in frame and follow one cue at a time.</p>
-                </div>
-                <div class="camera-stats" aria-label="Camera status">
-                  <article class="camera-stat">
-                    <span>Camera</span>
-                    <strong id="camera-status">Offline</strong>
-                  </article>
-                  <article class="camera-stat">
-                    <span>Tracking</span>
-                    <strong id="tracking-state">Tracking off</strong>
-                  </article>
-                  <article class="camera-stat">
-                    <span>Points</span>
-                    <strong id="tracked-joints">0 points</strong>
-                  </article>
-                </div>
-              </div>
-
               <div class="camera-shell">
                 <video id="camera" playsinline muted></video>
                 <canvas id="tracking-canvas" width="960" height="720"></canvas>
@@ -379,53 +359,49 @@
                 <div class="calibration-countdown hidden" id="calibration-countdown" aria-live="polite">10</div>
                 <div class="camera-overlay">
                   <div class="video-guide">
-                    <span class="video-guide-label">Current step</span>
+                    <div class="video-guide-meta">
+                      <span class="status-pill" id="camera-status">Offline</span>
+                      <div class="video-guide-stats">
+                        <span id="tracking-state">Tracking off</span>
+                        <span id="tracked-joints">0 points</span>
+                      </div>
+                    </div>
                     <strong id="workflow-title">Start camera</strong>
                     <p id="workflow-copy">Stand full-body in frame.</p>
+                    <p id="session-feedback">Start the camera to begin.</p>
                   </div>
-                  <strong id="session-feedback">Start the camera to begin.</strong>
                 </div>
               </div>
 
               <div class="camera-support-grid">
-                <div class="camera-support-card">
-                  <p class="panel-label">Progress</p>
+                <div class="camera-support-card camera-progress-card">
+                  <div class="camera-progress-head">
+                    <p class="panel-label">Flow</p>
+                    <span id="workflow-check-primary">Tracking not ready</span>
+                  </div>
                   <div class="workflow-steps">
                     <span class="workflow-step" id="step-camera">Camera</span>
                     <span class="workflow-step" id="step-calibration">Calibration</span>
                     <span class="workflow-step" id="step-demo">Demo</span>
                     <span class="workflow-step" id="step-session">Work</span>
                   </div>
-                  <div class="workflow-checks">
-                    <span id="workflow-check-primary">Tracking not ready</span>
-                    <span id="workflow-check-secondary">Calibration not captured</span>
-                  </div>
+                  <p class="camera-progress-copy" id="workflow-check-secondary">Calibration not captured</p>
                 </div>
 
                 <div class="camera-support-card camera-actions-card">
-                  <div class="camera-action-section">
-                    <p class="panel-label">Main actions</p>
-                    <div class="control-row">
-                      <div class="control-group control-group-primary">
-                        <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
-                        <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
-                        <button class="button button-secondary" id="start-demo" type="button">Run Demo</button>
-                        <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
-                        <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
-                      </div>
-                    </div>
+                  <div class="control-group control-group-primary" id="camera-primary-controls">
+                    <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
+                    <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
+                    <button class="button button-secondary" id="start-demo" type="button">Run Demo</button>
+                    <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
+                    <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
                   </div>
 
-                  <div class="camera-action-section">
-                    <p class="panel-label">Manual tools</p>
-                    <div class="control-row">
-                      <div class="control-group control-group-secondary">
-                        <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
-                        <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
-                        <button class="button button-secondary" id="toggle-hold" type="button">Start Hold</button>
-                        <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
-                      </div>
-                    </div>
+                  <div class="control-group control-group-secondary" id="camera-secondary-controls">
+                    <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
+                    <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
+                    <button class="button button-secondary" id="toggle-hold" type="button">Auto Hold</button>
+                    <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
                   </div>
                 </div>
               </div>
@@ -476,6 +452,39 @@
                     </div>
                   </div>
                   <span class="status-pill muted-pill" id="session-plan-note">Recommended drills</span>
+                </div>
+                <div class="demo-detail-card">
+                  <div class="demo-detail-head">
+                    <p class="panel-label">Selected demo brief</p>
+                    <span class="status-pill muted-pill" id="selected-demo-video-status">MP4 pending</span>
+                  </div>
+                  <div class="demo-player-shell">
+                    <video id="selected-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
+                  </div>
+                  <div class="demo-preview-layout">
+                    <div class="demo-preview-card" id="demo-preview-card">
+                      <div class="demo-preview-head">
+                        <p class="panel-label">Live target</p>
+                        <span class="status-pill muted-pill" id="demo-match-pill">Waiting</span>
+                      </div>
+                      <div class="demo-preview-figure" id="demo-preview-figure" aria-hidden="true"></div>
+                      <p class="demo-preview-copy" id="demo-preview-copy">Start the demo or session and match the figure loosely to light it up.</p>
+                    </div>
+                    <div class="demo-preview-copy-block">
+                      <div class="demo-detail-meta" aria-label="Selected demo metadata">
+                        <span id="selected-demo-focus">Shoulders</span>
+                        <span id="selected-demo-variant">Primary demo</span>
+                        <span id="selected-demo-target">3 sets</span>
+                      </div>
+                      <p class="demo-detail-copy" id="selected-demo-setup">Select an exercise card to preview the setup and recording brief.</p>
+                      <p class="demo-detail-copy" id="selected-demo-script">Upload MP4 later with the setup, one clean rep or hold, the pacing cue, and the stop cue.</p>
+                    </div>
+                  </div>
+                  <div class="demo-step-list" id="selected-demo-steps" aria-label="Selected demo instruction steps"></div>
+                </div>
+                <div class="demo-library-head">
+                  <p class="panel-label">Exercise list</p>
+                  <p class="demo-library-copy">Use these cards as the base for your future instruction videos and voiceover explanations.</p>
                 </div>
                 <div class="demo-grid" id="recommended-demo-list"></div>
               </div>
@@ -531,6 +540,39 @@
           </div>
         </section>
 
+        <section class="tab-panel" data-tab-panel="demos">
+          <div class="report-grid demo-library-panel-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Demo library</p>
+                  <h2 id="library-demo-title">All exercise demos</h2>
+                </div>
+                <span class="status-pill muted-pill" id="library-demo-status">MP4 library</span>
+              </div>
+              <div class="demo-player-shell demo-player-shell-large">
+                <video id="library-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
+              </div>
+              <p class="demo-detail-copy" id="library-demo-copy">Select any demo card to preview the matching MP4, helper tip, and purpose.</p>
+              <div class="demo-detail-meta" aria-label="Library demo metadata">
+                <span id="library-demo-focus">Demo focus</span>
+                <span id="library-demo-target">Exercise demo</span>
+                <span id="library-demo-file">MP4 file</span>
+              </div>
+              <p class="demo-detail-copy" id="library-demo-tip">Helpful Tip: --</p>
+              <p class="demo-detail-copy" id="library-demo-purpose">Purpose: --</p>
+            </div>
+
+            <div class="panel">
+              <div class="demo-library-head">
+                <p class="panel-label">All demos</p>
+                <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder.</p>
+              </div>
+              <div class="demo-grid" id="all-demo-list"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="tab-panel" data-tab-panel="reports">
           <div class="report-grid">
             <div class="panel">
@@ -555,6 +597,21 @@
                 </article>
               </div>
               <p class="report-text" id="report-text">Generate a plan and complete a session to create the report.</p>
+              <div class="report-trend-panel">
+                <div class="report-trend-head">
+                  <div>
+                    <p class="panel-label">Trend view</p>
+                    <h3>Time under tension and RPE</h3>
+                  </div>
+                  <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
+                    <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
+                    <button class="segmented-button" type="button" data-report-view="exercise">Per exercise</button>
+                  </div>
+                </div>
+                <div class="report-chart" id="report-chart">
+                  <p class="report-chart-empty">Complete a session to populate the clinician graph.</p>
+                </div>
+              </div>
             </div>
 
             <div class="panel care-path-panel">
