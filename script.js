@@ -679,6 +679,12 @@ const els = {
   walletRemaining: document.querySelector("#wallet-remaining"),
   walletProgress: document.querySelector("#wallet-progress"),
   walletNote: document.querySelector("#wallet-note"),
+  walletNextUnlock: document.querySelector("#wallet-next-unlock"),
+  walletTierCopy: document.querySelector("#wallet-tier-copy"),
+  walletTierBar: document.querySelector("#wallet-tier-bar"),
+  tierStarter: document.querySelector("#tier-starter"),
+  tierRecovery: document.querySelector("#tier-recovery"),
+  tierConsistency: document.querySelector("#tier-consistency"),
 };
 
 let mediaStream;
@@ -1474,6 +1480,7 @@ function buildSessionDemoLibrary() {
 
     return {
       ...videoDemo,
+      demoTitle: videoDemo.title,
       title: prescription.title,
       description: prescription.description,
       summary: `${prescription.summary} Prescribed from the assessment plan.`,
@@ -1488,6 +1495,7 @@ function buildSessionDemoLibrary() {
       targetLabel: `${repTarget} reps or ${holdTarget}s TUT`,
       instructionSteps: prescription.steps,
       purpose: videoDemo.purpose,
+      poseVariant: getDemoPoseVariant(videoDemo),
       repTarget,
       holdTarget,
       sessionIndex: index,
@@ -1812,15 +1820,13 @@ function renderAllDemos() {
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
   if (!els.demoPreviewCard || !els.demoPreviewFigure || !els.demoMatchPill || !els.demoPreviewCopy) return;
 
-  const movementPattern = selectedDemo?.movementPattern || "upperHold";
-  const focus = selectedDemo?.focus || getSelectedFocus();
   const matchState = state.session.exerciseMatchState || "idle";
-  const isForwardPress = movementPattern === "upperHold" && focus !== "Shoulders";
+  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
+  const demoLabel = getDemoDisplayLabel(selectedDemo);
 
   els.demoPreviewCard.dataset.matchState = matchState;
   els.demoPreviewFigure.innerHTML = buildDemoPreviewFigureMarkup({
-    movementPattern,
-    isForwardPress,
+    poseVariant,
   });
 
   const matchLabels = {
@@ -1831,10 +1837,10 @@ function renderDemoPreview(selectedDemo = getSelectedDemo()) {
     matched: "On target",
   };
   const previewCopy = {
-    idle: "Start the demo or session and match the figure loosely to light it up.",
+    idle: `${demoLabel} outline loaded. Start the demo or session and match it loosely to light the guide up.`,
     searching: "Bring your full body back into frame so the demo figure can react.",
-    off: "Move toward the figure. The match area is intentionally forgiving.",
-    close: "You are close. Tighten the shape slightly to lock the hold.",
+    off: `Move toward the ${demoLabel.toLowerCase()} outline. The match area is intentionally forgiving.`,
+    close: `You are close. Tighten the ${demoLabel.toLowerCase()} shape slightly to lock the hold.`,
     matched: "Good match. Stay there and hold to keep time under tension counting.",
   };
 
@@ -1842,71 +1848,383 @@ function renderDemoPreview(selectedDemo = getSelectedDemo()) {
   els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
 }
 
-function buildDemoPreviewFigureMarkup({ movementPattern, isForwardPress }) {
-  if (movementPattern === "lowerLift") {
-    return `
-      <svg viewBox="0 0 160 180" role="presentation">
-        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-        <path class="figure-line" d="M80 26 L80 56"></path>
-        <path class="figure-line" d="M80 56 L80 96"></path>
-        <path class="figure-line" d="M80 56 L53 84"></path>
-        <path class="figure-line" d="M80 56 L107 84"></path>
-        <path class="figure-line" d="M80 96 L58 132"></path>
-        <path class="figure-line" d="M58 132 L54 160"></path>
-        <path class="figure-line" d="M80 96 L108 116"></path>
-        <path class="figure-line" d="M108 116 L126 96"></path>
-        <circle class="figure-joint" cx="80" cy="19" r="10"></circle>
-        <circle class="figure-joint" cx="53" cy="84" r="5"></circle>
-        <circle class="figure-joint" cx="107" cy="84" r="5"></circle>
-        <circle class="figure-joint" cx="58" cy="132" r="5"></circle>
-        <circle class="figure-joint" cx="108" cy="116" r="5"></circle>
-      </svg>
-    `;
-  }
+function getDemoDisplayLabel(demo) {
+  return demo?.demoTitle || demo?.title || "Current exercise";
+}
 
-  if (isForwardPress) {
-    return `
-      <svg viewBox="0 0 160 180" role="presentation">
-        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-        <path class="figure-line" d="M80 24 L80 56"></path>
-        <path class="figure-line" d="M80 56 L80 100"></path>
-        <path class="figure-line" d="M80 60 L62 80"></path>
-        <path class="figure-line" d="M62 80 L70 95"></path>
-        <path class="figure-line" d="M80 60 L98 80"></path>
-        <path class="figure-line" d="M98 80 L90 95"></path>
-        <path class="figure-line" d="M80 100 L62 140"></path>
-        <path class="figure-line" d="M62 140 L58 160"></path>
-        <path class="figure-line" d="M80 100 L98 140"></path>
-        <path class="figure-line" d="M98 140 L102 160"></path>
-        <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
-        <circle class="figure-joint" cx="62" cy="80" r="5"></circle>
-        <circle class="figure-joint" cx="98" cy="80" r="5"></circle>
-        <circle class="figure-joint" cx="70" cy="95" r="5"></circle>
-        <circle class="figure-joint" cx="90" cy="95" r="5"></circle>
-      </svg>
-    `;
-  }
+function getDemoPoseVariant(demo) {
+  const label = `${demo?.demoTitle || ""} ${demo?.title || ""}`.toLowerCase();
+
+  if (label.includes("ankle eversion")) return "ankleEversion";
+  if (label.includes("ankle inversion")) return "ankleInversion";
+  if (label.includes("foot dorsiflexion")) return "dorsiflexion";
+  if (label.includes("wall calf stretch")) return "tibialisWall";
+  if (label.includes("calf raise")) return "calfRaise";
+  if (label.includes("wall sits")) return "wallSit";
+  if (label.includes("wall supported lunge")) return "lunge";
+  if (label.includes("glute bridge")) return "bridge";
+  if (label.includes("hamstring")) return "bridge";
+  if (label.includes("cat cow")) return "catCow";
+  if (label.includes("hollow body")) return "hollowBody";
+  if (label.includes("wall slides")) return "wallSlide";
+  if (label.includes("lateral deltoid")) return "lateralRaise";
+  if (label.includes("anterior deltoid")) return "frontRaise";
+  if (label.includes("bicep")) return "curlHold";
+  if (label.includes("door pull")) return "doorPull";
+  if (label.includes("rotator cuff")) return "internalRotation";
+  if (label.includes("shrug")) return "shrug";
+  if (label.includes("tricep kickback")) return "kickback";
+  if (label.includes("ball grip")) return "gripHold";
+  if (label.includes("forearm flexion")) return "forearmFlexion";
+  if (label.includes("pecs")) return "pecPress";
+  if (demo?.movementPattern === "lowerLift") return "calfRaise";
+  if (demo?.focus === "Shoulders") return "lateralRaise";
+  return "gripHold";
+}
+
+function buildDemoPreviewFigureMarkup({ poseVariant }) {
+  const template = getDemoPoseTemplate(poseVariant);
+  const points = template.points || {};
+  const shadow = template.shadow === false
+    ? ""
+    : `<ellipse class="figure-shadow" cx="${template.shadow?.cx ?? 80}" cy="${template.shadow?.cy ?? 167}" rx="${template.shadow?.rx ?? 42}" ry="${template.shadow?.ry ?? 10}"></ellipse>`;
+  const lineMarkup = (template.connections || DEMO_PREVIEW_CONNECTIONS)
+    .map(([from, to]) => {
+      const start = points[from];
+      const end = points[to];
+      if (!start || !end) return "";
+      return `<path class="figure-line" d="M${start.x} ${start.y} L${end.x} ${end.y}"></path>`;
+    })
+    .join("");
+  const jointMarkup = (template.joints || DEMO_PREVIEW_JOINTS)
+    .map((name) => {
+      const point = points[name];
+      if (!point) return "";
+      return `<circle class="figure-joint" cx="${point.x}" cy="${point.y}" r="${name.includes("Shoulder") || name.includes("Hip") ? 5.5 : 4.5}"></circle>`;
+    })
+    .join("");
+  const headMarkup = points.head
+    ? `<circle class="figure-joint" cx="${points.head.x}" cy="${points.head.y}" r="${template.headRadius ?? 10}"></circle>`
+    : "";
 
   return `
-    <svg viewBox="0 0 160 180" role="presentation">
-      <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-      <path class="figure-line" d="M80 24 L80 56"></path>
-      <path class="figure-line" d="M80 56 L80 102"></path>
-      <path class="figure-line" d="M80 58 L38 58"></path>
-      <path class="figure-line" d="M38 58 L20 58"></path>
-      <path class="figure-line" d="M80 58 L122 58"></path>
-      <path class="figure-line" d="M122 58 L140 58"></path>
-      <path class="figure-line" d="M80 102 L62 142"></path>
-      <path class="figure-line" d="M62 142 L58 160"></path>
-      <path class="figure-line" d="M80 102 L98 142"></path>
-      <path class="figure-line" d="M98 142 L102 160"></path>
-      <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
-      <circle class="figure-joint" cx="38" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="122" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="20" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="140" cy="58" r="5"></circle>
+    <svg viewBox="${template.viewBox || "0 0 160 180"}" role="presentation">
+      ${template.backdrop || ""}
+      ${shadow}
+      ${lineMarkup}
+      ${jointMarkup}
+      ${headMarkup}
     </svg>
   `;
+}
+
+const DEMO_PREVIEW_CONNECTIONS = [
+  ["neck", "leftShoulder"],
+  ["neck", "rightShoulder"],
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["leftElbow", "leftWrist"],
+  ["rightShoulder", "rightElbow"],
+  ["rightElbow", "rightWrist"],
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["leftKnee", "leftAnkle"],
+  ["rightHip", "rightKnee"],
+  ["rightKnee", "rightAnkle"],
+];
+
+const DEMO_PREVIEW_JOINTS = [
+  "leftShoulder",
+  "rightShoulder",
+  "leftElbow",
+  "rightElbow",
+  "leftWrist",
+  "rightWrist",
+  "leftHip",
+  "rightHip",
+  "leftKnee",
+  "rightKnee",
+  "leftAnkle",
+  "rightAnkle",
+];
+
+function buildStandingPose(overrides = {}, options = {}) {
+  const base = {
+    head: { x: 80, y: 20 },
+    neck: { x: 80, y: 38 },
+    leftShoulder: { x: 58, y: 52 },
+    rightShoulder: { x: 102, y: 52 },
+    leftElbow: { x: 44, y: 78 },
+    rightElbow: { x: 116, y: 78 },
+    leftWrist: { x: 36, y: 100 },
+    rightWrist: { x: 124, y: 100 },
+    leftHip: { x: 68, y: 98 },
+    rightHip: { x: 92, y: 98 },
+    leftKnee: { x: 64, y: 136 },
+    rightKnee: { x: 96, y: 136 },
+    leftAnkle: { x: 60, y: 160 },
+    rightAnkle: { x: 100, y: 160 },
+  };
+
+  return {
+    viewBox: "0 0 160 180",
+    shadow: { cx: 80, cy: 168, rx: 44, ry: 10 },
+    points: mergePosePoints(base, overrides),
+    ...options,
+  };
+}
+
+function buildFloorPose(overrides = {}, options = {}) {
+  const base = {
+    head: { x: 48, y: 116 },
+    neck: { x: 60, y: 114 },
+    leftShoulder: { x: 74, y: 112 },
+    rightShoulder: { x: 82, y: 112 },
+    leftElbow: { x: 58, y: 126 },
+    rightElbow: { x: 90, y: 126 },
+    leftWrist: { x: 46, y: 142 },
+    rightWrist: { x: 102, y: 142 },
+    leftHip: { x: 92, y: 114 },
+    rightHip: { x: 100, y: 114 },
+    leftKnee: { x: 116, y: 124 },
+    rightKnee: { x: 126, y: 124 },
+    leftAnkle: { x: 138, y: 136 },
+    rightAnkle: { x: 146, y: 136 },
+  };
+
+  return {
+    viewBox: "0 0 160 180",
+    shadow: false,
+    backdrop: `<path class="figure-line" style="opacity:0.14" d="M22 150 L138 150"></path>`,
+    points: mergePosePoints(base, overrides),
+    ...options,
+  };
+}
+
+function mergePosePoints(base, overrides) {
+  const merged = { ...base };
+  Object.entries(overrides || {}).forEach(([key, value]) => {
+    merged[key] = { ...(base[key] || {}), ...(value || {}) };
+  });
+  return merged;
+}
+
+function getDemoPoseTemplate(poseVariant) {
+  switch (poseVariant) {
+    case "ankleEversion":
+      return buildStandingPose({
+        rightHip: { x: 94, y: 98 },
+        rightKnee: { x: 104, y: 136 },
+        rightAnkle: { x: 116, y: 158 },
+      });
+    case "ankleInversion":
+      return buildStandingPose({
+        rightHip: { x: 90, y: 98 },
+        rightKnee: { x: 92, y: 136 },
+        rightAnkle: { x: 84, y: 158 },
+      });
+    case "dorsiflexion":
+      return buildStandingPose({
+        rightKnee: { x: 100, y: 134 },
+        rightAnkle: { x: 104, y: 156 },
+        leftElbow: { x: 42, y: 82 },
+        rightElbow: { x: 118, y: 82 },
+      });
+    case "tibialisWall":
+      return buildStandingPose({
+        leftHip: { x: 70, y: 98 },
+        rightHip: { x: 92, y: 96 },
+        leftKnee: { x: 66, y: 132 },
+        rightKnee: { x: 106, y: 126 },
+        leftAnkle: { x: 62, y: 158 },
+        rightAnkle: { x: 118, y: 154 },
+        leftWrist: { x: 32, y: 98 },
+        rightWrist: { x: 128, y: 98 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M136 22 L136 156"></path>`,
+      });
+    case "calfRaise":
+      return buildStandingPose({
+        leftElbow: { x: 48, y: 82 },
+        rightElbow: { x: 112, y: 82 },
+        leftWrist: { x: 40, y: 102 },
+        rightWrist: { x: 120, y: 102 },
+        leftAnkle: { x: 62, y: 154 },
+        rightAnkle: { x: 98, y: 154 },
+      });
+    case "wallSit":
+      return buildStandingPose({
+        head: { x: 88, y: 22 },
+        neck: { x: 88, y: 40 },
+        leftShoulder: { x: 72, y: 54 },
+        rightShoulder: { x: 104, y: 54 },
+        leftElbow: { x: 60, y: 82 },
+        rightElbow: { x: 114, y: 82 },
+        leftWrist: { x: 56, y: 104 },
+        rightWrist: { x: 118, y: 104 },
+        leftHip: { x: 74, y: 106 },
+        rightHip: { x: 96, y: 106 },
+        leftKnee: { x: 106, y: 106 },
+        rightKnee: { x: 122, y: 106 },
+        leftAnkle: { x: 106, y: 142 },
+        rightAnkle: { x: 122, y: 142 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M128 18 L128 150"></path>`,
+      });
+    case "lunge":
+      return buildStandingPose({
+        leftHip: { x: 70, y: 98 },
+        rightHip: { x: 92, y: 96 },
+        leftKnee: { x: 66, y: 136 },
+        rightKnee: { x: 108, y: 126 },
+        leftAnkle: { x: 62, y: 160 },
+        rightAnkle: { x: 120, y: 156 },
+        leftWrist: { x: 36, y: 96 },
+        rightWrist: { x: 124, y: 96 },
+      });
+    case "bridge":
+      return buildFloorPose({
+        head: { x: 42, y: 118 },
+        neck: { x: 56, y: 114 },
+        leftShoulder: { x: 70, y: 112 },
+        rightShoulder: { x: 78, y: 114 },
+        leftElbow: { x: 56, y: 128 },
+        rightElbow: { x: 88, y: 128 },
+        leftWrist: { x: 44, y: 144 },
+        rightWrist: { x: 98, y: 144 },
+        leftHip: { x: 92, y: 92 },
+        rightHip: { x: 102, y: 92 },
+        leftKnee: { x: 118, y: 108 },
+        rightKnee: { x: 128, y: 110 },
+        leftAnkle: { x: 128, y: 144 },
+        rightAnkle: { x: 138, y: 146 },
+      });
+    case "catCow":
+      return buildFloorPose({
+        head: { x: 120, y: 78 },
+        neck: { x: 104, y: 82 },
+        leftShoulder: { x: 88, y: 84 },
+        rightShoulder: { x: 100, y: 88 },
+        leftElbow: { x: 72, y: 104 },
+        rightElbow: { x: 86, y: 108 },
+        leftWrist: { x: 58, y: 124 },
+        rightWrist: { x: 74, y: 128 },
+        leftHip: { x: 76, y: 104 },
+        rightHip: { x: 90, y: 106 },
+        leftKnee: { x: 60, y: 134 },
+        rightKnee: { x: 76, y: 138 },
+        leftAnkle: { x: 52, y: 158 },
+        rightAnkle: { x: 68, y: 162 },
+      });
+    case "hollowBody":
+      return buildFloorPose({
+        head: { x: 44, y: 118 },
+        neck: { x: 58, y: 114 },
+        leftShoulder: { x: 74, y: 110 },
+        rightShoulder: { x: 82, y: 110 },
+        leftElbow: { x: 94, y: 100 },
+        rightElbow: { x: 102, y: 98 },
+        leftWrist: { x: 116, y: 90 },
+        rightWrist: { x: 126, y: 86 },
+        leftHip: { x: 92, y: 118 },
+        rightHip: { x: 100, y: 118 },
+        leftKnee: { x: 116, y: 124 },
+        rightKnee: { x: 126, y: 122 },
+        leftAnkle: { x: 138, y: 132 },
+        rightAnkle: { x: 146, y: 130 },
+      });
+    case "wallSlide":
+      return buildStandingPose({
+        leftElbow: { x: 50, y: 58 },
+        rightElbow: { x: 110, y: 58 },
+        leftWrist: { x: 48, y: 30 },
+        rightWrist: { x: 112, y: 30 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M132 20 L132 154"></path>`,
+      });
+    case "frontRaise":
+      return buildStandingPose({
+        leftElbow: { x: 64, y: 74 },
+        rightElbow: { x: 96, y: 74 },
+        leftWrist: { x: 62, y: 44 },
+        rightWrist: { x: 98, y: 44 },
+      });
+    case "curlHold":
+      return buildStandingPose({
+        leftElbow: { x: 64, y: 86 },
+        rightElbow: { x: 96, y: 86 },
+        leftWrist: { x: 58, y: 56 },
+        rightWrist: { x: 102, y: 56 },
+      });
+    case "doorPull":
+      return buildStandingPose({
+        leftElbow: { x: 48, y: 76 },
+        rightElbow: { x: 112, y: 76 },
+        leftWrist: { x: 40, y: 98 },
+        rightWrist: { x: 120, y: 98 },
+      });
+    case "internalRotation":
+      return buildStandingPose({
+        leftElbow: { x: 66, y: 82 },
+        rightElbow: { x: 94, y: 82 },
+        leftWrist: { x: 74, y: 104 },
+        rightWrist: { x: 86, y: 104 },
+      });
+    case "shrug":
+      return buildStandingPose({
+        neck: { x: 80, y: 34 },
+        leftShoulder: { x: 58, y: 46 },
+        rightShoulder: { x: 102, y: 46 },
+      });
+    case "kickback":
+      return buildStandingPose({
+        head: { x: 92, y: 22 },
+        neck: { x: 86, y: 40 },
+        leftShoulder: { x: 70, y: 56 },
+        rightShoulder: { x: 92, y: 58 },
+        leftElbow: { x: 100, y: 74 },
+        rightElbow: { x: 116, y: 76 },
+        leftWrist: { x: 126, y: 68 },
+        rightWrist: { x: 140, y: 70 },
+        leftHip: { x: 74, y: 96 },
+        rightHip: { x: 96, y: 98 },
+        leftKnee: { x: 70, y: 136 },
+        rightKnee: { x: 98, y: 138 },
+        leftAnkle: { x: 66, y: 160 },
+        rightAnkle: { x: 100, y: 162 },
+      });
+    case "gripHold":
+      return buildStandingPose({
+        leftElbow: { x: 64, y: 76 },
+        rightElbow: { x: 96, y: 76 },
+        leftWrist: { x: 54, y: 60 },
+        rightWrist: { x: 106, y: 60 },
+      });
+    case "forearmFlexion":
+      return buildStandingPose({
+        leftElbow: { x: 66, y: 80 },
+        rightElbow: { x: 94, y: 80 },
+        leftWrist: { x: 62, y: 66 },
+        rightWrist: { x: 98, y: 66 },
+      });
+    case "pecPress":
+      return buildStandingPose({
+        leftElbow: { x: 62, y: 70 },
+        rightElbow: { x: 98, y: 70 },
+        leftWrist: { x: 50, y: 60 },
+        rightWrist: { x: 110, y: 60 },
+      });
+    case "lateralRaise":
+    default:
+      return buildStandingPose({
+        leftElbow: { x: 40, y: 58 },
+        rightElbow: { x: 120, y: 58 },
+        leftWrist: { x: 22, y: 58 },
+        rightWrist: { x: 138, y: 58 },
+      });
+  }
 }
 
 function openCameraPermissionModal() {
@@ -3926,12 +4244,44 @@ function renderRewards() {
   const returned = Math.min(targetValue, state.rewards.cashback);
   const remaining = Math.max(0, targetValue - returned);
   const progress = Math.round((returned / targetValue) * 100);
+  const sessions = state.rewards.streak;
+  const tierSteps = [
+    { key: "starter", element: els.tierStarter, min: 1, max: 2, title: "Starter" },
+    { key: "recovery", element: els.tierRecovery, min: 3, max: 5, title: "Recovery Builder" },
+    { key: "consistency", element: els.tierConsistency, min: 6, max: Infinity, title: "Consistency+" },
+  ];
+  const ladderProgress = Math.min(100, Math.round((Math.min(sessions, 6) / 6) * 100));
+  const nextTier = sessions < 3
+    ? { title: "Recovery Builder", remaining: Math.max(0, 3 - sessions) }
+    : sessions < 6
+      ? { title: "Consistency+", remaining: Math.max(0, 6 - sessions) }
+      : null;
 
   els.walletTotal.textContent = `$${returned.toFixed(2)}`;
   els.walletStreak.textContent = `${state.rewards.streak} sessions`;
   els.walletTier.textContent = state.rewards.tier;
   els.walletRemaining.textContent = `$${remaining.toFixed(2)}`;
   els.walletProgress.textContent = `${progress}%`;
+  if (els.walletTierBar) {
+    els.walletTierBar.style.width = `${ladderProgress}%`;
+  }
+  if (els.walletNextUnlock) {
+    els.walletNextUnlock.textContent = nextTier
+      ? `${nextTier.remaining} session${nextTier.remaining === 1 ? "" : "s"} to ${nextTier.title}`
+      : "Top tier reached";
+  }
+  if (els.walletTierCopy) {
+    els.walletTierCopy.textContent = nextTier
+      ? `You are currently in ${state.rewards.tier}. Complete ${nextTier.remaining} more session${nextTier.remaining === 1 ? "" : "s"} to unlock ${nextTier.title}.`
+      : `You are in ${state.rewards.tier}. Keep going to maintain your top-tier momentum.`;
+  }
+  tierSteps.forEach((step) => {
+    if (!step.element) return;
+    const complete = sessions >= step.min;
+    const current = complete && sessions <= step.max;
+    step.element.classList.toggle("is-complete", complete);
+    step.element.classList.toggle("is-current", current);
+  });
   els.walletNote.textContent = state.rewards.streak
     ? remaining > 0
       ? `${state.rewards.streak} sessions completed. ${state.rewards.tier} tier active. Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)}.`
