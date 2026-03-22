@@ -114,7 +114,7 @@ select {
 ,
 .choice-card span,
 h1,
-h2,
+,
 h3,
 .wallet-total strong {
   font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
@@ -183,6 +183,10 @@ h2 {
   margin: 0;
   letter-spacing: -0.05em;
   line-height: 0.95;
+}
+
+.tab-panel[data-tab-panel="reports"] .panel > h2 {
+  margin-bottom: 2rem;
 }
 
 
