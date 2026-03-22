@@ -503,8 +503,8 @@
               <div class="panel camera-panel">
                 <div class="camera-shell">
                   <video id="camera" playsinline muted></video>
-                  <canvas id="tracking-canvas" width="960" height="720"></canvas>
-                  <canvas id="analysis-canvas" width="320" height="240"></canvas>
+                  <canvas id="tracking-canvas" width="1280" height="720"></canvas>
+                  <canvas id="analysis-canvas" width="640" height="360"></canvas>
                   <div class="camera-permission-modal hidden" id="camera-permission-modal" aria-hidden="true">
                     <div class="camera-permission-backdrop"></div>
                     <div class="camera-permission-card" role="dialog" aria-modal="true" aria-labelledby="camera-permission-title" aria-describedby="camera-permission-copy">
@@ -530,13 +530,6 @@
                         </div>
                         <strong id="workflow-title">Start camera</strong>
                         <p id="session-feedback">Start the camera to begin.</p>
-                      </div>
-                      <div class="camera-target-card" id="camera-target-card">
-                        <div class="camera-target-head">
-                          <p class="panel-label">Live target</p>
-                          <span class="status-pill muted-pill" id="camera-target-label">Waiting</span>
-                        </div>
-                        <div class="camera-target-figure" id="camera-target-figure" aria-hidden="true"></div>
                       </div>
                     </div>
                   </div>

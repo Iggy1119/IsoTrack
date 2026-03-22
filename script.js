@@ -660,9 +660,6 @@ const els = {
   demoPreviewFigure: document.querySelector("#demo-preview-figure"),
   demoPreviewCopy: document.querySelector("#demo-preview-copy"),
   demoMatchPill: document.querySelector("#demo-match-pill"),
-  cameraTargetCard: document.querySelector("#camera-target-card"),
-  cameraTargetFigure: document.querySelector("#camera-target-figure"),
-  cameraTargetLabel: document.querySelector("#camera-target-label"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
@@ -1871,16 +1868,6 @@ function renderDemoPreview(selectedDemo = getSelectedDemo()) {
   if (els.demoPreviewFigure) {
     els.demoPreviewFigure.innerHTML = figureMarkup;
   }
-  if (els.cameraTargetCard) {
-    els.cameraTargetCard.dataset.matchState = matchState;
-  }
-  if (els.cameraTargetFigure) {
-    els.cameraTargetFigure.innerHTML = figureMarkup;
-  }
-  if (els.cameraTargetLabel) {
-    els.cameraTargetLabel.textContent = state.session.cameraReady ? demoLabel : "Waiting";
-  }
-
   const matchLabels = {
     idle: "Waiting",
     searching: "Align body",
@@ -2493,10 +2480,32 @@ async function requestCameraAccess() {
       els.cameraPermissionContinue.disabled = true;
       els.cameraPermissionContinue.textContent = "Waiting...";
     }
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false,
-    });
+    const videoProfiles = [
+      {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      {
+        facingMode: "user",
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
+    ];
+    let lastError;
+
+    for (const video of videoProfiles) {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!mediaStream) {
+      throw lastError || new Error("Camera access unavailable");
+    }
 
     els.camera.srcObject = mediaStream;
     await els.camera.play();

@@ -1024,10 +1024,10 @@ h3 {
   display: grid;
   place-items: center;
   overflow: hidden;
-  width: min(100%, 58rem);
-  aspect-ratio: 16 / 10;
+  width: min(100%, 72rem);
+  aspect-ratio: 16 / 9;
   min-height: 0;
-  max-height: min(72vh, 52rem);
+  max-height: min(78vh, 60rem);
   margin-inline: auto;
   border: 1px solid var(--line);
   border-radius: 1.6rem;
@@ -1159,7 +1159,7 @@ h3 {
 
 .camera-overlay-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 9.75rem);
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
   gap: 0.85rem;
 }
@@ -1223,65 +1223,6 @@ h3 {
   color: rgba(255, 255, 255, 0.62);
   font-size: 0.84rem;
   line-height: 1.35;
-}
-
-.camera-target-card {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.8rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 1.1rem;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(14px);
-  color: rgba(89, 220, 255, 0.86);
-}
-
-.camera-target-head {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.camera-target-head .panel-label {
-  margin-bottom: 0;
-}
-
-.camera-target-figure {
-  min-height: 7.4rem;
-  display: grid;
-  place-items: center;
-}
-
-.camera-target-figure svg {
-  width: min(100%, 7.3rem);
-  height: auto;
-  overflow: visible;
-}
-
-.camera-target-figure .figure-shadow {
-  fill: rgba(255, 255, 255, 0.04);
-}
-
-.camera-target-figure .figure-line {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 14px rgba(89, 220, 255, 0.18));
-}
-
-.camera-target-figure .figure-joint {
-  fill: currentColor;
-}
-
-.camera-target-card[data-match-state="close"],
-.camera-target-card[data-match-state="close"] #camera-target-label {
-  color: rgba(255, 196, 107, 0.96);
-}
-
-.camera-target-card[data-match-state="matched"],
-.camera-target-card[data-match-state="matched"] #camera-target-label {
-  color: rgba(143, 215, 191, 0.98);
 }
 
 .camera-progress-card {
@@ -2289,7 +2230,7 @@ h3 {
 
   .camera-shell {
     aspect-ratio: 4 / 5;
-    max-height: min(66vh, 34rem);
+    max-height: min(72vh, 40rem);
   }
 
   #camera {
@@ -2323,11 +2264,6 @@ h3 {
 
   .video-guide {
     padding: 0.8rem 0.85rem;
-  }
-
-  .camera-target-card {
-    justify-items: center;
-    text-align: center;
   }
 
   #workflow-title {
