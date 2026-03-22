@@ -113,6 +113,10 @@ const state = {
     completed: false,
     preRpe: 4,
     postRpe: 4,
+    preRpeDraft: 4,
+    postRpeDraft: 4,
+    rpeDirty: false,
+    rpeStatus: "Enter values and submit them.",
     trackedJoints: 0,
     trackingStatus: "Limb tracking offline",
     trackingQuality: 0,
@@ -532,6 +536,8 @@ const els = {
   preRpeValue: document.querySelector("#pre-rpe-value"),
   postRpe: document.querySelector("#post-rpe"),
   postRpeValue: document.querySelector("#post-rpe-value"),
+  submitRpe: document.querySelector("#submit-rpe"),
+  rpeSubmitStatus: document.querySelector("#rpe-submit-status"),
   progressValue: document.querySelector("#selection-progress-value"),
   progressBar: document.querySelector("#selection-progress-bar"),
   progressSummary: document.querySelector("#selection-summary"),
@@ -735,6 +741,7 @@ function bindEvents() {
   els.startDemo.addEventListener("click", startDemoWalkthrough);
   els.preRpe.addEventListener("input", handleRpeInput);
   els.postRpe.addEventListener("input", handleRpeInput);
+  els.submitRpe?.addEventListener("click", () => submitRpe());
   els.toggleSession.addEventListener("click", toggleSession);
   els.toggleHold.addEventListener("click", toggleHold);
   els.manualRep.addEventListener("click", () => {
@@ -821,22 +828,55 @@ function syncSliderLabels() {
   els.fatigueValue.textContent = els.fatigue.value;
   els.confidenceValue.textContent = els.confidence.value;
   if (els.preRpe) {
-    const preRpe = clampRpe(state.session.preRpe ?? Number(els.preRpe.value));
+    const preRpe = clampRpe(state.session.preRpeDraft ?? state.session.preRpe ?? Number(els.preRpe.value));
     els.preRpe.value = String(preRpe);
     els.preRpeValue.textContent = String(preRpe);
   }
   if (els.postRpe) {
-    const postRpe = clampRpe(state.session.postRpe ?? Number(els.postRpe.value));
+    const postRpe = clampRpe(state.session.postRpeDraft ?? state.session.postRpe ?? Number(els.postRpe.value));
     els.postRpe.value = String(postRpe);
     els.postRpeValue.textContent = String(postRpe);
   }
 }
 
 function handleRpeInput() {
-  state.session.preRpe = clampRpe(els.preRpe.value);
-  state.session.postRpe = clampRpe(els.postRpe.value);
+  state.session.preRpeDraft = clampRpe(els.preRpe.value);
+  state.session.postRpeDraft = clampRpe(els.postRpe.value);
+  state.session.rpeDirty = true;
+  state.session.rpeStatus = "Changes not submitted yet.";
   syncSliderLabels();
+  renderSession();
+  renderControlStates();
   persistState();
+}
+
+function getRpeSubmitLabel() {
+  if (state.session.completed || (!state.session.running && (state.session.reps > 0 || state.session.totalTension > 0))) {
+    return "Submit Post-Session RPE";
+  }
+  if (state.session.running) return "Update Session RPE";
+  return "Submit Starting RPE";
+}
+
+function getRpeStatusLabel() {
+  if (state.session.rpeDirty) return "Changes not submitted yet.";
+  return state.session.rpeStatus || "Enter values and submit them.";
+}
+
+function submitRpe({ feedback = true } = {}) {
+  state.session.preRpe = clampRpe(state.session.preRpeDraft ?? els.preRpe?.value ?? state.session.preRpe);
+  state.session.postRpe = clampRpe(state.session.postRpeDraft ?? els.postRpe?.value ?? state.session.postRpe);
+  state.session.rpeDirty = false;
+  state.session.rpeStatus = state.session.completed || (!state.session.running && (state.session.reps > 0 || state.session.totalTension > 0))
+    ? `Post-session RPE saved at ${state.session.postRpe}/10.`
+    : state.session.running
+      ? `RPE update saved at ${state.session.postRpe}/10.`
+      : `Starting RPE saved at ${state.session.preRpe}/10.`;
+  syncSliderLabels();
+  renderSession();
+  renderControlStates();
+  persistState();
+  if (feedback) setFeedback(state.session.rpeStatus);
 }
 
 function clampRpe(value) {
@@ -1005,6 +1045,10 @@ function handleAssessmentSubmit(event) {
   state.session.completed = false;
   state.session.preRpe = clampRpe(els.preRpe?.value ?? state.session.preRpe);
   state.session.postRpe = clampRpe(els.postRpe?.value ?? state.session.postRpe);
+  state.session.preRpeDraft = state.session.preRpe;
+  state.session.postRpeDraft = state.session.postRpe;
+  state.session.rpeDirty = false;
+  state.session.rpeStatus = "Enter values and submit them.";
   state.session.calibrated = false;
   state.session.baseline = null;
   state.session.calibrationShots = {
@@ -2732,8 +2776,12 @@ function toggleSession() {
   }
 
   if (!state.session.running) {
-    state.session.preRpe = clampRpe(els.preRpe.value);
-    state.session.postRpe = clampRpe(els.postRpe.value);
+    if (state.session.rpeDirty) {
+      submitRpe({ feedback: false });
+    } else {
+      state.session.preRpe = clampRpe(els.preRpe.value);
+      state.session.postRpe = clampRpe(els.postRpe.value);
+    }
   }
 
   state.session.running = !state.session.running;
@@ -2832,7 +2880,11 @@ function completeSession() {
   }
 
   ensureRewardPeriod();
-  state.session.postRpe = clampRpe(els.postRpe.value);
+  if (state.session.rpeDirty) {
+    submitRpe({ feedback: false });
+  } else {
+    state.session.postRpe = clampRpe(els.postRpe.value);
+  }
 
   stopHoldTimer();
   resetExerciseHoldTracking();
@@ -2960,6 +3012,12 @@ function renderSession() {
     : state.session.cameraReady
       ? "Ready"
       : "Offline";
+  if (els.rpeSubmitStatus) {
+    els.rpeSubmitStatus.textContent = getRpeStatusLabel();
+  }
+  if (els.submitRpe) {
+    els.submitRpe.textContent = getRpeSubmitLabel();
+  }
   renderDemoPreview();
   renderCalibrationCountdown();
 }
@@ -2975,6 +3033,9 @@ function renderControlStates() {
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
   els.completeSession.disabled = state.session.completed || (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0);
+  if (els.submitRpe) {
+    els.submitRpe.disabled = !state.session.rpeDirty;
+  }
 
   const primaryButtons = [
     els.startCamera,
@@ -3431,6 +3492,10 @@ function persistState() {
       completed: state.session.completed,
       preRpe: state.session.preRpe,
       postRpe: state.session.postRpe,
+      preRpeDraft: state.session.preRpeDraft,
+      postRpeDraft: state.session.postRpeDraft,
+      rpeDirty: state.session.rpeDirty,
+      rpeStatus: state.session.rpeStatus,
       trackedJoints: state.session.trackedJoints,
       trackingStatus: state.session.trackingStatus,
       trackingQuality: state.session.trackingQuality,
@@ -3460,6 +3525,10 @@ function restoreState() {
     state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
     state.session.preRpe = clampRpe(state.session.preRpe);
     state.session.postRpe = clampRpe(state.session.postRpe);
+    state.session.preRpeDraft = clampRpe(state.session.preRpeDraft ?? state.session.preRpe);
+    state.session.postRpeDraft = clampRpe(state.session.postRpeDraft ?? state.session.postRpe);
+    state.session.rpeDirty = Boolean(state.session.rpeDirty);
+    state.session.rpeStatus = state.session.rpeStatus || "Enter values and submit them.";
     ensureRewardPeriod();
     state.session.exerciseMatchState = "idle";
     state.session.exerciseMatchScore = 0;
