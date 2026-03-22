@@ -654,6 +654,7 @@ const els = {
   selectedDemoFocus: document.querySelector("#selected-demo-focus"),
   selectedDemoVariant: document.querySelector("#selected-demo-variant"),
   selectedDemoTarget: document.querySelector("#selected-demo-target"),
+  selectedDemoFigure: document.querySelector("#selected-demo-figure"),
   selectedDemoSetup: document.querySelector("#selected-demo-setup"),
   selectedDemoScript: document.querySelector("#selected-demo-script"),
   selectedDemoSteps: document.querySelector("#selected-demo-steps"),
@@ -1938,6 +1939,23 @@ function renderAllDemos() {
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
+  if (!els.selectedDemoFigure) return selectedDemo;
+  if (!selectedDemo) {
+    els.selectedDemoFigure.innerHTML = `
+      <div class="demo-preview-figure-empty">
+        <strong>Exercise outline</strong>
+        <p>Select or unlock an exercise to load the target figure here.</p>
+      </div>
+    `;
+    return selectedDemo;
+  }
+
+  const poseVariant = selectedDemo.poseVariant || getDemoPoseVariant(selectedDemo);
+  const displayLabel = getDemoDisplayLabel(selectedDemo);
+  els.selectedDemoFigure.innerHTML = `
+    <div class="demo-preview-figure-label">${escapeHtml(displayLabel)}</div>
+    ${buildDemoPreviewFigureMarkup({ poseVariant })}
+  `;
   return selectedDemo;
 }
 
