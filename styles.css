@@ -1683,7 +1683,69 @@ h3 {
   background: rgba(143, 215, 191, 0.14);
   color: var(--soft);
 }
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1.2rem 0 1.4rem;
+}
 
+.report-summary-shell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.report-note-card {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.report-bullet-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.65rem;
+  color: var(--muted);
+}
+
+.report-history-shell {
+  margin-top: 1.4rem;
+}
+
+.report-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.report-history-table th,
+.report-history-table td {
+  padding: 0.9rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.report-history-table th {
+  color: var(--soft);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-history-table td {
+  color: var(--muted);
+}
+
+.report-history-muted {
+  margin-top: 0.25rem;
+  color: var(--soft);
+  font-size: 0.84rem;
+}
 .report-chart {
   min-height: 18rem;
   padding: 1rem;
@@ -2097,7 +2159,9 @@ h3 {
   .demo-card-tags {
     grid-template-columns: 1fr;
   }
-
+  .report-summary-shell {
+  grid-template-columns: 1fr;
+  }
   .demo-preview-layout,
   .report-trend-head {
     grid-template-columns: 1fr;
