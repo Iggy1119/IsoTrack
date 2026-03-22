@@ -1946,18 +1946,15 @@ h3 {
   min-height: 24rem;
 }
 
-.demo-library-list-panel {
-  display: grid;
-  gap: 1rem;
-}
-
-.demo-library-list-panel .demo-grid {
+.demo-library-feature-panel .demo-grid {
   grid-template-columns: 1fr;
   gap: 1rem;
+  margin-top: 0.35rem;
 }
 
-.demo-library-list-panel .demo-library-head {
+.demo-library-feature-panel .demo-library-head {
   padding-bottom: 0.9rem;
+  margin-top: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
