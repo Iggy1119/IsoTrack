@@ -19,7 +19,6 @@
             <span class="brand-copy">
               <span class="brand-tag">MedSprint - Group 35</span>
               <span class="brand-name">IsoTrack</span>
-              <span class="brand-subtitle">Adaptive Therapeutic Exercise</span>
             </span>
           </span>
         </a>
@@ -90,6 +89,75 @@
               <div>
                 <strong>03. Share progress clearly</strong>
                 <p>Turn adherence and session notes into clinician-ready summaries that support care.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="overview-grid overview-grid--auth">
+          <article class="panel auth-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Secure Access</p>
+                <h2>Create an account and verify 2FA.</h2>
+              </div>
+              <span class="status-pill muted-pill" id="auth-session-status">Signed out</span>
+            </div>
+            <p class="auth-feedback" id="auth-feedback">Create an account or sign in to unlock Assessment, Session Lab, Clinician, and Rewards.</p>
+
+            <div class="auth-mode-switch" role="tablist" aria-label="Authentication mode">
+              <button class="segmented-button is-active" type="button" data-auth-mode="signup">Create Account</button>
+              <button class="segmented-button" type="button" data-auth-mode="signin">Sign In</button>
+            </div>
+
+            <form class="auth-form" id="auth-form">
+              <label class="auth-field" id="auth-name-field">
+                <span>Full name</span>
+                <input id="auth-name" type="text" autocomplete="name" placeholder="Jordan Lee">
+              </label>
+              <label class="auth-field">
+                <span>Email</span>
+                <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+              </label>
+              <label class="auth-field">
+                <span>Password</span>
+                <input id="auth-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+              </label>
+              <div class="auth-actions">
+                <button class="button button-primary" id="auth-submit" type="submit">Create Account</button>
+                <button class="button button-secondary" id="auth-logout" type="button">Sign Out</button>
+              </div>
+            </form>
+
+            <div class="auth-verify-panel hidden" id="auth-verify-panel">
+              <p class="panel-label">Two-factor authentication</p>
+              <p class="auth-feedback" id="auth-verify-copy">Enter the 6-digit verification code.</p>
+              <label class="auth-field auth-field-code">
+                <span>Verification code</span>
+                <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+              </label>
+              <div class="auth-actions">
+                <button class="button button-primary" id="verify-2fa" type="button">Verify 2FA</button>
+                <button class="button button-secondary" id="resend-2fa" type="button">Resend Code</button>
+              </div>
+              <p class="auth-demo-note" id="auth-demo-note">Prototype note: verification codes are shown in-app for this demo.</p>
+            </div>
+          </article>
+
+          <article class="panel auth-security-panel">
+            <p class="eyebrow">Security flow</p>
+            <div class="flow-list flow-list--stacked">
+              <div>
+                <strong>01. Create or sign in</strong>
+                <p>Use a local account for the prototype so each patient can have a gated care workflow.</p>
+              </div>
+              <div>
+                <strong>02. Verify 2FA</strong>
+                <p>Every login issues a fresh 6-digit code before access is granted.</p>
+              </div>
+              <div>
+                <strong>03. Unlock the care flow</strong>
+                <p>Assessment, Session Lab, Reports, and Rewards stay locked until verification is complete.</p>
               </div>
             </div>
           </article>
@@ -513,6 +581,10 @@
                     </div>
                     <small>Update this yourself when the session ends.</small>
                   </label>
+                </div>
+                <div class="rpe-submit-row">
+                  <p class="rpe-submit-status" id="rpe-submit-status">Enter values and submit them.</p>
+                  <button class="button button-secondary" type="button" id="submit-rpe">Submit RPE</button>
                 </div>
               </div>
 
