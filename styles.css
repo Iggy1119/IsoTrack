@@ -111,7 +111,7 @@ select {
 .tab-button,
 .button,
 .panel-label,
-.status-pill,
+,
 .choice-card span,
 h1,
 h2,
@@ -752,6 +752,7 @@ h3 {
   background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 255, 255, 0.85);
   font-size: 0.85rem; 
+  font-weight: 600;
   letter-spacing: 0.12em;
 }
 
