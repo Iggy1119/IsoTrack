@@ -747,7 +747,42 @@ let calibrationSteadySnapshot = null;
 let exerciseMatchStartedAt = 0;
 let exerciseMatchCarryMs = 0;
 
-bootstrap();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startIsoTrackApp, { once: true });
+} else {
+  startIsoTrackApp();
+}
+
+function startIsoTrackApp() {
+  try {
+    bootstrap();
+  } catch (error) {
+    console.error("IsoTrack failed to initialize fully.", error);
+    bindFallbackNavigation();
+  }
+}
+
+function bindFallbackNavigation() {
+  const tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
+  const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+  if (!tabButtons.length || !tabPanels.length) return;
+
+  tabButtons.forEach((button) => {
+    if (button.dataset.fallbackBound === "true") return;
+    button.dataset.fallbackBound = "true";
+    button.addEventListener("click", () => {
+      const target = button.dataset.tabTarget;
+      tabButtons.forEach((tabButton) => {
+        const active = tabButton.dataset.tabTarget === target;
+        tabButton.classList.toggle("is-active", active);
+        tabButton.setAttribute("aria-selected", String(active));
+      });
+      tabPanels.forEach((panel) => {
+        panel.classList.toggle("is-active", panel.dataset.tabPanel === target);
+      });
+    });
+  });
+}
 
 function bootstrap() {
   restoreState();
@@ -755,19 +790,27 @@ function bootstrap() {
   bindEvents();
   renderAuth();
   renderActiveTab();
-  renderSelectedCards();
-  renderSelectionProgress();
-  renderPlan();
-  renderSessionDemos();
-  renderAllDemos();
-  renderSession();
-  renderControlStates();
-  renderCalibration();
-  renderWorkflow();
-  renderReport();
-  renderRewards();
-  syncSliderLabels();
-  initMotionDesign();
+  safeRender(renderSelectedCards, "renderSelectedCards");
+  safeRender(renderSelectionProgress, "renderSelectionProgress");
+  safeRender(renderPlan, "renderPlan");
+  safeRender(renderSessionDemos, "renderSessionDemos");
+  safeRender(renderAllDemos, "renderAllDemos");
+  safeRender(renderSession, "renderSession");
+  safeRender(renderControlStates, "renderControlStates");
+  safeRender(renderCalibration, "renderCalibration");
+  safeRender(renderWorkflow, "renderWorkflow");
+  safeRender(renderReport, "renderReport");
+  safeRender(renderRewards, "renderRewards");
+  safeRender(syncSliderLabels, "syncSliderLabels");
+  safeRender(initMotionDesign, "initMotionDesign");
+}
+
+function safeRender(task, label) {
+  try {
+    task();
+  } catch (error) {
+    console.error(`IsoTrack ${label} failed.`, error);
+  }
 }
 
 function bindEvents() {
