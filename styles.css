@@ -159,15 +159,15 @@ h3,
 
 .hero-shell {
   display: grid;
-  grid-template-columns: 0.98fr 1.02fr;
-  gap: 3.2rem;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 3rem;
   align-items: center;
   min-height: 18rem;
   margin-bottom: 2rem;
 }
 
 .hero-copy {
-  padding: 0.6rem 0;
+  padding: 0.2rem 0;
 }
 
 .eyebrow {
@@ -188,7 +188,7 @@ h2 {
 
 h1 {
   font-size: clamp(2.9rem, 5.4vw, 5rem);
-  max-width: 9ch;
+  max-width: 12ch;
   line-height: 0.9;
   letter-spacing: -0.07em;
   background: linear-gradient(180deg, #ffffff 0%, #f1ddd8 100%);
@@ -222,7 +222,7 @@ h3 {
 }
 
 .hero-text {
-  max-width: 40ch;
+  max-width: 52ch;
   font-size: 1.12rem;
   line-height: 1.72;
   color: rgba(255, 255, 255, 0.82);
