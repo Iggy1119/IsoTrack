@@ -1,0 +1,2060 @@
+const STORAGE_KEY = "isotrack-demo-state";
+const CALIBRATION_SEQUENCE = [
+  { key: "neutral", title: "Neutral stance" },
+  { key: "arms", title: "T-shape arms" },
+  { key: "knee", title: "Heel raise" },
+];
+const PRIMARY_LIMB_POINTS = [
+  ["leftShoulder", 11],
+  ["rightShoulder", 12],
+  ["leftElbow", 13],
+  ["rightElbow", 14],
+  ["leftWrist", 15],
+  ["rightWrist", 16],
+  ["leftHip", 23],
+  ["rightHip", 24],
+  ["leftKnee", 25],
+  ["rightKnee", 26],
+  ["leftAnkle", 27],
+  ["rightAnkle", 28],
+];
+const EXTENDED_LIMB_POINTS = [
+  ...PRIMARY_LIMB_POINTS,
+  ["leftHeel", 29],
+  ["rightHeel", 30],
+  ["leftFootIndex", 31],
+  ["rightFootIndex", 32],
+];
+const LIMB_CONNECTIONS = [
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["leftElbow", "leftWrist"],
+  ["rightShoulder", "rightElbow"],
+  ["rightElbow", "rightWrist"],
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["leftKnee", "leftAnkle"],
+  ["leftAnkle", "leftHeel"],
+  ["leftHeel", "leftFootIndex"],
+  ["rightHip", "rightKnee"],
+  ["rightKnee", "rightAnkle"],
+  ["rightAnkle", "rightHeel"],
+  ["rightHeel", "rightFootIndex"],
+];
+const LIMB_VISIBILITY_THRESHOLD = 0.58;
+const LIMB_CAPTURE_THRESHOLD = 8;
+const DEFAULT_PROGRAM_VALUE = 120;
+const DEFAULT_REIMBURSEMENT_SESSIONS = 12;
+const CALIBRATION_FALLBACK_GUIDE = {
+  points: {
+    leftShoulder: { x: 0.45, y: 0.33 },
+    rightShoulder: { x: 0.55, y: 0.33 },
+    leftHip: { x: 0.465, y: 0.55 },
+    rightHip: { x: 0.535, y: 0.55 },
+    leftKnee: { x: 0.47, y: 0.73 },
+    rightKnee: { x: 0.53, y: 0.73 },
+    leftAnkle: { x: 0.47, y: 0.9 },
+    rightAnkle: { x: 0.53, y: 0.9 },
+  },
+  emphasis: ["leftShoulder", "rightShoulder", "leftHip", "rightHip"],
+};
+const CALIBRATION_GUIDE_CONNECTIONS = [
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["leftElbow", "leftWrist"],
+  ["rightShoulder", "rightElbow"],
+  ["rightElbow", "rightWrist"],
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["rightHip", "rightKnee"],
+  ["leftKnee", "leftAnkle"],
+  ["rightKnee", "rightAnkle"],
+  ["leftAnkle", "leftHeel"],
+  ["leftHeel", "leftFootIndex"],
+  ["rightAnkle", "rightHeel"],
+  ["rightHeel", "rightFootIndex"],
+];
+
+const state = {
+  activeTab: "session",
+  plan: null,
+  rewards: {
+    cashback: 0,
+    streak: 0,
+    tier: "Starter",
+    targetValue: DEFAULT_PROGRAM_VALUE,
+  },
+  report: null,
+  session: {
+    cameraReady: false,
+    running: false,
+    holdActive: false,
+    reps: 0,
+    holdSeconds: 0,
+    totalTension: 0,
+    motionScore: 0,
+    intensityLabel: "Not started",
+    selectedDemo: 0,
+    completed: false,
+    preRpe: 4,
+    postRpe: 4,
+    trackedJoints: 0,
+    trackingStatus: "Limb tracking offline",
+    trackingQuality: 0,
+    calibrated: false,
+    baseline: null,
+    calibrationShots: {
+      neutral: null,
+      arms: null,
+      knee: null,
+    },
+    currentCalibrationStep: 0,
+    demoActive: false,
+    demoCompleted: false,
+    demoProgress: 0,
+    smoothedMotionScore: 0,
+    pendingMotionLabel: "idle",
+    pendingMotionFrames: 0,
+  },
+};
+
+const exerciseLibrary = {
+  Shoulders: {
+    main: "Supported shoulder flexion hold",
+    alt: "Supine towel-assisted shoulder reach",
+    cue: "Keep shoulders low and movement narrow.",
+  },
+  Core: {
+    main: "Seated trunk brace with breath pacing",
+    alt: "Short-interval diaphragmatic bracing",
+    cue: "Exhale into the brace instead of pushing harder.",
+  },
+  Hips: {
+    main: "Sit-to-stand eccentric lowering",
+    alt: "Supported seated hip march",
+    cue: "Control the lowering phase and avoid collapse.",
+  },
+  Quadriceps: {
+    main: "Wall-supported mini squat hold",
+    alt: "Long-arc quad extension from chair",
+    cue: "Aim for smooth tempo over deep range.",
+  },
+  Ankles: {
+    main: "Counter-supported calf raise pulse",
+    alt: "Ankle dorsiflexion band activation",
+    cue: "Use support and keep weight shifts small.",
+  },
+  Grip: {
+    main: "Therapy putty squeeze intervals",
+    alt: "Towel grip isometric set",
+    cue: "Relax between squeezes to manage fatigue.",
+  },
+};
+
+const els = {
+  form: document.querySelector("#assessment-form"),
+  fatigue: document.querySelector("#fatigue"),
+  fatigueValue: document.querySelector("#fatigue-value"),
+  confidence: document.querySelector("#confidence"),
+  confidenceValue: document.querySelector("#confidence-value"),
+  preRpe: document.querySelector("#pre-rpe"),
+  preRpeValue: document.querySelector("#pre-rpe-value"),
+  postRpe: document.querySelector("#post-rpe"),
+  postRpeValue: document.querySelector("#post-rpe-value"),
+  progressValue: document.querySelector("#selection-progress-value"),
+  progressBar: document.querySelector("#selection-progress-bar"),
+  progressSummary: document.querySelector("#selection-summary"),
+  tabButtons: Array.from(document.querySelectorAll("[data-tab-target]")),
+  tabPanels: Array.from(document.querySelectorAll("[data-tab-panel]")),
+  tabJumpButtons: Array.from(document.querySelectorAll("[data-tab-jump]")),
+  formInputs: Array.from(document.querySelectorAll("#assessment-form input, #assessment-form select")),
+  choiceCards: Array.from(document.querySelectorAll(".choice-card")),
+  planEmpty: document.querySelector("#plan-empty"),
+  planContent: document.querySelector("#plan-content"),
+  planPatient: document.querySelector("#plan-patient"),
+  planDiagnosis: document.querySelector("#plan-diagnosis"),
+  planGoal: document.querySelector("#plan-goal"),
+  planCadence: document.querySelector("#plan-cadence"),
+  planReward: document.querySelector("#plan-reward"),
+  careNote: document.querySelector("#care-note"),
+  planStatus: document.querySelector("#plan-status"),
+  programList: document.querySelector("#program-list"),
+  alternateList: document.querySelector("#alternate-list"),
+  sessionPlanTitle: document.querySelector("#session-plan-title"),
+  sessionPlanNote: document.querySelector("#session-plan-note"),
+  recommendedDemoList: document.querySelector("#recommended-demo-list"),
+  camera: document.querySelector("#camera"),
+  trackingCanvas: document.querySelector("#tracking-canvas"),
+  analysisCanvas: document.querySelector("#analysis-canvas"),
+  startCamera: document.querySelector("#start-camera"),
+  stopCamera: document.querySelector("#stop-camera"),
+  cameraPermissionModal: document.querySelector("#camera-permission-modal"),
+  cameraPermissionCancel: document.querySelector("#camera-permission-cancel"),
+  cameraPermissionContinue: document.querySelector("#camera-permission-continue"),
+  cameraPermissionTitle: document.querySelector("#camera-permission-title"),
+  cameraPermissionCopy: document.querySelector("#camera-permission-copy"),
+  captureCalibration: document.querySelector("#capture-calibration"),
+  resetCalibration: document.querySelector("#reset-calibration"),
+  startDemo: document.querySelector("#start-demo"),
+  toggleSession: document.querySelector("#toggle-session"),
+  toggleHold: document.querySelector("#toggle-hold"),
+  manualRep: document.querySelector("#manual-rep"),
+  completeSession: document.querySelector("#complete-session"),
+  cameraStatus: document.querySelector("#camera-status"),
+  sessionFeedback: document.querySelector("#session-feedback"),
+  selectedDemoTitle: document.querySelector("#selected-demo-title"),
+  selectedDemoCopy: document.querySelector("#selected-demo-copy"),
+  trackingState: document.querySelector("#tracking-state"),
+  trackedJoints: document.querySelector("#tracked-joints"),
+  workflowTitle: document.querySelector("#workflow-title"),
+  workflowCopy: document.querySelector("#workflow-copy"),
+  workflowCheckPrimary: document.querySelector("#workflow-check-primary"),
+  workflowCheckSecondary: document.querySelector("#workflow-check-secondary"),
+  workflowStepCamera: document.querySelector("#step-camera"),
+  workflowStepCalibration: document.querySelector("#step-calibration"),
+  workflowStepDemo: document.querySelector("#step-demo"),
+  workflowStepSession: document.querySelector("#step-session"),
+  calibrationCountdown: document.querySelector("#calibration-countdown"),
+  calibrationCount: document.querySelector("#calibration-count"),
+  calibrationProgressBar: document.querySelector("#calibration-progress-bar"),
+  calibrationStageNeutral: document.querySelector("#cal-stage-neutral"),
+  calibrationStageArms: document.querySelector("#cal-stage-arms"),
+  calibrationStageKnee: document.querySelector("#cal-stage-knee"),
+  calibrationStageNeutralStatus: document.querySelector("#cal-stage-neutral-status"),
+  calibrationStageArmsStatus: document.querySelector("#cal-stage-arms-status"),
+  calibrationStageKneeStatus: document.querySelector("#cal-stage-knee-status"),
+  motionBar: document.querySelector("#motion-bar"),
+  motionScore: document.querySelector("#motion-score"),
+  demoProgress: document.querySelector("#demo-progress"),
+  repCount: document.querySelector("#rep-count"),
+  holdTime: document.querySelector("#hold-time"),
+  tutTotal: document.querySelector("#tut-total"),
+  reportAdherence: document.querySelector("#report-adherence"),
+  reportFatigue: document.querySelector("#report-fatigue"),
+  reportIntensity: document.querySelector("#report-intensity"),
+  reportStatus: document.querySelector("#report-status"),
+  reportText: document.querySelector("#report-text"),
+  walletTotal: document.querySelector("#wallet-total"),
+  walletStreak: document.querySelector("#wallet-streak"),
+  walletTier: document.querySelector("#wallet-tier"),
+  walletRemaining: document.querySelector("#wallet-remaining"),
+  walletProgress: document.querySelector("#wallet-progress"),
+  walletNote: document.querySelector("#wallet-note"),
+};
+
+let mediaStream;
+let motionFrameId;
+let holdIntervalId;
+let sessionStartedAt = 0;
+let previousFrame;
+let repCooldown = 0;
+let lastFeedbackMessage = "";
+let lastFeedbackAt = 0;
+let poseInstance;
+let poseBusy = false;
+let latestPoseLandmarks;
+let demoHoldStartedAt = 0;
+let revealObserver;
+const FEEDBACK_COOLDOWN_MS = 1800;
+const MOTION_CONFIRMATION_FRAMES = 18;
+const AUTO_CALIBRATION_READY_FRAMES = 8;
+const AUTO_CALIBRATION_HOLD_MS = 1200;
+const FIRST_CALIBRATION_HOLD_MS = 2200;
+const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
+const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 5000;
+let calibrationMatchFrames = 0;
+let calibrationHoldStartedAt = 0;
+let calibrationStepReadyAt = 0;
+let calibrationSamples = [];
+
+bootstrap();
+
+function bootstrap() {
+  restoreState();
+  state.activeTab = "session";
+  bindEvents();
+  renderActiveTab();
+  renderSelectedCards();
+  renderSelectionProgress();
+  renderPlan();
+  renderSessionDemos();
+  renderSession();
+  renderControlStates();
+  renderCalibration();
+  renderWorkflow();
+  renderReport();
+  renderRewards();
+  syncSliderLabels();
+  initMotionDesign();
+}
+
+function bindEvents() {
+  els.tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeTab = button.dataset.tabTarget;
+      renderActiveTab();
+      persistState();
+    });
+  });
+
+  els.tabJumpButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeTab = button.dataset.tabJump;
+      renderActiveTab();
+      persistState();
+    });
+  });
+
+  els.formInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      syncSliderLabels();
+      renderSelectedCards();
+      renderSelectionProgress();
+    });
+
+    input.addEventListener("change", () => {
+      syncSliderLabels();
+      renderSelectedCards();
+      renderSelectionProgress();
+    });
+  });
+
+  els.form.addEventListener("submit", handleAssessmentSubmit);
+  els.startCamera.addEventListener("click", startCamera);
+  els.stopCamera.addEventListener("click", stopCamera);
+  els.cameraPermissionCancel?.addEventListener("click", cancelCameraPermissionModal);
+  els.cameraPermissionContinue?.addEventListener("click", requestCameraAccess);
+  els.captureCalibration.addEventListener("click", captureCalibration);
+  els.resetCalibration.addEventListener("click", resetCalibration);
+  els.startDemo.addEventListener("click", startDemoWalkthrough);
+  els.preRpe.addEventListener("input", handleRpeInput);
+  els.postRpe.addEventListener("input", handleRpeInput);
+  els.toggleSession.addEventListener("click", toggleSession);
+  els.toggleHold.addEventListener("click", toggleHold);
+  els.manualRep.addEventListener("click", () => {
+    state.session.reps += 1;
+    state.session.totalTension += 8;
+    state.session.completed = false;
+    setFeedback("Manual rep logged. Keep the movement slow and repeatable.");
+    renderSession();
+    renderControlStates();
+    renderWorkflow();
+    persistState();
+  });
+  els.completeSession.addEventListener("click", completeSession);
+}
+
+function renderActiveTab() {
+  els.tabButtons.forEach((button) => {
+    const active = button.dataset.tabTarget === state.activeTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+
+  els.tabPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.tabPanel === state.activeTab);
+  });
+
+  refreshRevealElements();
+}
+
+function initMotionDesign() {
+  if (!("IntersectionObserver" in window)) return;
+  if (revealObserver) return;
+
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      revealObserver.unobserve(entry.target);
+    });
+  }, {
+    threshold: 0.16,
+    rootMargin: "0px 0px -8% 0px",
+  });
+
+  refreshRevealElements();
+  window.addEventListener("scroll", handleWindowScroll, { passive: true });
+  handleWindowScroll();
+}
+
+function refreshRevealElements() {
+  if (!revealObserver) return;
+
+  const revealTargets = document.querySelectorAll(
+    ".hero-copy, .hero-visual, .tab-rail, .tab-panel.is-active .panel, .tab-panel.is-active .feature-card, .site-footer"
+  );
+
+  revealTargets.forEach((element, index) => {
+    if (!element.classList.contains("reveal-on-scroll")) {
+      element.classList.add("reveal-on-scroll");
+      element.style.setProperty("--reveal-delay", `${Math.min(index * 45, 220)}ms`);
+    }
+
+    if (!element.classList.contains("is-visible")) {
+      revealObserver.observe(element);
+    }
+  });
+}
+
+function handleWindowScroll() {
+  const tabRail = document.querySelector(".tab-rail");
+  if (!tabRail) return;
+  tabRail.classList.toggle("is-scrolled", window.scrollY > 24);
+}
+
+function syncSliderLabels() {
+  els.fatigueValue.textContent = els.fatigue.value;
+  els.confidenceValue.textContent = els.confidence.value;
+  if (els.preRpe) {
+    els.preRpe.value = String(state.session.preRpe ?? Number(els.preRpe.value));
+    els.preRpeValue.textContent = els.preRpe.value;
+  }
+  if (els.postRpe) {
+    els.postRpe.value = String(state.session.postRpe ?? Number(els.postRpe.value));
+    els.postRpeValue.textContent = els.postRpe.value;
+  }
+}
+
+function handleRpeInput() {
+  state.session.preRpe = Number(els.preRpe.value);
+  state.session.postRpe = Number(els.postRpe.value);
+  syncSliderLabels();
+  persistState();
+}
+
+function getCalibrationStepDelayMs() {
+  return state.session.currentCalibrationStep === 0
+    ? FIRST_CALIBRATION_STEP_DELAY_MS
+    : FOLLOWUP_CALIBRATION_STEP_DELAY_MS;
+}
+
+function getCalibrationHoldMs() {
+  return state.session.currentCalibrationStep === 0
+    ? FIRST_CALIBRATION_HOLD_MS
+    : AUTO_CALIBRATION_HOLD_MS;
+}
+
+function getCalibrationReadyFrames() {
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  return currentStep?.key === "arms" ? 5 : AUTO_CALIBRATION_READY_FRAMES;
+}
+
+function renderSelectedCards() {
+  els.choiceCards.forEach((card) => {
+    const input = card.querySelector("input");
+    card.classList.toggle("is-selected", Boolean(input?.checked));
+  });
+}
+
+function renderSelectionProgress() {
+  const formData = new FormData(els.form);
+  const hasDiagnosis = Boolean(formData.get("diagnosis"));
+  const hasWeeklyTarget = Boolean(formData.get("weeklyReps"));
+  const hasEnergy = Boolean(formData.get("energy"));
+  const focusCount = formData.getAll("focus").length;
+  const hasPatientName = String(formData.get("patientName") || "").trim().length > 0;
+
+  const completed = [
+    hasDiagnosis,
+    hasWeeklyTarget && hasEnergy,
+    focusCount > 0,
+    true,
+    hasPatientName,
+  ].filter(Boolean).length;
+
+  const percent = Math.round((completed / 5) * 100);
+  els.progressValue.textContent = `${percent}%`;
+  els.progressBar.style.width = `${percent}%`;
+
+  if (percent < 60) {
+    els.progressSummary.textContent = "Choose a condition, weekly target, and focus area.";
+  } else if (percent < 100) {
+    els.progressSummary.textContent = `${focusCount} focus area${focusCount === 1 ? "" : "s"} selected. Add a patient name to finish.`;
+  } else {
+    els.progressSummary.textContent = "Assessment complete. Generate the plan.";
+  }
+}
+
+function handleAssessmentSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(els.form);
+  const focus = formData.getAll("focus");
+  const patientName = String(formData.get("patientName") || "").trim() || "Jordan Lee";
+  const diagnosis = String(formData.get("diagnosis"));
+  const weeklyReps = Number(formData.get("weeklyReps") || 24);
+  const energy = String(formData.get("energy"));
+  const fatigue = Number(formData.get("fatigue"));
+  const confidence = Number(formData.get("confidence"));
+
+  const protectedMode = fatigue >= 7 || confidence <= 4 || energy === "fragile";
+  const sessionsPerWeek = protectedMode ? 3 : weeklyReps >= 48 ? 4 : 3;
+  const cadence = `${weeklyReps} reps/week | ${sessionsPerWeek} sessions`;
+  const holdSeconds = protectedMode ? 15 : confidence >= 8 ? 30 : 22;
+  const baseSets = protectedMode ? 2 : weeklyReps >= 48 ? 4 : 3;
+  const rewardRate = protectedMode ? 0.18 : 0.26;
+  const programValue = protectedMode ? 96 : 120;
+  const reimbursementSessions = protectedMode ? 16 : 12;
+  const focuses = focus.length ? focus : ["Shoulders", "Core"];
+
+  state.plan = {
+    patientName,
+    diagnosis,
+    weeklyReps,
+    energy,
+    fatigue,
+    confidence,
+    protectedMode,
+    cadence,
+    sessionsPerWeek,
+    holdSeconds,
+    baseSets,
+    rewardRate,
+    programValue,
+    reimbursementSessions,
+    focuses,
+  };
+  state.rewards.targetValue = programValue;
+
+  state.report = null;
+  state.session.reps = 0;
+  state.session.holdSeconds = 0;
+  state.session.totalTension = 0;
+  state.session.motionScore = 0;
+  state.session.smoothedMotionScore = 0;
+  state.session.running = false;
+  state.session.holdActive = false;
+  state.session.intensityLabel = protectedMode ? "Protected mode" : "Moderate guided mode";
+  state.session.selectedDemo = 0;
+  state.session.completed = false;
+  state.session.preRpe = Math.min(7, Math.max(2, fatigue - 1));
+  state.session.postRpe = state.session.preRpe;
+  state.session.calibrated = false;
+  state.session.baseline = null;
+  state.session.calibrationShots = {
+    neutral: null,
+    arms: null,
+    knee: null,
+  };
+  state.session.currentCalibrationStep = 0;
+  state.session.demoActive = false;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  state.session.pendingMotionLabel = "idle";
+  state.session.pendingMotionFrames = 0;
+  sessionStartedAt = 0;
+  demoHoldStartedAt = 0;
+  resetAutoCalibrationTracking();
+  scheduleCalibrationStepDelay();
+  els.toggleSession.textContent = "Start Working Session";
+  els.toggleHold.textContent = "Begin Hold";
+  updateCalibrationButtonLabel();
+  syncSliderLabels();
+
+  setFeedback("Plan created. Session Lab is ready.");
+  renderPlan();
+  renderSessionDemos();
+  renderSession();
+  renderControlStates();
+  renderCalibration();
+  renderWorkflow();
+  renderReport();
+  state.activeTab = "session";
+  renderActiveTab();
+  persistState();
+}
+
+function buildProgramItems() {
+  const defaultPlan = {
+    focuses: ["Shoulders", "Core"],
+    baseSets: 2,
+    holdSeconds: 18,
+    weeklyReps: 24,
+    sessionsPerWeek: 3,
+    energy: "variable",
+    protectedMode: true,
+  };
+
+  const plan = state.plan || defaultPlan;
+  const weeklyReps = plan.weeklyReps || 24;
+  const sessionNames = ["Calibrate", "Train", "Report"];
+
+  const main = plan.focuses.map((focus, index) => {
+    const library = exerciseLibrary[focus] || exerciseLibrary.Core;
+    return {
+      focus,
+      title: `${sessionNames[index % sessionNames.length]}: ${library.main}`,
+      description: `${plan.baseSets} sets, ${plan.holdSeconds} sec holds, ${weeklyReps} reps per week, adapted for a ${plan.energy} energy profile.`,
+      cue: library.cue,
+    };
+  });
+
+  const alt = plan.focuses.map((focus) => {
+    const library = exerciseLibrary[focus] || exerciseLibrary.Core;
+    return {
+      focus,
+      title: library.alt,
+      description: `Use on low-energy days. Reduce one set and shorten holds to ${Math.max(8, plan.holdSeconds - 8)} sec.`,
+      cue: "Keep the same pattern with less total volume.",
+    };
+  });
+
+  return { main, alt };
+}
+
+function renderPlan() {
+  if (!state.plan) {
+    els.planEmpty.classList.remove("hidden");
+    els.planContent.classList.add("hidden");
+    return;
+  }
+
+  const { main, alt } = buildProgramItems();
+  const weeklyReps = state.plan.weeklyReps || 24;
+  els.planEmpty.classList.add("hidden");
+  els.planContent.classList.remove("hidden");
+
+  els.planPatient.textContent = state.plan.patientName;
+  els.planDiagnosis.textContent = state.plan.diagnosis;
+  els.planGoal.textContent = `${weeklyReps} reps / week`;
+  els.planCadence.textContent = state.plan.cadence;
+  els.planReward.textContent = `$${state.plan.programValue} returned over time`;
+  els.planStatus.textContent = state.plan.protectedMode ? "Protected plan active" : "Adaptive plan ready";
+  els.careNote.textContent = `${state.plan.patientName} starts with a ${state.plan.protectedMode ? "conservative" : "moderate"} program focused on ${state.plan.focuses.join(", ")} with a weekly target of ${weeklyReps} reps. Prioritize clean movement and stable breathing.`;
+
+  els.programList.innerHTML = main
+    .map((item) => `<li><strong>${item.title}</strong><span>${item.description}</span></li>`)
+    .join("");
+
+  els.alternateList.innerHTML = alt
+    .map((item) => `<li><strong>${item.title}</strong><span>${item.description}</span></li>`)
+    .join("");
+}
+
+function renderSessionDemos() {
+  const { main, alt } = buildProgramItems();
+  const planLabel = state.plan ? `${state.plan.patientName}'s session lab` : "Session lab";
+
+  els.sessionPlanTitle.textContent = planLabel;
+  els.sessionPlanNote.textContent = state.plan ? "Recommended drills" : "Defaults";
+
+  const merged = [...main, ...alt.slice(0, 2)].slice(0, 3);
+  const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, merged.length - 1));
+  state.session.selectedDemo = Math.max(0, selectedIndex);
+
+  const selected = merged[state.session.selectedDemo];
+  if (selected) {
+    els.selectedDemoTitle.textContent = selected.title;
+    els.selectedDemoCopy.textContent = `${selected.description} ${selected.cue}`;
+  }
+
+  els.recommendedDemoList.innerHTML = merged
+    .map((item, index) => `
+      <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+        <strong>${index + 1}. ${item.title}</strong>
+        <p>${item.description}</p>
+        <span>${item.cue}</span>
+      </article>
+    `)
+    .join("");
+
+  els.recommendedDemoList.querySelectorAll(".demo-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.session.selectedDemo = Number(card.dataset.demoIndex);
+      renderSessionDemos();
+      persistState();
+    });
+  });
+}
+
+function openCameraPermissionModal() {
+  if (!els.cameraPermissionModal) {
+    requestCameraAccess();
+    return;
+  }
+
+  els.cameraPermissionModal.classList.remove("hidden");
+  els.cameraPermissionModal.setAttribute("aria-hidden", "false");
+  if (els.cameraPermissionTitle) {
+    els.cameraPermissionTitle.textContent = "Allow camera access to begin calibration";
+  }
+  if (els.cameraPermissionCopy) {
+    els.cameraPermissionCopy.textContent = "Press Continue, then choose Allow in the browser camera popup.";
+  }
+  if (els.cameraPermissionContinue) {
+    els.cameraPermissionContinue.disabled = false;
+    els.cameraPermissionContinue.textContent = "Continue";
+  }
+  setFeedback("Open the permission dialog, then continue to trigger the browser camera prompt.");
+}
+
+function closeCameraPermissionModal() {
+  if (!els.cameraPermissionModal) return;
+  els.cameraPermissionModal.classList.add("hidden");
+  els.cameraPermissionModal.setAttribute("aria-hidden", "true");
+}
+
+function cancelCameraPermissionModal() {
+  closeCameraPermissionModal();
+  setFeedback("Camera start paused. Click Start Camera whenever you're ready.");
+}
+
+function startCamera() {
+  if (state.session.cameraReady) return;
+  openCameraPermissionModal();
+}
+
+async function requestCameraAccess() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setFeedback("Camera access is unavailable in this browser.");
+    return;
+  }
+
+  try {
+    setFeedback("Waiting for camera permission...");
+    if (els.cameraPermissionTitle) {
+      els.cameraPermissionTitle.textContent = "Allow camera access in your browser";
+    }
+    if (els.cameraPermissionCopy) {
+      els.cameraPermissionCopy.textContent = "The browser popup is now opening. Choose Allow to continue into calibration.";
+    }
+    if (els.cameraPermissionContinue) {
+      els.cameraPermissionContinue.disabled = true;
+      els.cameraPermissionContinue.textContent = "Waiting...";
+    }
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+    });
+
+    els.camera.srcObject = mediaStream;
+    await els.camera.play();
+    state.session.cameraReady = true;
+    await ensurePoseTracking();
+    resetAutoCalibrationTracking();
+    scheduleCalibrationStepDelay();
+    setFeedback("Camera ready. Neutral calibration begins in 10 seconds.");
+    renderSession();
+    renderControlStates();
+    renderCalibration();
+    renderWorkflow();
+    startMotionAnalysis();
+    closeCameraPermissionModal();
+    persistState();
+  } catch (error) {
+    if (els.cameraPermissionTitle) {
+      els.cameraPermissionTitle.textContent = "Camera access is still needed";
+    }
+    if (els.cameraPermissionCopy) {
+      els.cameraPermissionCopy.textContent = "Allow camera access in the browser popup or browser address bar, then press Continue again.";
+    }
+    if (els.cameraPermissionContinue) {
+      els.cameraPermissionContinue.disabled = false;
+      els.cameraPermissionContinue.textContent = "Try Again";
+    }
+    setFeedback("Camera permission was denied or unavailable.");
+    console.error(error);
+  }
+}
+
+async function ensurePoseTracking() {
+  if (poseInstance) return;
+  if (!window.Pose) {
+    state.session.trackingStatus = "Tracking library unavailable";
+    return;
+  }
+
+  poseInstance = new window.Pose({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+  });
+
+  poseInstance.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    smoothSegmentation: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+
+  poseInstance.onResults(handlePoseResults);
+}
+
+function handlePoseResults(results) {
+  const canvas = els.trackingCanvas;
+  const ctx = canvas.getContext("2d");
+  const width = els.camera.videoWidth || 960;
+  const height = els.camera.videoHeight || 720;
+
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  latestPoseLandmarks = results.poseLandmarks || null;
+
+  if (!results.poseLandmarks?.length) {
+    state.session.trackedJoints = 0;
+    state.session.trackingStatus = state.session.cameraReady ? "Searching" : "Tracking off";
+    state.session.trackingQuality = 0;
+    drawCalibrationGuide(ctx, canvas.width, canvas.height, null);
+    renderSession();
+    renderCalibration();
+    renderWorkflow();
+    return;
+  }
+
+  const joints = countVisibleLimbPoints(results.poseLandmarks);
+  state.session.trackedJoints = joints;
+  state.session.trackingQuality = Math.round((joints / PRIMARY_LIMB_POINTS.length) * 100);
+  state.session.trackingStatus = joints >= 10 ? "Tracking live" : joints >= LIMB_CAPTURE_THRESHOLD ? "Partial tracking" : "Align body";
+
+  if (shouldDrawBaselineGhost()) {
+    drawBaselineGhost(ctx, state.session.baseline, canvas.width, canvas.height);
+  }
+
+  drawCalibrationGuide(ctx, canvas.width, canvas.height, results.poseLandmarks);
+  drawTrackedLimbOverlay(ctx, results.poseLandmarks, canvas.width, canvas.height);
+  updateAutoCalibration(results.poseLandmarks);
+
+  updateDemoProgress(results.poseLandmarks);
+  renderSession();
+  renderCalibration();
+  renderWorkflow();
+}
+
+function shouldDrawBaselineGhost() {
+  if (!state.session.baseline) return false;
+  return state.session.calibrated || state.session.demoActive || state.session.demoCompleted || state.session.running;
+}
+
+function drawBaselineGhost(ctx, baseline, width, height) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(216, 166, 161, 0.45)";
+  ctx.fillStyle = "rgba(216, 166, 161, 0.5)";
+  ctx.lineWidth = 3;
+  LIMB_CONNECTIONS.forEach(([from, to]) => {
+    const a = baseline[from];
+    const b = baseline[to];
+    if (!a || !b) return;
+    ctx.beginPath();
+    ctx.moveTo(a.x * width, a.y * height);
+    ctx.lineTo(b.x * width, b.y * height);
+    ctx.stroke();
+  });
+
+  Object.values(baseline).forEach((point) => {
+    if (!point || typeof point.x !== "number") return;
+    ctx.beginPath();
+    ctx.arc(point.x * width, point.y * height, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function drawCalibrationGuide(ctx, width, height, landmarks) {
+  if (!state.session.cameraReady || state.session.calibrated || state.session.demoActive || state.session.running) {
+    return;
+  }
+
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  const guide = currentStep ? buildCalibrationGuide(currentStep.key, landmarks, state.session.baseline) : null;
+  if (!guide) return;
+
+  const pulse = calibrationHoldStartedAt
+    ? 1
+    : 0.82 + (Math.sin(performance.now() / 240) * 0.08);
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  const guideConnections = guide.connections || CALIBRATION_GUIDE_CONNECTIONS;
+
+  guideConnections.forEach(([from, to]) => {
+    const a = guide.points[from];
+    const b = guide.points[to];
+    if (!a || !b) return;
+
+    ctx.beginPath();
+    ctx.moveTo(a.x * width, a.y * height);
+    ctx.lineTo(b.x * width, b.y * height);
+    ctx.lineWidth = calibrationHoldStartedAt ? 16 : 14;
+    ctx.strokeStyle = calibrationHoldStartedAt
+      ? `rgba(255, 196, 107, ${0.34 * pulse})`
+      : `rgba(255, 196, 107, ${0.28 * pulse})`;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(a.x * width, a.y * height);
+    ctx.lineTo(b.x * width, b.y * height);
+    ctx.lineWidth = calibrationHoldStartedAt ? 10 : 8;
+    ctx.strokeStyle = calibrationHoldStartedAt
+      ? `rgba(255, 196, 107, ${0.98 * pulse})`
+      : `rgba(255, 176, 82, ${0.96 * pulse})`;
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = calibrationHoldStartedAt ? "rgba(255, 196, 107, 0.52)" : "rgba(255, 176, 82, 0.48)";
+    ctx.stroke();
+  });
+
+  Object.entries(guide.points).forEach(([name, point]) => {
+    const emphasized = guide.emphasis.includes(name);
+    const outerRadius = emphasized ? 18 : 14;
+    const innerRadius = emphasized ? 11 : 8;
+    const x = point.x * width;
+    const y = point.y * height;
+
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(x, y, outerRadius, 0, Math.PI * 2);
+    ctx.fillStyle = calibrationHoldStartedAt ? "rgba(255, 196, 107, 0.3)" : "rgba(255, 176, 82, 0.22)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, innerRadius + 4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(11, 11, 11, 0.92)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, innerRadius, 0, Math.PI * 2);
+    ctx.fillStyle = calibrationHoldStartedAt ? "#ffc46b" : "#ffb052";
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = calibrationHoldStartedAt ? "rgba(255, 196, 107, 0.64)" : "rgba(255, 176, 82, 0.58)";
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function buildCalibrationGuide(stepKey, landmarks, baseline) {
+  if (stepKey === "neutral") {
+    return buildNeutralGuide(landmarks);
+  }
+
+  if (!baseline) return buildNeutralGuide(landmarks);
+
+  if (stepKey === "arms") {
+    return buildArmsGuideFromBaseline(baseline, landmarks);
+  }
+
+  if (stepKey === "knee") {
+    return buildHeelRaiseGuideFromBaseline(baseline);
+  }
+
+  return buildNeutralGuide(landmarks);
+}
+
+function buildNeutralGuide(landmarks) {
+  if (!landmarks?.length) {
+    return CALIBRATION_FALLBACK_GUIDE;
+  }
+
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftHip = landmarks[23];
+  const rightHip = landmarks[24];
+  const leftElbow = landmarks[13];
+  const rightElbow = landmarks[14];
+  const leftWrist = landmarks[15];
+  const rightWrist = landmarks[16];
+  const leftKnee = landmarks[25];
+  const rightKnee = landmarks[26];
+  const leftAnkle = landmarks[27];
+  const rightAnkle = landmarks[28];
+
+  if (!leftShoulder || !rightShoulder || !leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
+    return CALIBRATION_FALLBACK_GUIDE;
+  }
+
+  const shoulderCenterX = average(leftShoulder.x, rightShoulder.x);
+  const shoulderY = average(leftShoulder.y, rightShoulder.y);
+  const hipCenterX = average(leftHip.x, rightHip.x);
+  const hipY = average(leftHip.y, rightHip.y);
+  const torsoCenterX = average(shoulderCenterX, hipCenterX);
+  const shoulderHalfWidth = Math.max(0.05, Math.abs(rightShoulder.x - leftShoulder.x) / 2);
+  const hipHalfWidth = Math.max(0.035, Math.abs(rightHip.x - leftHip.x) / 2);
+  const upperArmLength = average(distance(leftShoulder, leftElbow), distance(rightShoulder, rightElbow)) || 0.14;
+  const forearmLength = average(distance(leftElbow, leftWrist), distance(rightElbow, rightWrist)) || 0.14;
+  const thighLength = average(distance(leftHip, leftKnee), distance(rightHip, rightKnee)) || 0.18;
+  const shinLength = average(distance(leftKnee, leftAnkle), distance(rightKnee, rightAnkle)) || 0.18;
+
+  const points = {
+    leftShoulder: { x: torsoCenterX - shoulderHalfWidth, y: shoulderY },
+    rightShoulder: { x: torsoCenterX + shoulderHalfWidth, y: shoulderY },
+    leftElbow: { x: torsoCenterX - shoulderHalfWidth * 1.05, y: shoulderY + upperArmLength * 0.92 },
+    rightElbow: { x: torsoCenterX + shoulderHalfWidth * 1.05, y: shoulderY + upperArmLength * 0.92 },
+    leftWrist: { x: torsoCenterX - shoulderHalfWidth * 1.08, y: shoulderY + upperArmLength * 0.92 + forearmLength * 0.94 },
+    rightWrist: { x: torsoCenterX + shoulderHalfWidth * 1.08, y: shoulderY + upperArmLength * 0.92 + forearmLength * 0.94 },
+    leftHip: { x: torsoCenterX - hipHalfWidth, y: hipY },
+    rightHip: { x: torsoCenterX + hipHalfWidth, y: hipY },
+    leftKnee: { x: torsoCenterX - hipHalfWidth * 0.78, y: hipY + thighLength * 0.98 },
+    rightKnee: { x: torsoCenterX + hipHalfWidth * 0.78, y: hipY + thighLength * 0.98 },
+    leftAnkle: { x: torsoCenterX - hipHalfWidth * 0.72, y: hipY + thighLength * 0.98 + shinLength * 0.98 },
+    rightAnkle: { x: torsoCenterX + hipHalfWidth * 0.72, y: hipY + thighLength * 0.98 + shinLength * 0.98 },
+  };
+
+  return {
+    points,
+    emphasis: ["leftShoulder", "rightShoulder", "leftHip", "rightHip"],
+  };
+}
+
+function buildArmsGuideFromBaseline(baseline, landmarks) {
+  const liveLeftShoulder = landmarks?.[11];
+  const liveRightShoulder = landmarks?.[12];
+  const liveLeftHip = landmarks?.[23];
+  const liveRightHip = landmarks?.[24];
+  const baselineShoulderWidth = Math.max(0.08, distance(baseline.leftShoulder, baseline.rightShoulder));
+  const liveShoulderWidth = liveLeftShoulder && liveRightShoulder
+    ? Math.max(0.08, distance(liveLeftShoulder, liveRightShoulder))
+    : baselineShoulderWidth;
+  const scale = Math.min(1.18, Math.max(0.9, liveShoulderWidth / baselineShoulderWidth));
+  const shoulderCenterX = liveLeftShoulder && liveRightShoulder
+    ? average(liveLeftShoulder.x, liveRightShoulder.x)
+    : average(baseline.leftShoulder.x, baseline.rightShoulder.x);
+  const shoulderY = liveLeftShoulder && liveRightShoulder
+    ? average(liveLeftShoulder.y, liveRightShoulder.y)
+    : average(baseline.leftShoulder.y, baseline.rightShoulder.y);
+  const hipCenterY = liveLeftHip && liveRightHip
+    ? average(liveLeftHip.y, liveRightHip.y)
+    : average(baseline.leftHip.y, baseline.rightHip.y);
+  const targetY = Math.min(shoulderY, hipCenterY - 0.14);
+  const halfShoulderWidth = liveShoulderWidth / 2;
+  const leftShoulder = {
+    x: shoulderCenterX - halfShoulderWidth,
+    y: targetY,
+  };
+  const rightShoulder = {
+    x: shoulderCenterX + halfShoulderWidth,
+    y: targetY,
+  };
+  const leftUpperArmLength = Math.max(0.08, distance(baseline.leftShoulder, baseline.leftElbow) * scale);
+  const rightUpperArmLength = Math.max(0.08, distance(baseline.rightShoulder, baseline.rightElbow) * scale);
+  const leftForearmLength = Math.max(0.08, distance(baseline.leftElbow, baseline.leftWrist) * scale);
+  const rightForearmLength = Math.max(0.08, distance(baseline.rightElbow, baseline.rightWrist) * scale);
+  const leftElbow = {
+    x: Math.max(0.08, leftShoulder.x - leftUpperArmLength),
+    y: targetY,
+  };
+  const rightElbow = {
+    x: Math.min(0.92, rightShoulder.x + rightUpperArmLength),
+    y: targetY,
+  };
+  const leftWrist = {
+    x: Math.max(0.04, leftElbow.x - leftForearmLength),
+    y: targetY,
+  };
+  const rightWrist = {
+    x: Math.min(0.96, rightElbow.x + rightForearmLength),
+    y: targetY,
+  };
+
+  return {
+    points: {
+      leftShoulder,
+      rightShoulder,
+      leftElbow,
+      rightElbow,
+      leftWrist,
+      rightWrist,
+    },
+    emphasis: ["leftWrist", "rightWrist", "leftElbow", "rightElbow"],
+    connections: [
+      ["leftShoulder", "rightShoulder"],
+      ["leftShoulder", "leftElbow"],
+      ["leftElbow", "leftWrist"],
+      ["rightShoulder", "rightElbow"],
+      ["rightElbow", "rightWrist"],
+    ],
+  };
+}
+
+function buildHeelRaiseGuideFromBaseline(baseline) {
+  return {
+    points: {
+      ...baseline,
+      leftAnkle: { ...baseline.leftAnkle, y: baseline.leftAnkle.y - 0.012 },
+      rightAnkle: { ...baseline.rightAnkle, y: baseline.rightAnkle.y - 0.012 },
+      leftHeel: baseline.leftHeel ? { ...baseline.leftHeel, y: baseline.leftHeel.y - 0.03 } : undefined,
+      rightHeel: baseline.rightHeel ? { ...baseline.rightHeel, y: baseline.rightHeel.y - 0.03 } : undefined,
+      leftFootIndex: baseline.leftFootIndex ? { ...baseline.leftFootIndex, y: baseline.leftFootIndex.y - 0.022 } : undefined,
+      rightFootIndex: baseline.rightFootIndex ? { ...baseline.rightFootIndex, y: baseline.rightFootIndex.y - 0.022 } : undefined,
+    },
+    emphasis: ["leftAnkle", "rightAnkle", "leftHeel", "rightHeel"],
+  };
+}
+
+function getPoseSnapshot(landmarks) {
+  if (!landmarks?.length) return null;
+  return Object.fromEntries(
+    EXTENDED_LIMB_POINTS.map(([name, index]) => [name, copyPoint(landmarks[index])])
+  );
+}
+
+function copyPoint(point) {
+  return { x: point.x, y: point.y, visibility: point.visibility ?? 0 };
+}
+
+function averageCalibrationSamples(samples) {
+  if (!samples.length) return null;
+
+  const pointNames = Object.keys(samples[0]);
+  return Object.fromEntries(pointNames.map((name) => {
+    const points = samples.map((sample) => sample[name]).filter(Boolean);
+    if (!points.length) return [name, null];
+
+    return [name, {
+      x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+      y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+      visibility: points.reduce((sum, point) => sum + (point.visibility ?? 0), 0) / points.length,
+    }];
+  }));
+}
+
+function captureCalibration() {
+  if (!state.session.cameraReady) {
+    setFeedback("Start the camera before calibrating.");
+    return;
+  }
+
+  if (getCalibrationCountdownSeconds() > 0) {
+    setFeedback(`Calibration starts in ${getCalibrationCountdownSeconds()} seconds.`);
+    return;
+  }
+
+  if (!latestPoseLandmarks || state.session.trackedJoints < LIMB_CAPTURE_THRESHOLD) {
+    setFeedback("Stand fully in frame before capturing calibration.");
+    return;
+  }
+
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  if (!currentStep) return;
+
+  if (!matchesCalibrationPose(currentStep.key, latestPoseLandmarks, state.session.baseline)) {
+    setFeedback(getCalibrationInstruction(currentStep.key));
+    return;
+  }
+
+  saveCalibrationStep(currentStep, latestPoseLandmarks, true);
+}
+
+function saveCalibrationStep(currentStep, landmarks, manualCapture = false) {
+  const snapshot = averageCalibrationSamples(calibrationSamples) || getPoseSnapshot(landmarks);
+  state.session.calibrationShots[currentStep.key] = snapshot;
+  if (currentStep.key === "neutral") {
+    state.session.baseline = snapshot;
+  }
+
+  state.session.currentCalibrationStep += 1;
+  state.session.calibrated = state.session.currentCalibrationStep >= CALIBRATION_SEQUENCE.length;
+  state.session.demoActive = false;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  demoHoldStartedAt = 0;
+  resetAutoCalibrationTracking();
+  if (!state.session.calibrated) scheduleCalibrationStepDelay();
+  updateCalibrationButtonLabel();
+  const nextStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  const nextDelaySeconds = Math.round(getCalibrationStepDelayMs() / 1000);
+  setFeedback(
+    state.session.calibrated
+      ? "Calibration complete. Start the guided demo next."
+      : `${currentStep.title} saved. ${nextStep?.title || "Next step"} begins in ${nextDelaySeconds} seconds.`
+  );
+  renderCalibration();
+  renderWorkflow();
+  renderControlStates();
+  persistState();
+}
+
+function resetCalibration() {
+  state.session.calibrated = false;
+  state.session.baseline = null;
+  state.session.calibrationShots = {
+    neutral: null,
+    arms: null,
+    knee: null,
+  };
+  state.session.currentCalibrationStep = 0;
+  state.session.demoActive = false;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  demoHoldStartedAt = 0;
+  resetAutoCalibrationTracking();
+  scheduleCalibrationStepDelay();
+  updateCalibrationButtonLabel();
+  setFeedback("Calibration reset. Neutral stance begins in 10 seconds.");
+  renderCalibration();
+  renderWorkflow();
+  renderControlStates();
+  persistState();
+}
+
+function startDemoWalkthrough() {
+  if (!state.session.cameraReady) {
+    setFeedback("Start the camera first.");
+    return;
+  }
+
+  if (!state.session.calibrated || !state.session.baseline) {
+    setFeedback("Capture calibration before starting the demo.");
+    return;
+  }
+
+  state.session.demoActive = true;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  demoHoldStartedAt = 0;
+  setFeedback("Demo started. Follow the selected drill and hold the target position.");
+  renderWorkflow();
+  renderControlStates();
+  persistState();
+}
+
+function resetAutoCalibrationTracking() {
+  calibrationMatchFrames = 0;
+  calibrationHoldStartedAt = 0;
+  calibrationSamples = [];
+}
+
+function scheduleCalibrationStepDelay() {
+  calibrationStepReadyAt = performance.now() + getCalibrationStepDelayMs();
+}
+
+function getCalibrationCountdownSeconds() {
+  if (!calibrationStepReadyAt) return 0;
+  return Math.max(0, Math.ceil((calibrationStepReadyAt - performance.now()) / 1000));
+}
+
+function renderCalibrationCountdown() {
+  if (!els.calibrationCountdown) return;
+
+  const seconds = getCalibrationCountdownSeconds();
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 0) {
+    els.calibrationCountdown.classList.add("hidden");
+    els.calibrationCountdown.dataset.label = "";
+    return;
+  }
+
+  els.calibrationCountdown.classList.remove("hidden");
+  els.calibrationCountdown.textContent = String(seconds);
+  els.calibrationCountdown.dataset.label = currentStep.key === "neutral"
+    ? "NEUTRAL CALIBRATION"
+    : currentStep.title.toUpperCase();
+}
+
+function updateAutoCalibration(landmarks) {
+  if (!state.session.cameraReady || state.session.calibrated || state.session.demoActive || state.session.running) {
+    resetAutoCalibrationTracking();
+    return;
+  }
+
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  if (!currentStep) {
+    resetAutoCalibrationTracking();
+    return;
+  }
+
+  if (state.session.trackedJoints < LIMB_CAPTURE_THRESHOLD) {
+    resetAutoCalibrationTracking();
+    return;
+  }
+
+  if (performance.now() < calibrationStepReadyAt) {
+    resetAutoCalibrationTracking();
+    return;
+  }
+
+  const matched = matchesCalibrationPose(currentStep.key, landmarks, state.session.baseline);
+  if (!matched) {
+    resetAutoCalibrationTracking();
+    return;
+  }
+
+  calibrationMatchFrames += 1;
+  if (calibrationMatchFrames < getCalibrationReadyFrames()) return;
+
+  if (!calibrationHoldStartedAt) {
+    calibrationHoldStartedAt = performance.now();
+    calibrationSamples = [];
+    const firstSnapshot = getPoseSnapshot(landmarks);
+    if (firstSnapshot) calibrationSamples.push(firstSnapshot);
+    setFeedback(`${currentStep.title} detected. Hold steady.`);
+    return;
+  }
+
+  const snapshot = getPoseSnapshot(landmarks);
+  if (snapshot) calibrationSamples.push(snapshot);
+
+  if (performance.now() - calibrationHoldStartedAt >= getCalibrationHoldMs()) {
+    saveCalibrationStep(currentStep, landmarks, false);
+  }
+}
+
+function isNeutralPose(landmarks) {
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftHip = landmarks[23];
+  const rightHip = landmarks[24];
+  const leftWrist = landmarks[15];
+  const rightWrist = landmarks[16];
+  const leftElbow = landmarks[13];
+  const rightElbow = landmarks[14];
+
+  const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.08;
+  const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.08;
+  const armsDown = leftWrist.y > leftElbow.y && rightWrist.y > rightElbow.y;
+  const centered = average(leftShoulder.x, rightShoulder.x) > 0.25 && average(leftShoulder.x, rightShoulder.x) < 0.75;
+
+  return shouldersLevel && hipsLevel && armsDown && centered;
+}
+
+function matchesCalibrationPose(stepKey, landmarks, baseline) {
+  if (stepKey === "neutral") {
+    return isNeutralPose(landmarks);
+  }
+
+  if (stepKey === "arms") {
+    if (!baseline?.leftShoulder || !baseline?.rightShoulder) {
+      return false;
+    }
+
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftElbow = landmarks[13];
+    const rightElbow = landmarks[14];
+    const leftWrist = landmarks[15];
+    const rightWrist = landmarks[16];
+    const shoulderWidth = Math.max(0.09, distance(leftShoulder, rightShoulder));
+    const targetY = average(leftShoulder.y, rightShoulder.y);
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.075;
+    const elbowsNearHeight =
+      Math.abs(leftElbow.y - targetY) < 0.14 &&
+      Math.abs(rightElbow.y - targetY) < 0.14;
+    const wristsNearHeight =
+      Math.abs(leftWrist.y - targetY) < 0.16 &&
+      Math.abs(rightWrist.y - targetY) < 0.16;
+    const wristsWideEnough =
+      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.72 &&
+      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.72;
+    const elbowsWideEnough =
+      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.28 &&
+      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.28;
+    const elbowsBetweenShouldersAndWrists =
+      leftElbow.x < leftShoulder.x && leftElbow.x > leftWrist.x &&
+      rightElbow.x > rightShoulder.x && rightElbow.x < rightWrist.x;
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.12;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.12;
+    const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
+    const armsMostlyStraight = leftArmAngle > 145 && rightArmAngle > 145;
+
+    return shouldersLevel
+      && elbowsNearHeight
+      && wristsNearHeight
+      && elbowsWideEnough
+      && wristsWideEnough
+      && elbowsBetweenShouldersAndWrists
+      && wristsMatched
+      && elbowsMatched
+      && armsMostlyStraight;
+  }
+
+  if (stepKey === "knee") {
+    if (!baseline?.leftHeel || !baseline?.rightHeel || !baseline?.leftAnkle || !baseline?.rightAnkle) {
+      return false;
+    }
+
+    const leftHeelRaised = (baseline.leftHeel.y - landmarks[29].y) > 0.025 || (baseline.leftAnkle.y - landmarks[27].y) > 0.02;
+    const rightHeelRaised = (baseline.rightHeel.y - landmarks[30].y) > 0.025 || (baseline.rightAnkle.y - landmarks[28].y) > 0.02;
+    return leftHeelRaised || rightHeelRaised;
+  }
+
+  return false;
+}
+
+function getCalibrationInstruction(stepKey) {
+  if (stepKey === "neutral") {
+    return "Match the bright outline with arms relaxed and shoulders level.";
+  }
+
+  if (stepKey === "arms") {
+    return "Raise both arms straight out to the side in a T-shape and hold steady.";
+  }
+
+  return "Lift either heel slightly while staying aligned to the bright outline.";
+}
+
+function getCalibrationSummary(stepKey) {
+  if (stepKey === "neutral") {
+    return "Match the bright outline with arms relaxed and shoulders level.";
+  }
+
+  if (stepKey === "arms") {
+    return "Raise both arms straight out to the side in a steady T-shape.";
+  }
+
+  return "Stay tall and lift either heel slightly while matching the outline.";
+}
+
+function updateDemoProgress(landmarks) {
+  if (!state.session.demoActive || !state.session.baseline || !landmarks?.length) return;
+
+  const focus = getSelectedFocus();
+  const matched = matchesDemoTarget(focus, landmarks, state.session.baseline);
+
+  if (matched) {
+    if (!demoHoldStartedAt) demoHoldStartedAt = performance.now();
+    const heldMs = performance.now() - demoHoldStartedAt;
+    state.session.demoProgress = Math.min(100, Math.round((heldMs / 1800) * 100));
+
+    if (heldMs >= 1800) {
+      state.session.demoActive = false;
+      state.session.demoCompleted = true;
+      state.session.demoProgress = 100;
+      setFeedback("Demo complete. Working session unlocked.");
+      renderWorkflow();
+      renderControlStates();
+      persistState();
+    }
+  } else {
+    demoHoldStartedAt = 0;
+    state.session.demoProgress = 0;
+  }
+}
+
+function getSelectedFocus() {
+  const { main, alt } = buildProgramItems();
+  const merged = [...main, ...alt.slice(0, 2)];
+  return merged[state.session.selectedDemo]?.focus || "Shoulders";
+}
+
+function matchesDemoTarget(focus, landmarks, baseline) {
+  if (focus === "Hips" || focus === "Quadriceps" || focus === "Ankles") {
+    const leftKneeLift = baseline.leftKnee.y - landmarks[25].y > 0.06;
+    const rightKneeLift = baseline.rightKnee.y - landmarks[26].y > 0.06;
+    return leftKneeLift || rightKneeLift;
+  }
+
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftWrist = landmarks[15];
+  const rightWrist = landmarks[16];
+  const wristsRaised = leftWrist.y < leftShoulder.y + 0.03 && rightWrist.y < rightShoulder.y + 0.03;
+  const wristsAboveBaseline = leftWrist.y < baseline.leftWrist.y - 0.08 && rightWrist.y < baseline.rightWrist.y - 0.08;
+  return wristsRaised && wristsAboveBaseline;
+}
+
+function average(a, b) {
+  return (a + b) / 2;
+}
+
+function angleAtPoint(a, b, c) {
+  if (!a || !b || !c) return 0;
+
+  const abX = a.x - b.x;
+  const abY = a.y - b.y;
+  const cbX = c.x - b.x;
+  const cbY = c.y - b.y;
+  const denominator = Math.hypot(abX, abY) * Math.hypot(cbX, cbY);
+  if (!denominator) return 0;
+
+  const cosine = Math.max(-1, Math.min(1, ((abX * cbX) + (abY * cbY)) / denominator));
+  return (Math.acos(cosine) * 180) / Math.PI;
+}
+
+function distance(a, b) {
+  if (!a || !b) return 0;
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function stopCamera() {
+  stopHoldTimer();
+  state.session.running = false;
+  state.session.holdActive = false;
+  state.session.cameraReady = false;
+  state.session.motionScore = 0;
+  state.session.trackedJoints = 0;
+  state.session.trackingStatus = "Limb tracking offline";
+  state.session.trackingQuality = 0;
+  state.session.smoothedMotionScore = 0;
+  state.session.calibrated = false;
+  state.session.baseline = null;
+  state.session.calibrationShots = {
+    neutral: null,
+    arms: null,
+    knee: null,
+  };
+  state.session.currentCalibrationStep = 0;
+  state.session.demoActive = false;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  state.session.pendingMotionLabel = "idle";
+  state.session.pendingMotionFrames = 0;
+  els.toggleSession.textContent = "Start Working Session";
+  els.toggleHold.textContent = "Begin Hold";
+  updateCalibrationButtonLabel();
+
+  if (motionFrameId) {
+    window.cancelAnimationFrame(motionFrameId);
+    motionFrameId = undefined;
+  }
+
+  previousFrame = undefined;
+  poseBusy = false;
+  latestPoseLandmarks = undefined;
+  demoHoldStartedAt = 0;
+  resetAutoCalibrationTracking();
+  calibrationStepReadyAt = 0;
+  closeCameraPermissionModal();
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = undefined;
+  }
+
+  els.camera.pause();
+  els.camera.srcObject = null;
+  const trackingCtx = els.trackingCanvas.getContext("2d");
+  trackingCtx.clearRect(0, 0, els.trackingCanvas.width, els.trackingCanvas.height);
+  setFeedback("Camera stopped.");
+  renderSession();
+  renderControlStates();
+  renderCalibration();
+  renderWorkflow();
+  persistState();
+}
+
+function toggleSession() {
+  if (!state.session.cameraReady) {
+    setFeedback("Start the camera first so IsoTrack can monitor movement.");
+    return;
+  }
+
+  if (!state.session.running) {
+    state.session.preRpe = Number(els.preRpe.value);
+    state.session.postRpe = Number(els.postRpe.value);
+  }
+
+  state.session.running = !state.session.running;
+  sessionStartedAt = state.session.running ? Date.now() : sessionStartedAt;
+  if (state.session.running) state.session.completed = false;
+  els.toggleSession.textContent = state.session.running ? "Pause Working Session" : "Start Working Session";
+
+  if (state.session.running) {
+    setFeedback(`Session active. Starting RPE ${state.session.preRpe}/10.`);
+  } else {
+    setFeedback("Session paused.");
+  }
+
+  renderSession();
+  renderControlStates();
+  persistState();
+}
+
+function toggleHold() {
+  if (!state.session.running) {
+    setFeedback("Start the session before beginning an isometric hold.");
+    return;
+  }
+
+  state.session.holdActive = !state.session.holdActive;
+  els.toggleHold.textContent = state.session.holdActive ? "End Hold" : "Begin Hold";
+
+  if (state.session.holdActive) {
+    holdIntervalId = window.setInterval(() => {
+      state.session.holdSeconds += 1;
+      state.session.totalTension += 1;
+      state.session.completed = false;
+      renderSession();
+      renderControlStates();
+      persistState();
+    }, 1000);
+    setFeedback("Hold started. Keep breathing easy.");
+  } else {
+    stopHoldTimer();
+    setFeedback("Hold completed.");
+  }
+
+  renderSession();
+  renderControlStates();
+}
+
+function stopHoldTimer() {
+  window.clearInterval(holdIntervalId);
+  holdIntervalId = undefined;
+}
+
+function startMotionAnalysis() {
+  if (motionFrameId) window.cancelAnimationFrame(motionFrameId);
+  const ctx = els.analysisCanvas.getContext("2d", { willReadFrequently: true });
+
+  const step = () => {
+    if (els.camera.readyState >= 2) {
+      ctx.drawImage(els.camera, 0, 0, els.analysisCanvas.width, els.analysisCanvas.height);
+      const imageData = ctx.getImageData(0, 0, els.analysisCanvas.width, els.analysisCanvas.height);
+      const data = imageData.data;
+      let motion = 0;
+
+      if (previousFrame) {
+        for (let i = 0; i < data.length; i += 16) {
+          motion += Math.abs(data[i] - previousFrame[i]);
+          motion += Math.abs(data[i + 1] - previousFrame[i + 1]);
+          motion += Math.abs(data[i + 2] - previousFrame[i + 2]);
+        }
+      }
+
+      previousFrame = new Uint8ClampedArray(data);
+      const normalized = Math.min(100, Math.round(motion / 14000));
+      state.session.motionScore = normalized;
+      state.session.smoothedMotionScore = Math.round((state.session.smoothedMotionScore * 0.82) + (normalized * 0.18));
+
+      if (poseInstance && !poseBusy) {
+        poseBusy = true;
+        poseInstance.send({ image: els.camera })
+          .catch(() => {
+            state.session.trackingStatus = "Tracking unavailable";
+          })
+          .finally(() => {
+            poseBusy = false;
+          });
+      }
+
+      if (state.session.running) {
+        if (repCooldown > 0) repCooldown -= 1;
+
+        if (state.session.smoothedMotionScore > 28 && repCooldown === 0) {
+          state.session.reps += 1;
+          state.session.totalTension += 6;
+          state.session.completed = false;
+          repCooldown = 14;
+        }
+
+        updateMotionGuidance();
+      }
+
+      renderSession();
+      renderWorkflow();
+    }
+
+    motionFrameId = window.requestAnimationFrame(step);
+  };
+
+  step();
+}
+
+function completeSession() {
+  if (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0) {
+    setFeedback("Run at least part of a guided session before completing it.");
+    return;
+  }
+
+  state.session.postRpe = Number(els.postRpe.value);
+
+  stopHoldTimer();
+  state.session.running = false;
+  state.session.holdActive = false;
+  els.toggleSession.textContent = "Start Working Session";
+  els.toggleHold.textContent = "Begin Hold";
+
+  const sessionDurationMs = sessionStartedAt ? Date.now() - sessionStartedAt : state.session.totalTension * 1000;
+  const estimatedMinutes = Math.max(1, Math.round(sessionDurationMs / 60000));
+  const adherence = Math.min(100, 52 + state.session.reps * 4 + Math.floor(state.session.totalTension / 20));
+  const activePlan = state.plan || {
+    patientName: "Demo User",
+    fatigue: 5,
+    energy: "variable",
+    rewardRate: 0.18,
+    programValue: DEFAULT_PROGRAM_VALUE,
+    reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
+    focuses: [getSelectedFocus()],
+  };
+  const preRpe = Number(state.session.preRpe || 0);
+  const postRpe = Number(state.session.postRpe || 0);
+  const reimbursementTarget = activePlan.programValue || DEFAULT_PROGRAM_VALUE;
+  const reimbursementSessions = activePlan.reimbursementSessions || DEFAULT_REIMBURSEMENT_SESSIONS;
+  const remainingBalance = Math.max(0, reimbursementTarget - state.rewards.cashback);
+  const sessionBaseReturn = reimbursementTarget / reimbursementSessions;
+  const adherenceMultiplier = 0.7 + (adherence / 200);
+  const rpeGuardrail = postRpe >= 8 ? 0.8 : 1;
+  const cashbackEarned = Number(Math.min(
+    remainingBalance,
+    sessionBaseReturn * adherenceMultiplier * rpeGuardrail
+  ).toFixed(2));
+  const rpeDelta = postRpe - preRpe;
+  const rpeSummary = `Pre ${preRpe}/10 | Post ${postRpe}/10`;
+  const rpeChange = rpeDelta > 0 ? `+${rpeDelta} RPE` : rpeDelta < 0 ? `${rpeDelta} RPE` : "No change";
+  const careStatus = postRpe >= 8 || rpeDelta >= 3
+    ? "Review exertion before progression"
+    : adherence >= 80
+      ? "Ready for clinician review"
+      : "Needs another supported session";
+
+  state.report = {
+    adherence,
+    fatigueBand: rpeSummary,
+    intensity: rpeChange,
+    status: careStatus,
+    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension. Session RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
+  };
+
+  state.rewards.cashback = Number(Math.min(
+    reimbursementTarget,
+    state.rewards.cashback + cashbackEarned
+  ).toFixed(2));
+  state.rewards.streak += 1;
+  state.rewards.tier = state.rewards.streak >= 6 ? "Consistency+" : state.rewards.streak >= 3 ? "Recovery Builder" : "Starter";
+  state.rewards.targetValue = reimbursementTarget;
+  state.session.completed = true;
+
+  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} returned.`);
+  renderSession();
+  renderControlStates();
+  renderReport();
+  renderRewards();
+  state.activeTab = "reports";
+  renderActiveTab();
+  persistState();
+}
+
+function updateMotionGuidance() {
+  const score = state.session.smoothedMotionScore;
+  let nextLabel = "low";
+
+  if (score > 42) {
+    nextLabel = "high";
+  } else if (score > 18) {
+    nextLabel = "good";
+  }
+
+  if (nextLabel === state.session.pendingMotionLabel) {
+    state.session.pendingMotionFrames += 1;
+  } else {
+    state.session.pendingMotionLabel = nextLabel;
+    state.session.pendingMotionFrames = 1;
+  }
+
+  if (state.session.pendingMotionFrames < MOTION_CONFIRMATION_FRAMES) return;
+  if (state.session.intensityLabel === nextLabel) return;
+
+  state.session.intensityLabel = nextLabel;
+
+  if (nextLabel === "high") {
+    setFeedback("Tempo is too sharp. Slow it down.", false);
+  } else if (nextLabel === "good") {
+    setFeedback("Good tempo. Stay controlled.", false);
+  } else {
+    setFeedback("Movement is small. Reset posture or log manually.", false);
+  }
+}
+
+function renderSession() {
+  els.motionBar.style.width = `${state.session.trackingQuality}%`;
+  els.motionScore.textContent = `${state.session.trackingQuality}%`;
+  els.demoProgress.textContent = `${state.session.demoProgress}%`;
+  els.repCount.textContent = String(state.session.reps);
+  els.holdTime.textContent = formatTime(state.session.holdSeconds);
+  els.tutTotal.textContent = `${state.session.totalTension} sec`;
+  els.trackingState.textContent = state.session.trackingStatus;
+  els.trackedJoints.textContent = `${state.session.trackedJoints} points`;
+  els.cameraStatus.textContent = state.session.running
+    ? "Live"
+    : state.session.cameraReady
+      ? "Ready"
+      : "Offline";
+  renderCalibrationCountdown();
+}
+
+function renderControlStates() {
+  els.startCamera.disabled = state.session.cameraReady;
+  els.stopCamera.disabled = !state.session.cameraReady;
+  els.captureCalibration.disabled = !state.session.cameraReady || state.session.calibrated || getCalibrationCountdownSeconds() > 0;
+  els.resetCalibration.disabled = !state.session.cameraReady && !hasSavedCalibration();
+  els.startDemo.disabled = !state.session.cameraReady || !state.session.calibrated;
+  els.toggleSession.disabled = !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted;
+  els.toggleHold.disabled = !state.session.running;
+  els.manualRep.disabled = !state.session.running;
+  els.completeSession.disabled = state.session.completed || (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0);
+}
+
+function renderCalibration() {
+  const savedCount = CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length;
+  const percent = Math.round((savedCount / CALIBRATION_SEQUENCE.length) * 100);
+  updateCalibrationButtonLabel();
+  els.calibrationCount.textContent = `${savedCount} / ${CALIBRATION_SEQUENCE.length} saved`;
+  els.calibrationProgressBar.style.width = `${percent}%`;
+
+  const stageMap = [
+    { key: "neutral", element: els.calibrationStageNeutral, status: els.calibrationStageNeutralStatus },
+    { key: "arms", element: els.calibrationStageArms, status: els.calibrationStageArmsStatus },
+    { key: "knee", element: els.calibrationStageKnee, status: els.calibrationStageKneeStatus },
+  ];
+
+  stageMap.forEach((stage, index) => {
+    const saved = Boolean(state.session.calibrationShots[stage.key]);
+    const active = !state.session.calibrated && index === state.session.currentCalibrationStep;
+    const stepDelaySeconds = Math.round((index === 0 ? FIRST_CALIBRATION_STEP_DELAY_MS : FOLLOWUP_CALIBRATION_STEP_DELAY_MS) / 1000);
+    stage.element.classList.toggle("is-complete", saved);
+    stage.element.classList.toggle("is-active", active);
+    stage.status.textContent = saved
+      ? "Saved"
+      : active
+        ? calibrationHoldStartedAt
+          ? "Capturing"
+          : getCalibrationCountdownSeconds() > 0
+            ? `Starts in ${getCalibrationCountdownSeconds()}s`
+            : "Get ready"
+        : `Wait ${stepDelaySeconds}s`;
+  });
+}
+
+function updateCalibrationButtonLabel() {
+  const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+  els.captureCalibration.textContent = currentStep ? "Manual Capture" : "Calibration Complete";
+}
+
+function hasSavedCalibration() {
+  return CALIBRATION_SEQUENCE.some(({ key }) => Boolean(state.session.calibrationShots[key]));
+}
+
+function renderWorkflow() {
+  const stepStates = {
+    camera: state.session.cameraReady,
+    calibration: state.session.calibrated,
+    demo: state.session.demoCompleted,
+    session: state.session.running || state.session.completed,
+  };
+
+  updateStepChip(els.workflowStepCamera, state.session.cameraReady, !state.session.cameraReady);
+  updateStepChip(els.workflowStepCalibration, stepStates.calibration, state.session.cameraReady && !stepStates.calibration);
+  updateStepChip(els.workflowStepDemo, stepStates.demo, state.session.calibrated && !stepStates.demo);
+  updateStepChip(els.workflowStepSession, stepStates.session, state.session.demoCompleted && !stepStates.session);
+
+  if (!state.session.cameraReady) {
+    els.workflowTitle.textContent = "Start Camera";
+    els.workflowCopy.textContent = "Stand full-body in frame.";
+    els.workflowCheckPrimary.textContent = `${LIMB_CAPTURE_THRESHOLD}+ points`;
+    els.workflowCheckSecondary.textContent = "Calibration pending";
+  } else if (!state.session.calibrated) {
+    const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
+    const countdown = calibrationHoldStartedAt
+      ? Math.max(1, Math.ceil((getCalibrationHoldMs() - (performance.now() - calibrationHoldStartedAt)) / 1000))
+      : 0;
+    const stepCountdown = getCalibrationCountdownSeconds();
+    els.workflowTitle.textContent = calibrationHoldStartedAt ? "Calibrating" : "Get Ready";
+    els.workflowCopy.textContent = currentStep
+      ? calibrationHoldStartedAt
+        ? `${currentStep.title}. Hold still ${countdown}.`
+        : stepCountdown > 0
+          ? `${currentStep.title} begins in ${stepCountdown}.`
+          : currentStep.key === "neutral"
+            ? "Neutral stance. This step sets your personal guide."
+            : `${currentStep.title}. ${getCalibrationSummary(currentStep.key)}`
+      : "Capture the remaining steps.";
+    els.workflowCheckPrimary.textContent = stepCountdown > 0
+      ? `Starts in ${stepCountdown}s`
+      : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
+        ? "Match outline"
+        : "Step into outline";
+    els.workflowCheckSecondary.textContent = calibrationHoldStartedAt
+      ? "Auto capture running"
+      : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
+  } else if (!state.session.demoCompleted) {
+    const focus = getSelectedFocus();
+    els.workflowTitle.textContent = state.session.demoActive ? "Demo" : "Finished Calibrating";
+    els.workflowCopy.textContent = state.session.demoActive
+      ? (focus === "Hips" || focus === "Quadriceps" || focus === "Ankles"
+        ? "Lift one knee and hold."
+        : "Raise both arms and hold.")
+      : "Start the guided demo.";
+    els.workflowCheckPrimary.textContent = "Calibration done";
+    els.workflowCheckSecondary.textContent = state.session.demoActive ? `Demo ${state.session.demoProgress}%` : "Start demo";
+  } else if (!state.session.running) {
+    els.workflowTitle.textContent = "Ready To Work";
+    els.workflowCopy.textContent = "Calibration and demo are complete.";
+    els.workflowCheckPrimary.textContent = "Calibration done";
+    els.workflowCheckSecondary.textContent = "Demo done";
+  } else {
+    els.workflowTitle.textContent = "Working";
+    els.workflowCopy.textContent = "Move slowly and stay controlled.";
+    els.workflowCheckPrimary.textContent = "Tracking live";
+    els.workflowCheckSecondary.textContent = "Work active";
+  }
+
+  updateWorkflowCheck(els.workflowCheckPrimary, /ready|complete|live|locked/i.test(els.workflowCheckPrimary.textContent));
+  updateWorkflowCheck(els.workflowCheckSecondary, /ready|complete|live|locked/i.test(els.workflowCheckSecondary.textContent));
+}
+
+function updateStepChip(element, complete, active) {
+  element.classList.toggle("is-complete", complete);
+  element.classList.toggle("is-active", active);
+}
+
+function updateWorkflowCheck(element, complete) {
+  element.classList.toggle("is-complete", complete);
+  element.classList.toggle("is-active", !complete);
+}
+
+function renderReport() {
+  if (!state.report) {
+    els.reportAdherence.textContent = "0%";
+    els.reportFatigue.textContent = "Pre -- | Post --";
+    els.reportIntensity.textContent = "--";
+    els.reportStatus.textContent = "Awaiting first session";
+    els.reportText.textContent = "Generate a plan and complete a session to create the report.";
+    return;
+  }
+
+  els.reportAdherence.textContent = `${state.report.adherence}%`;
+  els.reportFatigue.textContent = state.report.fatigueBand;
+  els.reportIntensity.textContent = state.report.intensity;
+  els.reportStatus.textContent = state.report.status;
+  els.reportText.textContent = state.report.text;
+}
+
+function renderRewards() {
+  const targetValue = state.rewards.targetValue || DEFAULT_PROGRAM_VALUE;
+  const returned = Math.min(targetValue, state.rewards.cashback);
+  const remaining = Math.max(0, targetValue - returned);
+  const progress = Math.round((returned / targetValue) * 100);
+
+  els.walletTotal.textContent = `$${returned.toFixed(2)}`;
+  els.walletStreak.textContent = `${state.rewards.streak} sessions`;
+  els.walletTier.textContent = state.rewards.tier;
+  els.walletRemaining.textContent = `$${remaining.toFixed(2)}`;
+  els.walletProgress.textContent = `${progress}%`;
+  els.walletNote.textContent = state.rewards.streak
+    ? remaining > 0
+      ? `${state.rewards.streak} sessions completed. ${state.rewards.tier} tier active. $${remaining.toFixed(2)} remaining until full reimbursement.`
+      : `Full reimbursement reached. ${state.rewards.tier} tier active.`
+    : "Each completed session returns part of the program cost until the full amount is reimbursed.";
+}
+
+function setFeedback(message, force = true) {
+  const now = performance.now();
+  if (lastFeedbackMessage === message) return;
+  if (!force && now - lastFeedbackAt < FEEDBACK_COOLDOWN_MS) return;
+  lastFeedbackMessage = message;
+  lastFeedbackAt = now;
+  els.sessionFeedback.textContent = message;
+}
+
+function formatTime(totalSeconds) {
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function countVisibleLimbPoints(landmarks) {
+  return PRIMARY_LIMB_POINTS.filter(([, index]) => (landmarks[index]?.visibility ?? 0) >= LIMB_VISIBILITY_THRESHOLD).length;
+}
+
+function getNamedLimbPoints(landmarks) {
+  return Object.fromEntries(
+    EXTENDED_LIMB_POINTS.map(([name, index]) => [name, landmarks[index]])
+  );
+}
+
+function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
+  const namedPoints = getNamedLimbPoints(landmarks);
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  LIMB_CONNECTIONS.forEach(([from, to]) => {
+    const start = namedPoints[from];
+    const end = namedPoints[to];
+    if (!start || !end) return;
+
+    const visibility = Math.min(start.visibility ?? 0, end.visibility ?? 0);
+    if (visibility < 0.4) return;
+
+    ctx.beginPath();
+    ctx.moveTo(start.x * width, start.y * height);
+    ctx.lineTo(end.x * width, end.y * height);
+    ctx.lineWidth = visibility >= LIMB_VISIBILITY_THRESHOLD ? 7 : 4;
+    ctx.strokeStyle = visibility >= LIMB_VISIBILITY_THRESHOLD ? "rgba(89, 220, 255, 0.96)" : "rgba(89, 220, 255, 0.42)";
+    ctx.shadowBlur = visibility >= LIMB_VISIBILITY_THRESHOLD ? 12 : 0;
+    ctx.shadowColor = "rgba(89, 220, 255, 0.4)";
+    ctx.stroke();
+  });
+
+  EXTENDED_LIMB_POINTS.forEach(([name]) => {
+    const point = namedPoints[name];
+    if (!point || (point.visibility ?? 0) < 0.35) return;
+
+    const strongPoint = (point.visibility ?? 0) >= LIMB_VISIBILITY_THRESHOLD;
+    const radius = strongPoint ? 7 : 5;
+    const x = point.x * width;
+    const y = point.y * height;
+
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 2, 0, Math.PI * 2);
+    ctx.fillStyle = strongPoint ? "rgba(9, 11, 14, 0.85)" : "rgba(9, 11, 14, 0.55)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = strongPoint ? "#e9fbff" : "rgba(233, 251, 255, 0.52)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(2.5, radius - 3), 0, Math.PI * 2);
+    ctx.fillStyle = strongPoint ? "#59dcff" : "rgba(89, 220, 255, 0.45)";
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function persistState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    activeTab: state.activeTab,
+    plan: state.plan,
+    rewards: state.rewards,
+    report: state.report,
+    session: {
+      cameraReady: false,
+      running: false,
+      holdActive: false,
+      reps: state.session.reps,
+      holdSeconds: state.session.holdSeconds,
+      totalTension: state.session.totalTension,
+      motionScore: state.session.motionScore,
+      intensityLabel: state.session.intensityLabel,
+      selectedDemo: state.session.selectedDemo,
+      completed: state.session.completed,
+      preRpe: state.session.preRpe,
+      postRpe: state.session.postRpe,
+      trackedJoints: state.session.trackedJoints,
+      trackingStatus: state.session.trackingStatus,
+      trackingQuality: state.session.trackingQuality,
+      calibrated: state.session.calibrated,
+      baseline: state.session.baseline,
+      calibrationShots: state.session.calibrationShots,
+      currentCalibrationStep: state.session.currentCalibrationStep,
+      demoActive: state.session.demoActive,
+      demoCompleted: state.session.demoCompleted,
+      demoProgress: state.session.demoProgress,
+    },
+  }));
+}
+
+function restoreState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+
+  try {
+    const parsed = JSON.parse(raw);
+    Object.assign(state, parsed);
+    Object.assign(state.session, parsed.session || {});
+  } catch (error) {
+    console.error("Unable to restore demo state", error);
+  }
+}

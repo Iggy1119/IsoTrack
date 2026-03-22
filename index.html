@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IsoTrack | Adaptive Therapeutic Exercise</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="header-line"></div>
+      <div class="header-row">
+        <a class="brand" href="#top">
+          <span class="brand-lockup">
+            <span class="brand-mark" aria-hidden="true">
+              <img src="assets/isotrack-logo.svg" alt="" role="presentation">
+            </span>
+            <span class="brand-copy">
+              <span class="brand-tag">MedSprint - Group 35</span>
+              <span class="brand-name">IsoTrack</span>
+              <span class="brand-subtitle">Adaptive Therapeutic Exercise</span>
+            </span>
+          </span>
+        </a>
+        <p class="brand-url">Camera-guided therapeutic exercise platform</p>
+      </div>
+      <div class="header-line"></div>
+    </header>
+
+    <main id="top">
+      <section class="hero-shell">
+        <div class="hero-copy">
+          <p class="eyebrow">Adaptive therapeutic exercise platform</p>
+          <h1>Therapeutic exercise, designed for guided home care.</h1>
+          <p class="hero-text">Assessment, camera guidance, clinician review, and rewards in one focused workflow.</p>
+        </div>
+
+        <div class="hero-visual">
+          <img src="assets/prototype.png" alt="IsoTrack prototype preview">
+        </div>
+      </section>
+
+      <section class="tabs-shell">
+        <div class="tab-rail" role="tablist" aria-label="IsoTrack sections">
+          <button class="tab-button" type="button" data-tab-target="overview" role="tab" aria-selected="false">Overview</button>
+          <button class="tab-button" type="button" data-tab-target="assessment" role="tab" aria-selected="false">Assessment</button>
+          <button class="tab-button is-active" type="button" data-tab-target="session" role="tab" aria-selected="true">Session Lab</button>
+          <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
+          <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
+        </div>
+
+        <section class="tab-panel" data-tab-panel="overview">
+          <div class="overview-grid">
+            <article class="panel overview-story">
+              <p class="eyebrow">Overview</p>
+              <h2>Therapeutic exercise built for preservation, clarity, and consistency.</h2>
+              <p>IsoTrack supports lower-load, diagnosis-aware sessions that adapt day to day.</p>
+              <div class="quote-band">
+                <span>Preserve strength</span>
+                <span>Train consistently</span>
+                <span>Review clearly</span>
+              </div>
+            </article>
+
+            <article class="panel flow-panel">
+              <p class="eyebrow">Experience map</p>
+              <div class="flow-list">
+                <div>
+                  <strong>01. Calibrate</strong>
+                  <p>Set the patient profile and movement baseline.</p>
+                </div>
+                <div>
+                  <strong>02. Train</strong>
+                  <p>Run guided sessions with simpler motion support.</p>
+                </div>
+                <div>
+                  <strong>03. Report</strong>
+                  <p>Share adherence and session notes with care teams.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span>01.</span>
+              <h3>Personalized plans</h3>
+              <p>Built from diagnosis, focus area, and daily capacity.</p>
+            </article>
+            <article class="feature-card">
+              <span>02.</span>
+              <h3>Camera guidance</h3>
+              <p>Readable calibration and demo cues inside the session view.</p>
+            </article>
+            <article class="feature-card">
+              <span>03.</span>
+              <h3>Cleaner setup</h3>
+              <p>Assessment choices stay structured and easy to scan.</p>
+            </article>
+            <article class="feature-card">
+              <span>04.</span>
+              <h3>Reward loop</h3>
+              <p>Completed sessions update adherence and rewards.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="assessment">
+          <div class="assessment-grid">
+            <form class="panel planner-panel" id="assessment-form">
+              <div class="planner-head">
+                <div>
+                  <p class="eyebrow">Assessment</p>
+                  <h2>Build a guided exercise plan.</h2>
+                </div>
+                <div class="progress-shell">
+                  <div class="progress-copy">
+                    <span>Selection progress</span>
+                    <strong id="selection-progress-value">75%</strong>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="selection-progress-bar"></div>
+                  </div>
+                  <p id="selection-summary">Select a condition, weekly target, and focus area.</p>
+                </div>
+              </div>
+
+              <div class="field-row">
+                <label class="text-input">
+                  <span>Patient name</span>
+                  <input id="patient-name" name="patientName" type="text" placeholder="Jordan Lee">
+                </label>
+              </div>
+
+              <fieldset class="choice-group">
+                <legend>Condition profile</legend>
+                <div class="choice-grid">
+                  <label class="choice-card">
+                    <input type="radio" name="diagnosis" value="Duchenne muscular dystrophy" checked>
+                    <span>Duchenne muscular dystrophy</span>
+                    <small>Protected pacing.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="diagnosis" value="Becker muscular dystrophy">
+                    <span>Becker muscular dystrophy</span>
+                    <small>Endurance support.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="diagnosis" value="Limb-girdle muscular dystrophy">
+                    <span>Limb-girdle muscular dystrophy</span>
+                    <small>Transfers and trunk stability.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="diagnosis" value="Facioscapulohumeral dystrophy">
+                    <span>Facioscapulohumeral dystrophy</span>
+                    <small>Shoulder support.</small>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="choice-group">
+                <legend>Repetitions per week</legend>
+                <div class="choice-grid compact-grid">
+                  <label class="choice-card">
+                    <input type="radio" name="weeklyReps" value="24" checked>
+                    <span>24 reps</span>
+                    <small>Lower starting volume.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="weeklyReps" value="36">
+                    <span>36 reps</span>
+                    <small>Moderate weekly target.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="weeklyReps" value="48">
+                    <span>48 reps</span>
+                    <small>Higher consistency target.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="weeklyReps" value="60">
+                    <span>60 reps</span>
+                    <small>Advanced weekly volume.</small>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="choice-group">
+                <legend>Weekly energy profile</legend>
+                <div class="choice-grid compact-grid">
+                  <label class="choice-card">
+                    <input type="radio" name="energy" value="steady">
+                    <span>Mostly steady</span>
+                    <small>Predictable capacity.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="energy" value="variable" checked>
+                    <span>Variable day to day</span>
+                    <small>Adaptive support.</small>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="energy" value="fragile">
+                    <span>Low reserve</span>
+                    <small>More recovery.</small>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="choice-group">
+                <legend>Muscle groups to prioritize</legend>
+                <div class="choice-grid compact-grid">
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Shoulders" checked>
+                    <span>Shoulders</span>
+                    <small>Reach.</small>
+                  </label>
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Core" checked>
+                    <span>Core</span>
+                    <small>Breathing.</small>
+                  </label>
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Hips">
+                    <span>Hips</span>
+                    <small>Transfers.</small>
+                  </label>
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Quadriceps">
+                    <span>Quadriceps</span>
+                    <small>Chair rise.</small>
+                  </label>
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Ankles">
+                    <span>Ankles</span>
+                    <small>Stability.</small>
+                  </label>
+                  <label class="choice-card checkbox-card">
+                    <input type="checkbox" name="focus" value="Grip">
+                    <span>Grip</span>
+                    <small>Hand control.</small>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="slider-grid">
+                <label class="slider-card">
+                  <span>Baseline fatigue tolerance <strong id="fatigue-value">5</strong>/10</span>
+                  <input id="fatigue" name="fatigue" type="range" min="1" max="10" value="5">
+                </label>
+                <label class="slider-card">
+                  <span>Movement confidence <strong id="confidence-value">6</strong>/10</span>
+                  <input id="confidence" name="confidence" type="range" min="1" max="10" value="6">
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Create Personalized Plan</button>
+                <button class="button button-secondary" type="button" data-tab-jump="session">Open Session Lab</button>
+              </div>
+            </form>
+
+            <div class="panel output-panel">
+              <div class="empty-state" id="plan-empty">
+                <p class="eyebrow">Plan preview</p>
+                <h3>No program generated yet</h3>
+                <p>Create a plan to preview the guided session.</p>
+              </div>
+
+              <div class="plan-content hidden" id="plan-content">
+                <div class="plan-header">
+                  <div>
+                    <p class="eyebrow">Patient summary</p>
+                    <h3 id="plan-patient">Jordan Lee</h3>
+                  </div>
+                  <span class="status-pill" id="plan-status">Adaptive plan ready</span>
+                </div>
+
+                <div class="summary-grid">
+                  <article>
+                    <span>Diagnosis</span>
+                    <strong id="plan-diagnosis"></strong>
+                  </article>
+                  <article>
+                    <span>Weekly target</span>
+                    <strong id="plan-goal"></strong>
+                  </article>
+                  <article>
+                    <span>Starting cadence</span>
+                    <strong id="plan-cadence"></strong>
+                  </article>
+                  <article>
+                    <span>Reimbursement model</span>
+                    <strong id="plan-reward"></strong>
+                  </article>
+                </div>
+
+                <div class="program-columns">
+                  <div>
+                    <p class="panel-label">This week's sessions</p>
+                    <ul class="program-list" id="program-list"></ul>
+                  </div>
+                  <div>
+                    <p class="panel-label">Low-energy alternatives</p>
+                    <ul class="program-list alt" id="alternate-list"></ul>
+                  </div>
+                </div>
+
+                <div class="care-note">
+                  <p class="panel-label">Clinician guidance note</p>
+                  <p id="care-note"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel is-active" data-tab-panel="session">
+          <div class="session-grid">
+            <div class="panel camera-panel">
+              <div class="camera-shell">
+                <video id="camera" playsinline muted></video>
+                <canvas id="tracking-canvas" width="960" height="720"></canvas>
+                <canvas id="analysis-canvas" width="320" height="240"></canvas>
+                <div class="camera-permission-modal hidden" id="camera-permission-modal" aria-hidden="true">
+                  <div class="camera-permission-backdrop"></div>
+                  <div class="camera-permission-card" role="dialog" aria-modal="true" aria-labelledby="camera-permission-title" aria-describedby="camera-permission-copy">
+                    <p class="eyebrow">Camera access</p>
+                    <h2 id="camera-permission-title">Allow camera access to begin calibration</h2>
+                    <p id="camera-permission-copy">Press Continue, then choose Allow in the browser camera popup.</p>
+                    <div class="camera-permission-actions">
+                      <button class="button button-secondary" id="camera-permission-cancel" type="button">Not now</button>
+                      <button class="button button-primary" id="camera-permission-continue" type="button">Continue</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="calibration-countdown hidden" id="calibration-countdown" aria-live="polite">10</div>
+                <div class="camera-overlay">
+                  <div class="overlay-status-row">
+                    <span class="status-pill" id="camera-status">Offline</span>
+                    <div class="tracking-meta">
+                      <span id="tracking-state">Tracking off</span>
+                      <span id="tracked-joints">0 points</span>
+                    </div>
+                  </div>
+                  <strong id="session-feedback">Start the camera to begin.</strong>
+                  <div class="video-guide">
+                    <strong id="workflow-title">Start camera</strong>
+                    <p id="workflow-copy">Stand full-body in frame.</p>
+                    <div class="workflow-steps">
+                      <span class="workflow-step" id="step-camera">Camera</span>
+                      <span class="workflow-step" id="step-calibration">Calibration</span>
+                      <span class="workflow-step" id="step-demo">Demo</span>
+                      <span class="workflow-step" id="step-session">Work</span>
+                    </div>
+                    <div class="workflow-checks">
+                      <span id="workflow-check-primary">Tracking not ready</span>
+                      <span id="workflow-check-secondary">Calibration not captured</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-row">
+                <div class="control-group control-group-primary">
+                  <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
+                  <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
+                  <button class="button button-secondary" id="start-demo" type="button">Start Demo</button>
+                  <button class="button button-secondary" id="toggle-session" type="button">Start Working Session</button>
+                  <button class="button button-secondary" id="complete-session" type="button">Complete Session</button>
+                </div>
+                <div class="control-group control-group-secondary">
+                  <button class="button button-secondary" id="capture-calibration" type="button">Manual Capture</button>
+                  <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
+                  <button class="button button-secondary" id="toggle-hold" type="button">Begin Hold</button>
+                  <button class="button button-secondary" id="manual-rep" type="button">Log Manual Rep</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="session-side">
+              <div class="panel calibration-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Calibration</p>
+                    <h2>Automatic alignment</h2>
+                  </div>
+                  <span class="status-pill muted-pill" id="calibration-count">0 / 3 saved</span>
+                </div>
+                <div class="progress-track calibration-progress">
+                  <div class="progress-fill" id="calibration-progress-bar"></div>
+                </div>
+                <div class="calibration-stage-list">
+                  <article class="calibration-stage" id="cal-stage-neutral">
+                    <span>01</span>
+                    <strong>Neutral stance</strong>
+                    <p>Arms relaxed. Full body visible.</p>
+                    <small id="cal-stage-neutral-status">Waiting</small>
+                  </article>
+                  <article class="calibration-stage" id="cal-stage-arms">
+                    <span>02</span>
+                    <strong>T-shape arms</strong>
+                    <p>Lift both arms to shoulder height evenly.</p>
+                    <small id="cal-stage-arms-status">Waiting</small>
+                  </article>
+                  <article class="calibration-stage" id="cal-stage-knee">
+                    <span>03</span>
+                    <strong>Heel raise</strong>
+                    <p>Lift either heel slightly while staying centered.</p>
+                    <small id="cal-stage-knee-status">Waiting</small>
+                  </article>
+                </div>
+              </div>
+
+              <div class="panel live-demo-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Guided flow</p>
+                    <h2 id="session-plan-title">Session lab</h2>
+                    <div class="selected-drill-summary">
+                      <strong id="selected-demo-title">Choose a demo card</strong>
+                      <p id="selected-demo-copy">Your recommended exercises will appear here.</p>
+                    </div>
+                  </div>
+                  <span class="status-pill muted-pill" id="session-plan-note">Recommended drills</span>
+                </div>
+                <div class="demo-grid" id="recommended-demo-list"></div>
+              </div>
+
+              <div class="panel rpe-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Session check-in</p>
+                    <h2>How are you feeling?</h2>
+                  </div>
+                  <span class="status-pill muted-pill">RPE</span>
+                </div>
+                <div class="slider-grid session-checkin-grid">
+                  <label class="slider-card">
+                    <span>Before session <strong id="pre-rpe-value">4</strong>/10</span>
+                    <input id="pre-rpe" type="range" min="1" max="10" value="4">
+                  </label>
+                  <label class="slider-card">
+                    <span>After session <strong id="post-rpe-value">4</strong>/10</span>
+                    <input id="post-rpe" type="range" min="1" max="10" value="4">
+                  </label>
+                </div>
+              </div>
+
+              <div class="panel metrics-panel">
+                <div class="metric-stack">
+                  <article>
+                    <span>Tracking quality</span>
+                    <div class="meter">
+                      <div class="meter-bar" id="motion-bar"></div>
+                    </div>
+                    <strong id="motion-score">0%</strong>
+                  </article>
+                  <article>
+                    <span>Demo progress</span>
+                    <strong id="demo-progress">0%</strong>
+                  </article>
+                  <article>
+                    <span>Repetitions detected</span>
+                    <strong id="rep-count">0</strong>
+                  </article>
+                  <article>
+                    <span>Hold time</span>
+                    <strong id="hold-time">00:00</strong>
+                  </article>
+                  <article>
+                    <span>Time under tension</span>
+                    <strong id="tut-total">0 sec</strong>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="reports">
+          <div class="report-grid">
+            <div class="panel">
+              <p class="eyebrow">Clinician tab</p>
+              <h2>Each session becomes a short care update.</h2>
+              <div class="summary-grid report-cards">
+                <article>
+                  <span>Adherence</span>
+                  <strong id="report-adherence">0%</strong>
+                </article>
+                <article>
+                  <span>RPE check-in</span>
+                  <strong id="report-fatigue">Pre -- | Post --</strong>
+                </article>
+                <article>
+                  <span>RPE change</span>
+                  <strong id="report-intensity">--</strong>
+                </article>
+                <article>
+                  <span>Care status</span>
+                  <strong id="report-status">Awaiting first session</strong>
+                </article>
+              </div>
+              <p class="report-text" id="report-text">Generate a plan and complete a session to create the report.</p>
+            </div>
+
+            <div class="panel care-path-panel">
+              <p class="eyebrow">Care pathway</p>
+              <div class="flow-list">
+                <div>
+                  <strong>Capture</strong>
+                  <p>Baseline and focus areas.</p>
+                </div>
+                <div>
+                  <strong>Adapt</strong>
+                  <p>Volume shifts on lower-capacity days.</p>
+                </div>
+                <div>
+                  <strong>Review</strong>
+                  <p>Progression follows adherence and session quality.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="rewards">
+          <div class="report-grid">
+            <div class="panel wallet-panel">
+              <p class="eyebrow">Reward wallet</p>
+              <div class="wallet-total">
+                <span>Returned so far</span>
+                <strong id="wallet-total">$0.00</strong>
+              </div>
+              <div class="wallet-metrics">
+                <article>
+                  <span>Current streak</span>
+                  <strong id="wallet-streak">0 sessions</strong>
+                </article>
+                <article>
+                  <span>Unlocked tier</span>
+                  <strong id="wallet-tier">Starter</strong>
+                </article>
+                <article>
+                  <span>Remaining balance</span>
+                  <strong id="wallet-remaining">$0.00</strong>
+                </article>
+                <article>
+                  <span>Return progress</span>
+                  <strong id="wallet-progress">0%</strong>
+                </article>
+              </div>
+              <p id="wallet-note">Each completed session returns part of the program cost until the full amount is reimbursed.</p>
+            </div>
+
+            <div class="panel reward-tier-panel">
+              <p class="eyebrow">Tier ladder</p>
+              <div class="tier-list">
+                <div class="tier-item">
+                  <strong>Starter</strong>
+                  <span>1-2 sessions completed</span>
+                </div>
+                <div class="tier-item">
+                  <strong>Recovery Builder</strong>
+                  <span>3-5 sessions completed</span>
+                </div>
+                <div class="tier-item">
+                  <strong>Consistency+</strong>
+                  <span>6+ sessions completed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="header-line"></div>
+      <div class="footer-row">
+        <p class="footer-label">Authors</p>
+        <p class="footer-authors">Djordje Spasovic, Dong Jin, Ignatius Ho, Hrish Dave</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

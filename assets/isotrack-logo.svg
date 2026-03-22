@@ -1,0 +1,18 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="isotrack-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8FD7BF" />
+      <stop offset="100%" stop-color="#D8A6A1" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="68" height="68" rx="22" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.18)" stroke-width="2" />
+  <path d="M24 21H48" stroke="url(#isotrack-gradient)" stroke-width="4" stroke-linecap="round" />
+  <path d="M24 51H48" stroke="url(#isotrack-gradient)" stroke-width="4" stroke-linecap="round" />
+  <path d="M36 21V51" stroke="url(#isotrack-gradient)" stroke-width="4" stroke-linecap="round" />
+  <circle cx="36" cy="36" r="8" fill="#FFFFFF" />
+  <circle cx="36" cy="36" r="4" fill="#0B0B0B" />
+  <circle cx="24" cy="21" r="4.5" fill="#8FD7BF" />
+  <circle cx="48" cy="21" r="4.5" fill="#8FD7BF" />
+  <circle cx="24" cy="51" r="4.5" fill="#D8A6A1" />
+  <circle cx="48" cy="51" r="4.5" fill="#D8A6A1" />
+</svg>
