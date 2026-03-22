@@ -1,6 +1,6 @@
 # IsoTrack
 
-IsoTrack is a static prototype for an adaptive therapeutic exercise platform focused on guided home care. It combines assessment, camera-based session guidance, clinician reporting, and rewards into a single browser experience.
+IsoTrack is a static prototype for a camera-guided therapeutic exercise platform focused on guided home care. It combines assessment, camera-based session guidance, clinician reporting, and rewards into a single browser experience for adaptive isometric programs.
 
 ## What It Includes
 
