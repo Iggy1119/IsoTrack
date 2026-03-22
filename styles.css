@@ -969,6 +969,8 @@ h3 {
 
 .camera-shell {
   position: relative;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   aspect-ratio: 16 / 10;
   min-height: 0;
@@ -987,6 +989,7 @@ h3 {
   height: 100%;
   min-height: 0;
   object-fit: cover;
+  object-position: center center;
   transform: scaleX(-1);
   background: #030303;
 }
@@ -1093,9 +1096,11 @@ h3 {
 
 .camera-overlay {
   position: absolute;
-  left: 1rem;
+  left: 50%;
   bottom: 1rem;
-  max-width: min(23rem, calc(100% - 2rem));
+  width: min(23rem, calc(100% - 2rem));
+  max-width: calc(100% - 2rem);
+  transform: translateX(-50%);
 }
 
 .video-guide {
@@ -1377,6 +1382,90 @@ h3 {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(143, 215, 191, 0.05)),
     rgba(255, 255, 255, 0.02);
+}
+
+.session-carousel-shell {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.session-carousel-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.session-carousel-head .panel-label {
+  margin-bottom: 0;
+}
+
+.session-carousel-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.session-carousel-controls .button {
+  padding: 0.65rem 0.9rem;
+}
+
+.session-carousel-track {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at top, rgba(216, 166, 161, 0.08), transparent 60%),
+    rgba(7, 10, 16, 0.56);
+}
+
+.session-carousel-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  transition: transform 220ms ease;
+}
+
+.session-carousel-page {
+  display: grid;
+  gap: 0.85rem;
+  min-height: 12rem;
+  padding: 1rem;
+}
+
+.session-carousel-page strong {
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.18rem;
+  letter-spacing: -0.03em;
+}
+
+.session-carousel-page p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.session-carousel-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.session-carousel-page.is-current {
+  background: linear-gradient(180deg, rgba(143, 215, 191, 0.08), rgba(143, 215, 191, 0.02));
+}
+
+.session-carousel-page.is-complete {
+  background: linear-gradient(180deg, rgba(216, 166, 161, 0.1), rgba(216, 166, 161, 0.02));
+}
+
+.session-carousel-page-empty {
+  place-items: start;
 }
 
 .demo-player-shell {

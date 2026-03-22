@@ -121,6 +121,7 @@ const state = {
     motionScore: 0,
     intensityLabel: "Not started",
     selectedDemo: 0,
+    previewDemoIndex: 0,
     librarySelectedDemo: 0,
     completed: false,
     preRpe: 4,
@@ -615,6 +616,10 @@ const els = {
   selectedDemoCopy: document.querySelector("#selected-demo-copy"),
   selectedDemoVideoStatus: document.querySelector("#selected-demo-video-status"),
   selectedDemoPlayer: document.querySelector("#selected-demo-player"),
+  sessionCarouselTrack: document.querySelector("#session-carousel-track"),
+  sessionCarouselPrev: document.querySelector("#session-carousel-prev"),
+  sessionCarouselNext: document.querySelector("#session-carousel-next"),
+  sessionCarouselStatus: document.querySelector("#session-carousel-status"),
   selectedDemoFocus: document.querySelector("#selected-demo-focus"),
   selectedDemoVariant: document.querySelector("#selected-demo-variant"),
   selectedDemoTarget: document.querySelector("#selected-demo-target"),
@@ -780,6 +785,14 @@ function bindEvents() {
   });
 
   els.authForm?.addEventListener("submit", handleAuthSubmit);
+  [els.authName, els.authEmail, els.authPassword].forEach((input) => {
+    input?.addEventListener("input", () => {
+      if (state.auth.stage !== "verify") return;
+      syncPendingAuthFieldsFromInputs();
+      renderAuth();
+      persistState();
+    });
+  });
   els.verify2fa?.addEventListener("click", verifyTwoFactorCode);
   els.resend2fa?.addEventListener("click", resendTwoFactorCode);
   els.authLogout?.addEventListener("click", logoutAccount);
@@ -795,6 +808,17 @@ function bindEvents() {
   els.preRpe.addEventListener("input", handleRpeInput);
   els.postRpe.addEventListener("input", handleRpeInput);
   els.submitRpe?.addEventListener("click", () => submitRpe());
+  els.sessionCarouselPrev?.addEventListener("click", () => {
+    state.session.previewDemoIndex = Math.max(0, (state.session.previewDemoIndex || 0) - 1);
+    renderSessionDemos();
+    persistState();
+  });
+  els.sessionCarouselNext?.addEventListener("click", () => {
+    const maxIndex = Math.max(0, buildSessionDemoLibrary().length - 1);
+    state.session.previewDemoIndex = Math.min(maxIndex, (state.session.previewDemoIndex || 0) + 1);
+    renderSessionDemos();
+    persistState();
+  });
   els.toggleSession.addEventListener("click", toggleSession);
   els.toggleHold.addEventListener("click", toggleHold);
   els.manualRep.addEventListener("click", () => {
@@ -890,7 +914,27 @@ function handleAuthSubmit(event) {
   issueTwoFactorChallenge(mode);
 }
 
+function syncPendingAuthFieldsFromInputs() {
+  const mode = state.auth.mode || "signup";
+  const name = String(els.authName?.value || "").trim();
+  const email = String(els.authEmail?.value || "").trim().toLowerCase();
+  const password = String(els.authPassword?.value || "");
+
+  if (mode === "signup" && name) {
+    state.auth.pendingName = name;
+  }
+
+  if (email) {
+    state.auth.pendingEmail = email;
+  }
+
+  if (password) {
+    state.auth.pendingPassword = password;
+  }
+}
+
 function issueTwoFactorChallenge(mode = state.auth.mode || "signup") {
+  syncPendingAuthFieldsFromInputs();
   state.auth.stage = "verify";
   state.auth.pendingCode = generateTwoFactorCode();
   state.auth.feedback = mode === "signup"
@@ -902,6 +946,7 @@ function issueTwoFactorChallenge(mode = state.auth.mode || "signup") {
 }
 
 function verifyTwoFactorCode() {
+  syncPendingAuthFieldsFromInputs();
   const submittedCode = String(els.authCode?.value || "").trim();
   if (!submittedCode) {
     state.auth.feedback = "Enter the 6-digit verification code.";
@@ -932,6 +977,7 @@ function verifyTwoFactorCode() {
 }
 
 function resendTwoFactorCode() {
+  syncPendingAuthFieldsFromInputs();
   if (!state.auth.pendingEmail) {
     state.auth.feedback = "Enter your account details first.";
     renderAuth();
@@ -956,6 +1002,7 @@ function renderAuth() {
   const mode = state.auth.mode || "signup";
   const verifying = state.auth.stage === "verify";
   const authenticated = Boolean(state.auth.authenticated);
+  if (verifying) syncPendingAuthFieldsFromInputs();
 
   els.authModeButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.authMode === mode);
@@ -1278,6 +1325,7 @@ function handleAssessmentSubmit(event) {
   state.session.holdActive = false;
   state.session.intensityLabel = protectedMode ? "Protected mode" : "Moderate guided mode";
   state.session.selectedDemo = 0;
+  state.session.previewDemoIndex = 0;
   state.session.librarySelectedDemo = 0;
   state.session.completed = false;
   state.session.preRpe = clampRpe(els.preRpe?.value ?? state.session.preRpe);
@@ -1508,6 +1556,7 @@ function advancePrescribedExercise() {
   const nextIndex = current.sessionIndex + 1;
   if (nextIndex < demos.length) {
     state.session.selectedDemo = nextIndex;
+    state.session.previewDemoIndex = nextIndex;
     state.session.demoCompleted = false;
     state.session.demoProgress = 0;
     state.session.exerciseMatchState = "idle";
@@ -1515,6 +1564,7 @@ function advancePrescribedExercise() {
     resetCurrentExerciseProgress();
     setFeedback(`${current.title} complete. Run the next prescribed demo: ${demos[nextIndex].title}.`);
   } else {
+    state.session.previewDemoIndex = current.sessionIndex;
     state.session.demoCompleted = true;
     state.session.demoProgress = 100;
     state.session.exerciseMatchState = "matched";
@@ -1568,10 +1618,22 @@ function renderSessionDemos() {
   const demos = buildSessionDemoLibrary();
   const planLabel = state.plan ? `${state.plan.patientName}'s session lab` : "Session lab";
   const completedCount = state.session.completedExercises.length;
+  const currentExerciseIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, demos.length - 1));
 
   els.sessionPlanTitle.textContent = planLabel;
   if (!demos.length) {
     els.sessionPlanNote.textContent = "Assessment required";
+    if (els.sessionCarouselStatus) els.sessionCarouselStatus.textContent = "Assessment required";
+    if (els.sessionCarouselTrack) {
+      els.sessionCarouselTrack.innerHTML = `
+        <article class="session-carousel-page session-carousel-page-empty">
+          <strong>Assessment needed</strong>
+          <p>Generate a plan first, then Session Lab will show every prescribed exercise here as carousel pages.</p>
+        </article>
+      `;
+    }
+    if (els.sessionCarouselPrev) els.sessionCarouselPrev.disabled = true;
+    if (els.sessionCarouselNext) els.sessionCarouselNext.disabled = true;
     els.selectedDemoTitle.textContent = "Complete Assessment First";
     els.selectedDemoCopy.textContent = "Session Lab builds the exercise flow directly from the assessment plan.";
     els.selectedDemoVideoStatus.textContent = "Locked";
@@ -1604,16 +1666,59 @@ function renderSessionDemos() {
 
   els.sessionPlanNote.textContent = isPrescribedSessionComplete(demos)
     ? "Prescribed session complete"
-    : `Exercise ${Math.min((state.session.selectedDemo || 0) + 1, Math.max(1, demos.length))} of ${Math.max(1, demos.length)} • ${completedCount} done`;
+    : `Current exercise ${currentExerciseIndex + 1} of ${Math.max(1, demos.length)} • ${completedCount} done`;
 
-  const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, demos.length - 1));
-  state.session.selectedDemo = Math.max(0, selectedIndex);
+  if (state.session.demoActive || state.session.running) {
+    state.session.previewDemoIndex = currentExerciseIndex;
+  }
 
-  const selected = demos[state.session.selectedDemo];
+  const previewIndex = Math.min(state.session.previewDemoIndex ?? state.session.selectedDemo ?? 0, Math.max(0, demos.length - 1));
+  state.session.selectedDemo = Math.max(0, currentExerciseIndex);
+  state.session.previewDemoIndex = Math.max(0, previewIndex);
+
+  if (els.sessionCarouselStatus) {
+    els.sessionCarouselStatus.textContent = `Page ${previewIndex + 1} of ${demos.length}`;
+  }
+
+  if (els.sessionCarouselPrev) {
+    els.sessionCarouselPrev.disabled = previewIndex <= 0 || state.session.demoActive || state.session.running;
+  }
+
+  if (els.sessionCarouselNext) {
+    els.sessionCarouselNext.disabled = previewIndex >= demos.length - 1 || state.session.demoActive || state.session.running;
+  }
+
+  if (els.sessionCarouselTrack) {
+    els.sessionCarouselTrack.innerHTML = `
+      <div class="session-carousel-strip" style="transform:translateX(-${previewIndex * 100}%);">
+        ${demos.map((item, index) => {
+          const isCurrent = index === currentExerciseIndex;
+          const isComplete = state.session.completedExercises.includes(item.sessionIndex);
+          const status = isComplete ? "Done" : isCurrent ? "Current" : "Queued";
+          return `
+            <article class="session-carousel-page ${isCurrent ? "is-current" : ""} ${isComplete ? "is-complete" : ""}">
+              <div class="session-carousel-page-head">
+                <span class="demo-chip">Exercise ${index + 1}</span>
+                <span class="demo-chip">${status}</span>
+              </div>
+              <strong>${item.title}</strong>
+              <p>${item.summary}</p>
+              <div class="demo-card-tags">
+                <span class="demo-chip">${item.focus}</span>
+                <span class="demo-chip">${item.targetLabel}</span>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  const selected = demos[previewIndex];
   if (selected) {
     els.selectedDemoTitle.textContent = selected.title;
     els.selectedDemoCopy.textContent = selected.summary;
-    els.selectedDemoVideoStatus.textContent = selected.statusLabel;
+    els.selectedDemoVideoStatus.textContent = previewIndex === currentExerciseIndex ? selected.statusLabel : `Preview • ${selected.statusLabel}`;
     if (els.selectedDemoPlayer) {
       els.selectedDemoPlayer.src = selected.videoPath || "";
       els.selectedDemoPlayer.poster = "";
@@ -1625,7 +1730,9 @@ function renderSessionDemos() {
     els.selectedDemoScript.textContent = `Plan target: ${selected.setTargetLabel}. Demo file: ${selected.videoBrief}`;
     const progressStatus = isCurrentExerciseComplete(selected)
       ? "Status: Complete."
-      : `Current progress: ${getCurrentExerciseProgressLabel(selected)}.`;
+      : previewIndex === currentExerciseIndex
+        ? `Current progress: ${getCurrentExerciseProgressLabel(selected)}.`
+        : "Status: Queued until earlier prescribed exercises are complete.";
     const prescribedSteps = [
       `Prescribed block ${selected.sessionIndex + 1} of ${demos.length} for ${selected.focus}.`,
       `Complete ${selected.repTarget} reps or ${selected.holdTarget} seconds of time under tension to clear this exercise.`,
@@ -3971,6 +4078,7 @@ function persistState() {
       motionScore: state.session.motionScore,
       intensityLabel: state.session.intensityLabel,
       selectedDemo: state.session.selectedDemo,
+      previewDemoIndex: state.session.previewDemoIndex,
       librarySelectedDemo: state.session.librarySelectedDemo,
       completed: state.session.completed,
       preRpe: state.session.preRpe,
@@ -4025,6 +4133,7 @@ function restoreState() {
     state.session.postRpeDraft = clampRpe(state.session.postRpeDraft ?? state.session.postRpe);
     state.session.rpeDirty = Boolean(state.session.rpeDirty);
     state.session.rpeStatus = state.session.rpeStatus || "Enter values and submit them.";
+    state.session.previewDemoIndex = Number(state.session.previewDemoIndex ?? state.session.selectedDemo ?? 0);
     state.session.librarySelectedDemo = Number(state.session.librarySelectedDemo || 0);
     state.session.exerciseReps = Number(state.session.exerciseReps || 0);
     state.session.exerciseHoldSeconds = Number(state.session.exerciseHoldSeconds || 0);
