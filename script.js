@@ -89,6 +89,17 @@ function getRewardPeriodKey(date = new Date()) {
 
 const state = {
   activeTab: "session",
+  auth: {
+    mode: "signup",
+    account: null,
+    authenticated: false,
+    stage: "credentials",
+    pendingCode: "",
+    pendingEmail: "",
+    pendingName: "",
+    pendingPassword: "",
+    feedback: "Create an account or sign in to unlock Assessment, Session Lab, Clinician, and Rewards.",
+  },
   plan: null,
   rewards: {
     cashback: 0,
@@ -110,6 +121,7 @@ const state = {
     motionScore: 0,
     intensityLabel: "Not started",
     selectedDemo: 0,
+    librarySelectedDemo: 0,
     completed: false,
     preRpe: 4,
     postRpe: 4,
@@ -117,6 +129,10 @@ const state = {
     postRpeDraft: 4,
     rpeDirty: false,
     rpeStatus: "Enter values and submit them.",
+    exerciseReps: 0,
+    exerciseHoldSeconds: 0,
+    exerciseTension: 0,
+    completedExercises: [],
     trackedJoints: 0,
     trackingStatus: "Limb tracking offline",
     trackingQuality: 0,
@@ -528,6 +544,22 @@ const demoCatalog = [
 
 const els = {
   form: document.querySelector("#assessment-form"),
+  authForm: document.querySelector("#auth-form"),
+  authModeButtons: Array.from(document.querySelectorAll("[data-auth-mode]")),
+  authNameField: document.querySelector("#auth-name-field"),
+  authName: document.querySelector("#auth-name"),
+  authEmail: document.querySelector("#auth-email"),
+  authPassword: document.querySelector("#auth-password"),
+  authSubmit: document.querySelector("#auth-submit"),
+  authLogout: document.querySelector("#auth-logout"),
+  authFeedback: document.querySelector("#auth-feedback"),
+  authSessionStatus: document.querySelector("#auth-session-status"),
+  authVerifyPanel: document.querySelector("#auth-verify-panel"),
+  authVerifyCopy: document.querySelector("#auth-verify-copy"),
+  authCode: document.querySelector("#auth-code"),
+  verify2fa: document.querySelector("#verify-2fa"),
+  resend2fa: document.querySelector("#resend-2fa"),
+  authDemoNote: document.querySelector("#auth-demo-note"),
   fatigue: document.querySelector("#fatigue"),
   fatigueValue: document.querySelector("#fatigue-value"),
   confidence: document.querySelector("#confidence"),
@@ -682,8 +714,9 @@ bootstrap();
 
 function bootstrap() {
   restoreState();
-  state.activeTab = "session";
+  state.activeTab = state.auth.authenticated ? (state.activeTab || "session") : "overview";
   bindEvents();
+  renderAuth();
   renderActiveTab();
   renderSelectedCards();
   renderSelectionProgress();
@@ -703,6 +736,7 @@ function bootstrap() {
 function bindEvents() {
   els.tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      if (!requestProtectedAccess(button.dataset.tabTarget)) return;
       state.activeTab = button.dataset.tabTarget;
       renderActiveTab();
       persistState();
@@ -711,6 +745,7 @@ function bindEvents() {
 
   els.tabJumpButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      if (!requestProtectedAccess(button.dataset.tabJump)) return;
       state.activeTab = button.dataset.tabJump;
       renderActiveTab();
       persistState();
@@ -731,6 +766,24 @@ function bindEvents() {
     });
   });
 
+  els.authModeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.auth.mode = button.dataset.authMode || "signup";
+      state.auth.stage = "credentials";
+      state.auth.pendingCode = "";
+      state.auth.feedback = state.auth.mode === "signup"
+        ? "Create an account to unlock the care workflow."
+        : "Sign in and complete 2FA to continue.";
+      renderAuth();
+      persistState();
+    });
+  });
+
+  els.authForm?.addEventListener("submit", handleAuthSubmit);
+  els.verify2fa?.addEventListener("click", verifyTwoFactorCode);
+  els.resend2fa?.addEventListener("click", resendTwoFactorCode);
+  els.authLogout?.addEventListener("click", logoutAccount);
+
   els.form.addEventListener("submit", handleAssessmentSubmit);
   els.startCamera.addEventListener("click", startCamera);
   els.stopCamera.addEventListener("click", stopCamera);
@@ -745,14 +798,7 @@ function bindEvents() {
   els.toggleSession.addEventListener("click", toggleSession);
   els.toggleHold.addEventListener("click", toggleHold);
   els.manualRep.addEventListener("click", () => {
-    state.session.reps += 1;
-    state.session.totalTension += 8;
-    state.session.completed = false;
-    setFeedback("Manual rep logged. Keep the movement slow and repeatable.");
-    renderSession();
-    renderControlStates();
-    renderWorkflow();
-    persistState();
+    registerExerciseRep(1, 8, "Manual rep logged. Keep the movement slow and repeatable.");
   });
   els.completeSession.addEventListener("click", completeSession);
 
@@ -766,10 +812,16 @@ function bindEvents() {
 }
 
 function renderActiveTab() {
+  if (!state.auth.authenticated && state.activeTab !== "overview") {
+    state.activeTab = "overview";
+  }
+
   els.tabButtons.forEach((button) => {
     const active = button.dataset.tabTarget === state.activeTab;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-selected", String(active));
+    const protectedTab = button.dataset.tabTarget !== "overview";
+    button.classList.toggle("is-disabled", protectedTab && !state.auth.authenticated);
   });
 
   els.tabPanels.forEach((panel) => {
@@ -777,6 +829,186 @@ function renderActiveTab() {
   });
 
   refreshRevealElements();
+}
+
+function requestProtectedAccess(target) {
+  if (state.auth.authenticated || target === "overview") return true;
+  state.activeTab = "overview";
+  state.auth.feedback = "Create an account and verify 2FA first to unlock the guided care workflow.";
+  renderAuth();
+  renderActiveTab();
+  return false;
+}
+
+function generateTwoFactorCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function handleAuthSubmit(event) {
+  event.preventDefault();
+
+  const mode = state.auth.mode || "signup";
+  const name = String(els.authName?.value || "").trim();
+  const email = String(els.authEmail?.value || "").trim().toLowerCase();
+  const password = String(els.authPassword?.value || "");
+
+  if (mode === "signup" && !name) {
+    state.auth.feedback = "Enter a full name to create the account.";
+    renderAuth();
+    return;
+  }
+
+  if (!email) {
+    state.auth.feedback = "Enter an email address.";
+    renderAuth();
+    return;
+  }
+
+  if (password.length < 8) {
+    state.auth.feedback = "Use a password with at least 8 characters.";
+    renderAuth();
+    return;
+  }
+
+  if (mode === "signup") {
+    state.auth.pendingName = name;
+    state.auth.pendingEmail = email;
+    state.auth.pendingPassword = password;
+  } else {
+    const account = state.auth.account;
+    if (!account || account.email !== email || account.password !== password) {
+      state.auth.feedback = "Account details not recognized. Create an account first or try the saved credentials.";
+      renderAuth();
+      return;
+    }
+
+    state.auth.pendingName = account.name;
+    state.auth.pendingEmail = account.email;
+    state.auth.pendingPassword = account.password;
+  }
+
+  issueTwoFactorChallenge(mode);
+}
+
+function issueTwoFactorChallenge(mode = state.auth.mode || "signup") {
+  state.auth.stage = "verify";
+  state.auth.pendingCode = generateTwoFactorCode();
+  state.auth.feedback = mode === "signup"
+    ? `Account created for ${state.auth.pendingEmail}. Enter the demo 2FA code to finish setup.`
+    : `2FA challenge sent to ${state.auth.pendingEmail}. Enter the demo code to sign in.`;
+  if (els.authCode) els.authCode.value = "";
+  renderAuth();
+  persistState();
+}
+
+function verifyTwoFactorCode() {
+  const submittedCode = String(els.authCode?.value || "").trim();
+  if (!submittedCode) {
+    state.auth.feedback = "Enter the 6-digit verification code.";
+    renderAuth();
+    return;
+  }
+
+  if (submittedCode !== state.auth.pendingCode) {
+    state.auth.feedback = "That code does not match. Try again or resend a new code.";
+    renderAuth();
+    return;
+  }
+
+  state.auth.account = {
+    name: state.auth.pendingName || "IsoTrack User",
+    email: state.auth.pendingEmail,
+    password: state.auth.pendingPassword,
+    verifiedAt: new Date().toISOString(),
+  };
+  state.auth.authenticated = true;
+  state.auth.stage = "credentials";
+  state.auth.pendingCode = "";
+  state.auth.feedback = `Signed in as ${state.auth.account.name}. Assessment and Session Lab are now unlocked.`;
+  state.activeTab = "assessment";
+  renderAuth();
+  renderActiveTab();
+  persistState();
+}
+
+function resendTwoFactorCode() {
+  if (!state.auth.pendingEmail) {
+    state.auth.feedback = "Enter your account details first.";
+    renderAuth();
+    return;
+  }
+
+  issueTwoFactorChallenge(state.auth.mode || "signin");
+}
+
+function logoutAccount() {
+  state.auth.authenticated = false;
+  state.auth.stage = "credentials";
+  state.auth.pendingCode = "";
+  state.auth.feedback = "Signed out. Sign in again and complete 2FA to continue.";
+  state.activeTab = "overview";
+  renderAuth();
+  renderActiveTab();
+  persistState();
+}
+
+function renderAuth() {
+  const mode = state.auth.mode || "signup";
+  const verifying = state.auth.stage === "verify";
+  const authenticated = Boolean(state.auth.authenticated);
+
+  els.authModeButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.authMode === mode);
+  });
+
+  if (els.authNameField) {
+    els.authNameField.classList.toggle("hidden", mode !== "signup");
+  }
+
+  if (els.authSubmit) {
+    els.authSubmit.textContent = mode === "signup" ? "Create Account" : "Send 2FA Code";
+    els.authSubmit.disabled = verifying;
+  }
+
+  if (els.authLogout) {
+    els.authLogout.hidden = !authenticated;
+  }
+
+  if (els.authFeedback) {
+    els.authFeedback.textContent = state.auth.feedback;
+  }
+
+  if (els.authSessionStatus) {
+    els.authSessionStatus.textContent = authenticated
+      ? `Verified • ${state.auth.account?.email || "Account"}`
+      : verifying
+        ? "2FA pending"
+        : "Signed out";
+  }
+
+  if (els.authVerifyPanel) {
+    els.authVerifyPanel.classList.toggle("hidden", !verifying);
+  }
+
+  if (els.authVerifyCopy) {
+    els.authVerifyCopy.textContent = verifying
+      ? `Enter the 6-digit code for ${state.auth.pendingEmail}.`
+      : "Enter the 6-digit verification code.";
+  }
+
+  if (els.authDemoNote) {
+    els.authDemoNote.textContent = verifying
+      ? `Prototype code: ${state.auth.pendingCode || "------"}`
+      : "Prototype note: verification codes are shown in-app for this demo.";
+  }
+
+  if (els.authName && mode === "signup" && !els.authName.value) {
+    els.authName.value = state.auth.account?.name || "";
+  }
+
+  if (els.authEmail && !els.authEmail.value) {
+    els.authEmail.value = state.auth.account?.email || "";
+  }
 }
 
 function initMotionDesign() {
@@ -992,6 +1224,10 @@ function renderSelectionProgress() {
 
 function handleAssessmentSubmit(event) {
   event.preventDefault();
+  if (!state.auth.authenticated) {
+    requestProtectedAccess("assessment");
+    return;
+  }
   const formData = new FormData(els.form);
   const focus = formData.getAll("focus");
   const patientName = String(formData.get("patientName") || "").trim() || "Jordan Lee";
@@ -1042,6 +1278,7 @@ function handleAssessmentSubmit(event) {
   state.session.holdActive = false;
   state.session.intensityLabel = protectedMode ? "Protected mode" : "Moderate guided mode";
   state.session.selectedDemo = 0;
+  state.session.librarySelectedDemo = 0;
   state.session.completed = false;
   state.session.preRpe = clampRpe(els.preRpe?.value ?? state.session.preRpe);
   state.session.postRpe = clampRpe(els.postRpe?.value ?? state.session.postRpe);
@@ -1049,6 +1286,10 @@ function handleAssessmentSubmit(event) {
   state.session.postRpeDraft = state.session.postRpe;
   state.session.rpeDirty = false;
   state.session.rpeStatus = "Enter values and submit them.";
+  state.session.exerciseReps = 0;
+  state.session.exerciseHoldSeconds = 0;
+  state.session.exerciseTension = 0;
+  state.session.completedExercises = [];
   state.session.calibrated = false;
   state.session.baseline = null;
   state.session.calibrationShots = {
@@ -1151,25 +1392,58 @@ function buildProgramItems() {
   return { main, alt };
 }
 
+function getPerSessionRepTarget(plan = getActivePlan()) {
+  return Math.max(2, Math.ceil((plan.weeklyReps || 24) / Math.max(1, plan.sessionsPerWeek || 3)));
+}
+
+function chooseDemoForFocus(focus, index = 0) {
+  const matches = demoCatalog.filter((item) => item.focus === focus);
+  if (matches.length) return matches[index % matches.length];
+  return demoCatalog[index % demoCatalog.length] || demoCatalog[0];
+}
+
 function buildSessionDemoLibrary() {
-  return demoCatalog.map((item) => ({
-    ...item,
-    description: item.purpose,
-    summary: item.purpose,
-    cue: item.helperTip,
-    setup: `Helpful Tip: ${item.helperTip}`,
-    equipment: "Demo video",
-    videoBrief: item.videoPath,
-    steps: [
-      `Helpful Tip: ${item.helperTip}`,
-      `Purpose: ${item.purpose}`,
-    ],
-    workflowPrompt: `Follow the ${item.title.toLowerCase()} demo and stay within a comfortable range.`,
-    startPrompt: `Demo started. Follow ${item.title.toLowerCase()} and stay controlled.`,
-    typeLabel: `${item.focus} demo`,
-    statusLabel: "MP4 ready",
-    targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
-  }));
+  const plan = getActivePlan();
+  const focuses = (plan.focuses?.length ? plan.focuses : DEFAULT_DEMO_FOCUSES.slice(0, 3)).slice(0, 3);
+  const perSessionRepTarget = getPerSessionRepTarget(plan);
+  const exerciseCount = Math.max(1, focuses.length);
+
+  return focuses.map((focus, index) => {
+    const variant = plan.protectedMode && index === focuses.length - 1 ? "alt" : "main";
+    const prescription = buildProgramItem(focus, variant, plan, `Exercise ${index + 1}`);
+    const videoDemo = chooseDemoForFocus(focus, index);
+    const holdTarget = Math.max(
+      plan.holdSeconds,
+      prescription.movementPattern === "upperHold"
+        ? plan.baseSets * plan.holdSeconds
+        : Math.round(Math.max(plan.holdSeconds, plan.baseSets * plan.holdSeconds * 0.6))
+    );
+    const repTarget = prescription.movementPattern === "lowerLift"
+      ? Math.max(2, Math.ceil(perSessionRepTarget / exerciseCount))
+      : Math.max(2, Math.ceil(perSessionRepTarget / (exerciseCount * 2)));
+
+    return {
+      ...videoDemo,
+      title: prescription.title,
+      description: prescription.description,
+      summary: `${prescription.summary} Prescribed from the assessment plan.`,
+      cue: videoDemo.helperTip || prescription.cue,
+      setup: prescription.setup,
+      equipment: prescription.equipment,
+      videoBrief: videoDemo.videoPath,
+      workflowPrompt: prescription.workflowPrompt,
+      startPrompt: prescription.startPrompt,
+      typeLabel: plan.protectedMode ? "Protected prescription" : "Adaptive prescription",
+      statusLabel: `Exercise ${index + 1} of ${exerciseCount}`,
+      targetLabel: `${repTarget} reps or ${holdTarget}s TUT`,
+      instructionSteps: prescription.steps,
+      purpose: videoDemo.purpose,
+      repTarget,
+      holdTarget,
+      sessionIndex: index,
+      setTargetLabel: `${plan.baseSets} sets x ${plan.holdSeconds} sec`,
+    };
+  });
 }
 
 function getSelectedDemo() {
@@ -1178,6 +1452,85 @@ function getSelectedDemo() {
   const maxIndex = Math.max(0, demos.length - 1);
   state.session.selectedDemo = Math.min(Math.max(0, state.session.selectedDemo || 0), maxIndex);
   return demos[state.session.selectedDemo] || demos[0];
+}
+
+function getSelectedLibraryDemo() {
+  const maxIndex = Math.max(0, demoCatalog.length - 1);
+  state.session.librarySelectedDemo = Math.min(Math.max(0, state.session.librarySelectedDemo || 0), maxIndex);
+  return demoCatalog[state.session.librarySelectedDemo] || demoCatalog[0];
+}
+
+function isCurrentExerciseComplete(selectedDemo = getSelectedDemo()) {
+  if (!selectedDemo) return false;
+  return state.session.completedExercises.includes(selectedDemo.sessionIndex);
+}
+
+function isCurrentExerciseTargetMet(selectedDemo = getSelectedDemo()) {
+  if (!selectedDemo) return false;
+  return state.session.exerciseReps >= selectedDemo.repTarget
+    || state.session.exerciseHoldSeconds >= selectedDemo.holdTarget;
+}
+
+function isPrescribedSessionComplete(demos = buildSessionDemoLibrary()) {
+  return demos.length > 0 && state.session.completedExercises.length >= demos.length;
+}
+
+function resetCurrentExerciseProgress() {
+  state.session.exerciseReps = 0;
+  state.session.exerciseHoldSeconds = 0;
+  state.session.exerciseTension = 0;
+  resetExerciseHoldTracking();
+}
+
+function getCurrentExerciseProgressLabel(selectedDemo = getSelectedDemo()) {
+  if (!selectedDemo) return "No prescribed exercise selected.";
+  if (isCurrentExerciseComplete(selectedDemo)) return "Complete. Move on when ready.";
+  return `${state.session.exerciseReps}/${selectedDemo.repTarget} reps • ${state.session.exerciseHoldSeconds}/${selectedDemo.holdTarget}s TUT`;
+}
+
+function advancePrescribedExercise() {
+  const demos = buildSessionDemoLibrary();
+  const current = getSelectedDemo();
+  if (!current) return;
+
+  if (!state.session.completedExercises.includes(current.sessionIndex)) {
+    state.session.completedExercises = [...state.session.completedExercises, current.sessionIndex].sort((a, b) => a - b);
+  }
+
+  state.session.running = false;
+  state.session.holdActive = false;
+  state.session.demoActive = false;
+  demoHoldStartedAt = 0;
+  els.toggleSession.textContent = "Start Session";
+
+  const nextIndex = current.sessionIndex + 1;
+  if (nextIndex < demos.length) {
+    state.session.selectedDemo = nextIndex;
+    state.session.demoCompleted = false;
+    state.session.demoProgress = 0;
+    state.session.exerciseMatchState = "idle";
+    state.session.exerciseMatchScore = 0;
+    resetCurrentExerciseProgress();
+    setFeedback(`${current.title} complete. Run the next prescribed demo: ${demos[nextIndex].title}.`);
+  } else {
+    state.session.demoCompleted = true;
+    state.session.demoProgress = 100;
+    state.session.exerciseMatchState = "matched";
+    state.session.exerciseMatchScore = 1;
+    setFeedback("Prescribed session complete. Submit post-session RPE and finish the session.");
+  }
+
+  renderSessionDemos();
+  renderSession();
+  renderControlStates();
+  renderWorkflow();
+  persistState();
+}
+
+function checkCurrentExerciseCompletion() {
+  if (!state.session.running || isPrescribedSessionComplete()) return;
+  if (!isCurrentExerciseTargetMet()) return;
+  advancePrescribedExercise();
 }
 
 function renderPlan() {
@@ -1212,9 +1565,12 @@ function renderPlan() {
 function renderSessionDemos() {
   const demos = buildSessionDemoLibrary();
   const planLabel = state.plan ? `${state.plan.patientName}'s session lab` : "Session lab";
+  const completedCount = state.session.completedExercises.length;
 
   els.sessionPlanTitle.textContent = planLabel;
-  els.sessionPlanNote.textContent = "Current demo";
+  els.sessionPlanNote.textContent = isPrescribedSessionComplete(demos)
+    ? "Prescribed session complete"
+    : `Exercise ${Math.min((state.session.selectedDemo || 0) + 1, Math.max(1, demos.length))} of ${Math.max(1, demos.length)} • ${completedCount} done`;
 
   const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, demos.length - 1));
   state.session.selectedDemo = Math.max(0, selectedIndex);
@@ -1232,8 +1588,18 @@ function renderSessionDemos() {
     els.selectedDemoVariant.textContent = selected.typeLabel;
     els.selectedDemoTarget.textContent = selected.targetLabel;
     els.selectedDemoSetup.textContent = `Helpful Tip: ${selected.cue}`;
-    els.selectedDemoScript.textContent = `Video file: ${selected.videoBrief}`;
-    els.selectedDemoSteps.innerHTML = selected.steps
+    els.selectedDemoScript.textContent = `Plan target: ${selected.setTargetLabel}. Demo file: ${selected.videoBrief}`;
+    const progressStatus = isCurrentExerciseComplete(selected)
+      ? "Status: Complete."
+      : `Current progress: ${getCurrentExerciseProgressLabel(selected)}.`;
+    const prescribedSteps = [
+      `Prescribed block ${selected.sessionIndex + 1} of ${demos.length} for ${selected.focus}.`,
+      `Complete ${selected.repTarget} reps or ${selected.holdTarget} seconds of time under tension to clear this exercise.`,
+      progressStatus,
+      ...selected.instructionSteps,
+      `Purpose: ${selected.purpose}`,
+    ];
+    els.selectedDemoSteps.innerHTML = prescribedSteps
       .map((step, index) => `
         <article class="demo-step">
           <span>${String(index + 1).padStart(2, "0")}</span>
@@ -1247,8 +1613,15 @@ function renderSessionDemos() {
 }
 
 function renderAllDemos() {
-  const demos = buildSessionDemoLibrary();
-  const selected = getSelectedDemo();
+  const demos = demoCatalog.map((item) => ({
+    ...item,
+    description: item.purpose,
+    summary: item.purpose,
+    cue: item.helperTip,
+    statusLabel: "MP4 ready",
+    targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
+  }));
+  const selected = getSelectedLibraryDemo();
 
   if (selected) {
     if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
@@ -1271,7 +1644,7 @@ function renderAllDemos() {
   if (!els.allDemoList) return;
   els.allDemoList.innerHTML = demos
     .map((item, index) => `
-      <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+      <article class="demo-card ${index === state.session.librarySelectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
         <div class="demo-card-top">
           <span class="demo-card-kicker">${item.focus}</span>
           <span class="demo-card-status">${item.statusLabel}</span>
@@ -1288,8 +1661,7 @@ function renderAllDemos() {
 
   els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
     card.addEventListener("click", () => {
-      state.session.selectedDemo = Number(card.dataset.demoIndex);
-      renderSessionDemos();
+      state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
       renderAllDemos();
       persistState();
     });
@@ -1930,7 +2302,7 @@ function captureCalibration() {
   }
 
   if (getCalibrationCountdownSeconds() > 0) {
-    setFeedback(`Calibration starts in ${getCalibrationCountdownSeconds()} seconds.`);
+    setFeedback("Wait for the countdown to finish.");
     return;
   }
 
@@ -2010,6 +2382,11 @@ function startDemoWalkthrough() {
 
   if (!state.session.calibrated || !state.session.baseline) {
     setFeedback("Capture calibration before starting the demo.");
+    return;
+  }
+
+  if (isPrescribedSessionComplete()) {
+    setFeedback("The prescribed session is already complete. Finish the session to send the report.");
     return;
   }
 
@@ -2538,14 +2915,31 @@ function updateExerciseHoldTracking(active) {
 
   exerciseMatchCarryMs -= earnedSeconds * 1000;
   state.session.holdSeconds += earnedSeconds;
+  state.session.exerciseHoldSeconds += earnedSeconds;
+  state.session.exerciseTension += earnedSeconds;
   state.session.totalTension += earnedSeconds;
   state.session.completed = false;
+  checkCurrentExerciseCompletion();
   persistState();
 }
 
 function resetExerciseHoldTracking() {
   exerciseMatchStartedAt = 0;
   exerciseMatchCarryMs = 0;
+}
+
+function registerExerciseRep(count = 1, tensionEarned = 0, feedbackMessage = "") {
+  state.session.reps += count;
+  state.session.exerciseReps += count;
+  state.session.totalTension += tensionEarned;
+  state.session.exerciseTension += tensionEarned;
+  state.session.completed = false;
+  if (feedbackMessage) setFeedback(feedbackMessage);
+  checkCurrentExerciseCompletion();
+  renderSession();
+  renderControlStates();
+  renderWorkflow();
+  persistState();
 }
 
 function getSelectedFocus() {
@@ -2775,6 +3169,11 @@ function toggleSession() {
     return;
   }
 
+  if (isPrescribedSessionComplete()) {
+    setFeedback("All prescribed exercises are complete. Submit post-session RPE and finish the session.");
+    return;
+  }
+
   if (!state.session.running) {
     if (state.session.rpeDirty) {
       submitRpe({ feedback: false });
@@ -2853,10 +3252,10 @@ function startMotionAnalysis() {
       if (state.session.running) {
         if (repCooldown > 0) repCooldown -= 1;
 
-        if (state.session.smoothedMotionScore > 28 && repCooldown === 0) {
-          state.session.reps += 1;
-          state.session.totalTension += 6;
-          state.session.completed = false;
+        if (state.session.smoothedMotionScore > 28
+          && repCooldown === 0
+          && (state.session.exerciseMatchState === "matched" || state.session.exerciseMatchState === "close")) {
+          registerExerciseRep(1, 6);
           repCooldown = 14;
         }
 
@@ -2876,6 +3275,11 @@ function startMotionAnalysis() {
 function completeSession() {
   if (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0) {
     setFeedback("Run at least part of a guided session before completing it.");
+    return;
+  }
+
+  if (!isPrescribedSessionComplete()) {
+    setFeedback("Finish each prescribed exercise in Session Lab before ending the session.");
     return;
   }
 
@@ -2911,6 +3315,14 @@ function completeSession() {
   const remainingBalance = Math.max(0, reimbursementTarget - state.rewards.cashback);
   const monthlyRepTarget = getMonthlyRepTarget(activePlan);
   const sessionRepProgress = Math.min(1, state.session.reps / monthlyRepTarget);
+  const selectedDemo = getSelectedDemo();
+  const prescribedDemos = buildSessionDemoLibrary();
+  const completedTitles = prescribedDemos
+    .filter((item) => state.session.completedExercises.includes(item.sessionIndex))
+    .map((item) => item.title);
+  const sessionExerciseLabel = completedTitles.length
+    ? `${completedTitles.length} prescribed exercises`
+    : (selectedDemo?.title || activePlan.focuses[0]);
   const cashbackEarned = Number(Math.min(
     remainingBalance,
     reimbursementTarget * sessionRepProgress
@@ -2923,22 +3335,21 @@ function completeSession() {
     : adherence >= 80
       ? "Ready for clinician review"
       : "Needs another supported session";
-  const selectedDemo = getSelectedDemo();
 
   state.report = {
     adherence,
     fatigueBand: rpeSummary,
     intensity: rpeChange,
     status: careStatus,
-    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension on ${selectedDemo?.title || activePlan.focuses[0]}. User-entered RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
+    text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension across ${sessionExerciseLabel}. User-entered RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
   };
   state.sessionHistory = [
     ...state.sessionHistory,
     {
       id: Date.now(),
       date: new Date().toISOString(),
-      exercise: selectedDemo?.title || activePlan.focuses[0],
-      focus: selectedDemo?.focus || activePlan.focuses[0],
+      exercise: sessionExerciseLabel,
+      focus: activePlan.focuses.join(", "),
       timeUnderTension: state.session.totalTension,
       holdSeconds: state.session.holdSeconds,
       preRpe,
@@ -2999,11 +3410,20 @@ function updateMotionGuidance() {
 }
 
 function renderSession() {
+  const currentExercise = getSelectedDemo();
+  const exerciseProgress = currentExercise
+    ? Math.min(100, Math.round(((state.session.exerciseReps / Math.max(1, currentExercise.repTarget))
+      + (state.session.exerciseHoldSeconds / Math.max(1, currentExercise.holdTarget))) * 50))
+    : 0;
   els.motionBar.style.width = `${state.session.trackingQuality}%`;
   els.motionScore.textContent = `${state.session.trackingQuality}%`;
-  els.demoProgress.textContent = `${state.session.demoProgress}%`;
-  els.repCount.textContent = String(state.session.reps);
-  els.holdTime.textContent = formatTime(state.session.holdSeconds);
+  els.demoProgress.textContent = `${state.session.demoActive ? state.session.demoProgress : exerciseProgress}%`;
+  els.repCount.textContent = currentExercise
+    ? `${state.session.exerciseReps}/${currentExercise.repTarget}`
+    : String(state.session.reps);
+  els.holdTime.textContent = currentExercise
+    ? `${formatTime(state.session.exerciseHoldSeconds)} / ${formatTime(currentExercise.holdTarget)}`
+    : formatTime(state.session.holdSeconds);
   els.tutTotal.textContent = `${state.session.totalTension} sec`;
   els.trackingState.textContent = state.session.trackingStatus;
   els.trackedJoints.textContent = `${state.session.trackedJoints} points`;
@@ -3028,11 +3448,13 @@ function renderControlStates() {
   els.stopCamera.disabled = !state.session.cameraReady;
   els.captureCalibration.disabled = !state.session.cameraReady || state.session.calibrated || getCalibrationCountdownSeconds() > 0;
   els.resetCalibration.disabled = !state.session.cameraReady && !hasSavedCalibration();
-  els.startDemo.disabled = !state.session.cameraReady || !state.session.calibrated;
-  els.toggleSession.disabled = !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted;
+  els.startDemo.disabled = !state.session.cameraReady || !state.session.calibrated || isPrescribedSessionComplete();
+  els.toggleSession.disabled = !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted || isPrescribedSessionComplete();
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
-  els.completeSession.disabled = state.session.completed || (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0);
+  els.completeSession.disabled = state.session.completed
+    || !isPrescribedSessionComplete()
+    || (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0);
   if (els.submitRpe) {
     els.submitRpe.disabled = !state.session.rpeDirty;
   }
@@ -3105,11 +3527,11 @@ function renderCalibration() {
         ? calibrationHoldStartedAt
           ? "Capturing"
           : stepCountdown > 0
-            ? `Starts in ${stepCountdown}s`
+            ? "Get ready"
             : assessment?.matched
               ? "Hold steady"
               : assessment?.shortHint || "Get ready"
-        : `Wait ${stepDelaySeconds}s`;
+        : "Queued";
   });
 }
 
@@ -3151,13 +3573,13 @@ function renderWorkflow() {
       ? calibrationHoldStartedAt
         ? `${currentStep.title}. Hold still to save.`
         : stepCountdown > 0
-          ? `${currentStep.title} begins in ${stepCountdown}.`
+          ? `${currentStep.title}. Watch the countdown.`
           : assessment?.matched
             ? `${currentStep.title}. Hold steady to auto-save.`
             : `${currentStep.title}. ${getCalibrationSummary(currentStep.key)}`
       : "Capture the remaining steps.";
     els.workflowCheckPrimary.textContent = stepCountdown > 0
-      ? `Starts in ${stepCountdown}s`
+      ? "Countdown active"
       : calibrationHoldStartedAt
         ? "Hold still"
         : assessment?.matched
@@ -3180,27 +3602,40 @@ function renderWorkflow() {
     els.workflowCopy.textContent = state.session.demoActive
       ? demoStateCopy
       : selectedDemo
-        ? `Start the ${selectedDemo.title} demo.`
+        ? `Start the prescribed ${selectedDemo.title} demo.`
         : "Start the guided demo.";
-    els.workflowCheckPrimary.textContent = selectedDemo ? `${selectedDemo.focus} focus` : "Calibration done";
+    els.workflowCheckPrimary.textContent = selectedDemo ? `Exercise ${(selectedDemo.sessionIndex || 0) + 1} of ${buildSessionDemoLibrary().length}` : "Calibration done";
     els.workflowCheckSecondary.textContent = state.session.demoActive
       ? `${matchState === "matched" ? "Locked" : matchState === "close" ? "Close" : "Adjust"} • Demo ${state.session.demoProgress}%`
-      : "Start demo";
+      : "Run prescribed demo";
   } else if (!state.session.running) {
-    els.workflowTitle.textContent = "Ready To Work";
-    els.workflowCopy.textContent = "Calibration and demo are complete.";
-    els.workflowCheckPrimary.textContent = "Calibration done";
-    els.workflowCheckSecondary.textContent = "Demo done";
+    const selectedDemo = getSelectedDemo();
+    if (isPrescribedSessionComplete()) {
+      els.workflowTitle.textContent = "Session Done";
+      els.workflowCopy.textContent = "All prescribed exercises are complete. Submit post-session RPE and finish.";
+      els.workflowCheckPrimary.textContent = "Plan complete";
+      els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
+    } else {
+      els.workflowTitle.textContent = "Ready To Work";
+      els.workflowCopy.textContent = selectedDemo
+        ? `Complete the prescribed target for ${selectedDemo.title}.`
+        : "Calibration and demo are complete.";
+      els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "Calibration done";
+      els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
+    }
   } else {
     const matchState = state.session.exerciseMatchState;
+    const selectedDemo = getSelectedDemo();
     els.workflowTitle.textContent = "Working";
     els.workflowCopy.textContent = matchState === "matched"
       ? "Good match. Time under tension is counting."
       : matchState === "close"
         ? "Close enough. Stay with the figure to keep TUT counting."
         : "Move back toward the figure before the hold continues.";
-    els.workflowCheckPrimary.textContent = matchState === "matched" ? "TUT live" : matchState === "close" ? "Almost there" : "Re-match figure";
-    els.workflowCheckSecondary.textContent = "Work active";
+    els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "TUT live";
+    els.workflowCheckSecondary.textContent = selectedDemo
+      ? `Target ${selectedDemo.repTarget} reps or ${selectedDemo.holdTarget}s`
+      : "Work active";
   }
 
   updateWorkflowCheck(els.workflowCheckPrimary, /ready|complete|live|locked/i.test(els.workflowCheckPrimary.textContent));
@@ -3474,6 +3909,7 @@ function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
 function persistState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     activeTab: state.activeTab,
+    auth: state.auth,
     plan: state.plan,
     rewards: state.rewards,
     report: state.report,
@@ -3489,6 +3925,7 @@ function persistState() {
       motionScore: state.session.motionScore,
       intensityLabel: state.session.intensityLabel,
       selectedDemo: state.session.selectedDemo,
+      librarySelectedDemo: state.session.librarySelectedDemo,
       completed: state.session.completed,
       preRpe: state.session.preRpe,
       postRpe: state.session.postRpe,
@@ -3496,6 +3933,10 @@ function persistState() {
       postRpeDraft: state.session.postRpeDraft,
       rpeDirty: state.session.rpeDirty,
       rpeStatus: state.session.rpeStatus,
+      exerciseReps: state.session.exerciseReps,
+      exerciseHoldSeconds: state.session.exerciseHoldSeconds,
+      exerciseTension: state.session.exerciseTension,
+      completedExercises: state.session.completedExercises,
       trackedJoints: state.session.trackedJoints,
       trackingStatus: state.session.trackingStatus,
       trackingQuality: state.session.trackingQuality,
@@ -3519,9 +3960,18 @@ function restoreState() {
   try {
     const parsed = JSON.parse(raw);
     Object.assign(state, parsed);
+    Object.assign(state.auth, parsed.auth || {});
     Object.assign(state.session, parsed.session || {});
     state.reportView = parsed.reportView || "daily";
     state.sessionHistory = Array.isArray(parsed.sessionHistory) ? parsed.sessionHistory : [];
+    state.auth.mode = state.auth.mode || "signup";
+    state.auth.stage = state.auth.stage || "credentials";
+    state.auth.authenticated = Boolean(state.auth.authenticated);
+    state.auth.feedback = state.auth.feedback || "Create an account or sign in to unlock Assessment, Session Lab, Clinician, and Rewards.";
+    state.auth.pendingCode = state.auth.pendingCode || "";
+    state.auth.pendingEmail = state.auth.pendingEmail || "";
+    state.auth.pendingName = state.auth.pendingName || "";
+    state.auth.pendingPassword = state.auth.pendingPassword || "";
     state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
     state.session.preRpe = clampRpe(state.session.preRpe);
     state.session.postRpe = clampRpe(state.session.postRpe);
@@ -3529,6 +3979,11 @@ function restoreState() {
     state.session.postRpeDraft = clampRpe(state.session.postRpeDraft ?? state.session.postRpe);
     state.session.rpeDirty = Boolean(state.session.rpeDirty);
     state.session.rpeStatus = state.session.rpeStatus || "Enter values and submit them.";
+    state.session.librarySelectedDemo = Number(state.session.librarySelectedDemo || 0);
+    state.session.exerciseReps = Number(state.session.exerciseReps || 0);
+    state.session.exerciseHoldSeconds = Number(state.session.exerciseHoldSeconds || 0);
+    state.session.exerciseTension = Number(state.session.exerciseTension || 0);
+    state.session.completedExercises = Array.isArray(state.session.completedExercises) ? state.session.completedExercises : [];
     ensureRewardPeriod();
     state.session.exerciseMatchState = "idle";
     state.session.exerciseMatchScore = 0;
