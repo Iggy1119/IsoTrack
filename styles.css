@@ -1841,19 +1841,23 @@ h3 {
 /* ===== OVERVIEW PAGE UPGRADE ===== */
 
 .overview-grid--hero {
-  grid-template-columns: 1.15fr 0.85fr;
-  align-items: stretch;
+  grid-template-columns: 1.28fr 0.72fr;
+  align-items: start;
+  gap: 1.5rem;
 }
 
 .overview-story--main {
   padding: 1.8rem;
 }
+.flow-panel {
+  margin-top: 2.2rem;
+}
 
 .benefit-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.1fr 1fr 0.95fr;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1.6rem;
 }
 
 .benefit-pill {
@@ -1906,8 +1910,8 @@ h3 {
 }
 
 .feature-card--featured {
-  min-height: 11rem;
-  padding: 1.8rem;
+  min-height: 13rem;
+  padding: 2rem;
 }
 
 .feature-grid--secondary {
@@ -1917,21 +1921,29 @@ h3 {
 }
 
 .feature-grid--secondary .feature-card {
-  min-height: 10rem;
+  min-height: 8.8rem;
+  padding: 1.25rem;
+}
+.feature-grid--secondary .feature-card:nth-child(2) {
+  transform: translateY(1rem);
 }
 
+.feature-grid--secondary .feature-card:nth-child(3) {
+  transform: translateY(2rem);
+}
 .overview-story h2 {
-  max-width: 13ch;
-  margin-bottom: 0.9rem;
+  max-width: 11ch;
+  margin-bottom: 1rem;
 }
 
 .overview-story p {
-  max-width: 52ch;
+  max-width: 46ch;
 }
 
 .feature-card--featured h3 {
-  font-size: clamp(2rem, 3vw, 2.6rem);
-  max-width: 14ch;
+  font-size: clamp(2.25rem, 3.6vw, 3rem);
+  max-width: 12ch;
+  line-height: 0.92;
 }
 
 .feature-card--featured p {
@@ -1964,7 +1976,14 @@ h3 {
   .session-side {
     grid-template-columns: 1fr;
   }
+  .flow-panel {
+    margin-top: 0;
+  }
 
+  .feature-grid--secondary .feature-card:nth-child(2),
+  .feature-grid--secondary .feature-card:nth-child(3) {
+    transform: none;
+  }
   .calibration-stage-list,
   .demo-grid,
   .metric-stack {
