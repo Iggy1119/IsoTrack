@@ -773,7 +773,6 @@ function bootstrap() {
 function bindEvents() {
   els.tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      if (!requestProtectedAccess(button.dataset.tabTarget)) return;
       state.activeTab = button.dataset.tabTarget;
       renderActiveTab();
       persistState();
@@ -782,7 +781,6 @@ function bindEvents() {
 
   els.tabJumpButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      if (!requestProtectedAccess(button.dataset.tabJump)) return;
       state.activeTab = button.dataset.tabJump;
       renderActiveTab();
       persistState();
@@ -868,16 +866,11 @@ function bindEvents() {
 }
 
 function renderActiveTab() {
-  if (!state.auth.authenticated && state.activeTab !== "overview") {
-    state.activeTab = "overview";
-  }
-
   els.tabButtons.forEach((button) => {
     const active = button.dataset.tabTarget === state.activeTab;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-selected", String(active));
-    const protectedTab = button.dataset.tabTarget !== "overview";
-    button.classList.toggle("is-disabled", protectedTab && !state.auth.authenticated);
+    button.classList.remove("is-disabled");
   });
 
   els.tabPanels.forEach((panel) => {
