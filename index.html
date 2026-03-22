@@ -640,19 +640,36 @@
         </section>
 
         <section class="tab-panel" data-tab-panel="demos">
-          <div class="panel">
-            <div class="panel-head">
-              <div>
-                <p class="eyebrow">Demo library</p>
-                <h2>All exercise demos</h2>
+          <div class="report-grid demo-library-panel-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Demo library</p>
+                  <h2 id="library-demo-title">All exercise demos</h2>
+                </div>
+                <span class="status-pill muted-pill" id="library-demo-status">MP4 library</span>
               </div>
-              <span class="status-pill muted-pill">Embedded MP4 library</span>
+              <div class="demo-player-shell demo-player-shell-large">
+                <video id="library-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
+              </div>
+              <p class="panel-label">Embedded MP4 + explanation</p>
+              <p class="demo-detail-copy" id="library-demo-copy">Select any demo card to preview the matching MP4, helper tip, and purpose.</p>
+              <div class="demo-detail-meta" aria-label="Library demo metadata">
+                <span id="library-demo-focus">Demo focus</span>
+                <span id="library-demo-target">Exercise demo</span>
+                <span id="library-demo-file">MP4 file</span>
+              </div>
+              <p class="demo-detail-copy" id="library-demo-tip">Helpful Tip: --</p>
+              <p class="demo-detail-copy" id="library-demo-purpose">Purpose: --</p>
             </div>
-            <div class="demo-library-head">
-              <p class="panel-label">All demos</p>
-              <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder with the full explanation shown directly on each card.</p>
+
+            <div class="panel">
+              <div class="demo-library-head">
+                <p class="panel-label">All demos</p>
+                <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder. The embedded player and explanation panel on the left stay active for the selected demo.</p>
+              </div>
+              <div class="demo-grid" id="all-demo-list"></div>
             </div>
-            <div class="demo-library-list" id="all-demo-list"></div>
           </div>
         </section>
 

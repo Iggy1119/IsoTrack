@@ -542,39 +542,6 @@ const demoCatalog = [
   },
 ];
 
-const DEMO_LIBRARY_GROUPS = [
-  {
-    focus: "Ankles",
-    title: "Ankle And Foot Control",
-    summary: "These demos focus on ankle mobility, foot control, and lower-leg stability that supports safer walking and balance.",
-  },
-  {
-    focus: "Shoulders",
-    title: "Shoulder And Upper-Body Isometrics",
-    summary: "These demos build shoulder positioning, arm stability, and upper-body strength through guided isometric holds.",
-  },
-  {
-    focus: "Grip",
-    title: "Grip And Forearm Strength",
-    summary: "These demos support hand strength and forearm endurance for everyday grasping and distal control.",
-  },
-  {
-    focus: "Core",
-    title: "Core Control And Spine Mobility",
-    summary: "These demos improve trunk stability and spinal movement quality for steadier posture and body control.",
-  },
-  {
-    focus: "Hips",
-    title: "Hip And Posterior Chain Support",
-    summary: "These demos target glutes, hamstrings, and unilateral balance to support gait and lower-body stability.",
-  },
-  {
-    focus: "Quadriceps",
-    title: "Quadriceps Endurance",
-    summary: "These demos build knee-supporting leg endurance for standing and staying mobile longer.",
-  },
-];
-
 const els = {
   form: document.querySelector("#assessment-form"),
   authForm: document.querySelector("#auth-form"),
@@ -1818,45 +1785,52 @@ function renderAllDemos() {
     targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
   }));
 
-  if (!els.allDemoList) return;
-  const sections = DEMO_LIBRARY_GROUPS
-    .map((group) => {
-      const groupItems = demos.filter((item) => item.focus === group.focus);
-      if (!groupItems.length) return "";
+  const selected = getSelectedLibraryDemo();
 
-      return `
-        <section class="demo-library-group">
-          <div class="demo-library-group-head">
-            <p class="panel-label">${group.title}</p>
-            <p class="demo-library-copy">${group.summary}</p>
-          </div>
-          <div class="demo-library-group-grid">
-            ${groupItems.map((item) => `
-              <article class="demo-library-card">
-                <div class="demo-card-top">
-                  <span class="demo-card-kicker">${item.focus}</span>
-                  <span class="demo-card-status">${item.statusLabel}</span>
-                </div>
-                <strong>${item.title}</strong>
-                <div class="demo-player-shell demo-library-player-shell">
-                  <video class="demo-player" controls playsinline preload="metadata" src="${item.videoPath || ""}"></video>
-                </div>
-                <p class="demo-detail-copy">${item.summary}</p>
-                <div class="demo-card-tags">
-                  <span class="demo-chip">${item.targetLabel}</span>
-                  <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
-                </div>
-                <p class="demo-detail-copy"><strong>Helpful Tip:</strong> ${item.cue}</p>
-                <p class="demo-detail-copy"><strong>Purpose:</strong> ${item.summary}</p>
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    })
+  if (selected) {
+    if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
+    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = selected.statusLabel;
+    if (els.libraryDemoPlayer) {
+      els.libraryDemoPlayer.src = selected.videoPath || "";
+      els.libraryDemoPlayer.poster = "";
+      els.libraryDemoPlayer.load();
+    }
+    if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
+    if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
+    if (els.libraryDemoTarget) els.libraryDemoTarget.textContent = selected.targetLabel;
+    if (els.libraryDemoFile) {
+      const fileName = String(selected.videoPath || "").split("/").pop() || "MP4 file";
+      els.libraryDemoFile.textContent = fileName;
+    }
+    if (els.libraryDemoTip) els.libraryDemoTip.textContent = `Helpful Tip: ${selected.cue}`;
+    if (els.libraryDemoPurpose) els.libraryDemoPurpose.textContent = `Purpose: ${selected.summary}`;
+  }
+
+  if (!els.allDemoList) return;
+  els.allDemoList.innerHTML = demos
+    .map((item, index) => `
+      <article class="demo-card ${index === state.session.librarySelectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+        <div class="demo-card-top">
+          <span class="demo-card-kicker">${item.focus}</span>
+          <span class="demo-card-status">${item.statusLabel}</span>
+        </div>
+        <strong>${item.title}</strong>
+        <p>${item.summary}</p>
+        <div class="demo-card-tags">
+          <span class="demo-chip">${item.targetLabel}</span>
+          <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+        </div>
+      </article>
+    `)
     .join("");
 
-  els.allDemoList.innerHTML = sections;
+  els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
+      renderAllDemos();
+      persistState();
+    });
+  });
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
