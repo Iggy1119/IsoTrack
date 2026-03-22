@@ -1000,6 +1000,23 @@ function startCamera() {
   openCameraPermissionModal();
 }
 
+function resetCalibrationSequenceForCameraStart() {
+  state.session.calibrated = false;
+  state.session.baseline = null;
+  state.session.calibrationShots = {
+    neutral: null,
+    arms: null,
+    knee: null,
+  };
+  state.session.currentCalibrationStep = 0;
+  state.session.demoActive = false;
+  state.session.demoCompleted = false;
+  state.session.demoProgress = 0;
+  demoHoldStartedAt = 0;
+  resetAutoCalibrationTracking();
+  updateCalibrationButtonLabel();
+}
+
 async function requestCameraAccess() {
   if (!navigator.mediaDevices?.getUserMedia) {
     setFeedback("Camera access is unavailable in this browser.");
@@ -1025,9 +1042,9 @@ async function requestCameraAccess() {
 
     els.camera.srcObject = mediaStream;
     await els.camera.play();
+    resetCalibrationSequenceForCameraStart();
     state.session.cameraReady = true;
     await ensurePoseTracking();
-    resetAutoCalibrationTracking();
     scheduleCalibrationStepDelay();
     setFeedback("Camera ready. Neutral calibration begins in 10 seconds.");
     renderSession();
