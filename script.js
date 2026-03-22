@@ -1319,24 +1319,38 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
     x: shoulderCenterX + halfShoulderWidth,
     y: targetY,
   };
-  const leftUpperArmLength = Math.max(0.08, distance(baseline.leftShoulder, baseline.leftElbow) * scale);
-  const rightUpperArmLength = Math.max(0.08, distance(baseline.rightShoulder, baseline.rightElbow) * scale);
-  const leftForearmLength = Math.max(0.08, distance(baseline.leftElbow, baseline.leftWrist) * scale);
-  const rightForearmLength = Math.max(0.08, distance(baseline.rightElbow, baseline.rightWrist) * scale);
+  const compactUpperArmLength = Math.max(0.045, liveShoulderWidth * 0.26);
+  const compactForearmLength = Math.max(0.045, liveShoulderWidth * 0.24);
+  const leftUpperArmLength = Math.min(
+    Math.max(0.07, distance(baseline.leftShoulder, baseline.leftElbow) * scale),
+    compactUpperArmLength
+  );
+  const rightUpperArmLength = Math.min(
+    Math.max(0.07, distance(baseline.rightShoulder, baseline.rightElbow) * scale),
+    compactUpperArmLength
+  );
+  const leftForearmLength = Math.min(
+    Math.max(0.07, distance(baseline.leftElbow, baseline.leftWrist) * scale),
+    compactForearmLength
+  );
+  const rightForearmLength = Math.min(
+    Math.max(0.07, distance(baseline.rightElbow, baseline.rightWrist) * scale),
+    compactForearmLength
+  );
   const leftElbow = {
-    x: Math.max(0.14, leftShoulder.x - leftUpperArmLength),
+    x: Math.max(0.2, leftShoulder.x - leftUpperArmLength),
     y: targetY,
   };
   const rightElbow = {
-    x: Math.min(0.86, rightShoulder.x + rightUpperArmLength),
+    x: Math.min(0.8, rightShoulder.x + rightUpperArmLength),
     y: targetY,
   };
   const leftWrist = {
-    x: Math.max(0.14, leftElbow.x - leftForearmLength),
+    x: Math.max(0.18, leftElbow.x - leftForearmLength),
     y: targetY,
   };
   const rightWrist = {
-    x: Math.min(0.86, rightElbow.x + rightForearmLength),
+    x: Math.min(0.82, rightElbow.x + rightForearmLength),
     y: targetY,
   };
 
