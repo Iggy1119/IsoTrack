@@ -122,36 +122,211 @@ const state = {
   },
 };
 
+const DEFAULT_DEMO_FOCUSES = ["Shoulders", "Core", "Hips", "Quadriceps", "Ankles", "Grip"];
 const exerciseLibrary = {
   Shoulders: {
-    main: "Supported shoulder flexion hold",
-    alt: "Supine towel-assisted shoulder reach",
-    cue: "Keep shoulders low and movement narrow.",
+    main: {
+      title: "Supported shoulder flexion hold",
+      summary: "Assisted reach to a comfortable shoulder-height hold.",
+      cue: "Keep shoulders low and stop before the motion feels strained.",
+      setup: "Sit or stand tall with light chair or wall support and elbows soft.",
+      equipment: "Chair or wall support",
+      videoBrief: "Open with the start posture, show one controlled lift and hold, then explain the stop cue for fatigue or shoulder hiking.",
+      steps: [
+        "Frame the full upper body and show the neutral start position.",
+        "Lift both arms to the chosen height and pause for a calm two-count.",
+        "Lower slowly and explain when to stop or reduce the range.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Raise both arms into the supported hold shown in the demo.",
+      startPrompt: "Demo started. Match the supported shoulder hold and stay steady.",
+    },
+    alt: {
+      title: "Towel-assisted shoulder reach",
+      summary: "Short-range shoulder reach using assistance to reduce effort.",
+      cue: "Let the towel help the lift instead of forcing extra height.",
+      setup: "Stay seated, hold a towel with both hands, and keep ribs stacked over hips.",
+      equipment: "Chair and towel",
+      videoBrief: "Show the towel grip, the shortened range, and how the assist keeps the movement smooth on low-energy days.",
+      steps: [
+        "Show the towel grip and how far apart the hands should be.",
+        "Lift only to the comfortable range and keep the neck relaxed.",
+        "Finish by reminding the viewer that a shorter range still counts.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Lift into the towel-assisted reach and hold the comfortable range.",
+      startPrompt: "Demo started. Follow the assisted reach and pause in the easiest strong position.",
+    },
   },
   Core: {
-    main: "Seated trunk brace with breath pacing",
-    alt: "Short-interval diaphragmatic bracing",
-    cue: "Exhale into the brace instead of pushing harder.",
+    main: {
+      title: "Seated reach-and-brace hold",
+      summary: "Gentle forward reach paired with paced breathing and trunk control.",
+      cue: "Exhale into the reach and keep the ribcage quiet.",
+      setup: "Sit near the front of the chair with both feet grounded and chest lifted.",
+      equipment: "Chair",
+      videoBrief: "Record a front view that shows posture, inhale before the reach, and the slower return to the chair-backed start.",
+      steps: [
+        "Show both feet planted and the tall seated posture before moving.",
+        "Reach forward with both hands while breathing out through the hold.",
+        "Return slowly and remind the viewer to reset between reps.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Reach forward gently while keeping the brace soft and steady.",
+      startPrompt: "Demo started. Match the reach-and-brace hold and keep the breath calm.",
+    },
+    alt: {
+      title: "Breath-paced forward press",
+      summary: "Shorter-range core engagement with a smaller supported reach.",
+      cue: "Match the reach to the breath instead of pushing farther.",
+      setup: "Sit tall with forearms parallel and only a small distance between hands and chest.",
+      equipment: "Chair",
+      videoBrief: "Use a shorter clip that focuses on the breathing rhythm, the smaller reach, and the recovery pause between efforts.",
+      steps: [
+        "Start with hands close to the chest and shoulders relaxed.",
+        "Press forward a small amount during one slow exhale.",
+        "Pause to show the recovery breath before the next repetition.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Press forward into the smaller reach and hold for one slow breath.",
+      startPrompt: "Demo started. Follow the smaller forward press and stay relaxed through the exhale.",
+    },
   },
   Hips: {
-    main: "Sit-to-stand eccentric lowering",
-    alt: "Supported seated hip march",
-    cue: "Control the lowering phase and avoid collapse.",
+    main: {
+      title: "Supported seated hip march",
+      summary: "Single-leg march with posture support and controlled lowering.",
+      cue: "Lift only as high as you can lower with control.",
+      setup: "Sit tall with hands resting lightly on the chair edges for balance.",
+      equipment: "Chair",
+      videoBrief: "Show one knee lift from the front, hold briefly at the top, and explain the slow lowering pattern.",
+      steps: [
+        "Center the pelvis and show both feet flat before the lift.",
+        "Lift one knee with a short pause while staying upright.",
+        "Lower with control and explain how small range is still acceptable.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Lift one knee into the seated march position and hold.",
+      startPrompt: "Demo started. Match the seated hip march and control the lift.",
+    },
+    alt: {
+      title: "Sit-to-stand weight shift hold",
+      summary: "Partial rise or forward shift used to practice hip loading without full standing effort.",
+      cue: "Let the hips move first and keep the shift small.",
+      setup: "Scoot forward on the chair and keep hands ready on the seat or armrests.",
+      equipment: "Chair or armrests",
+      videoBrief: "Film the forward shift, pause at the strongest supported point, and explain that a partial rise is enough for the demo.",
+      steps: [
+        "Show the foot placement and slight forward lean from the chair.",
+        "Shift weight into the feet and pause at the supported high point.",
+        "Return gently and explain how to reduce the range if needed.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Shift forward or lift slightly into the supported hip hold.",
+      startPrompt: "Demo started. Follow the hip weight shift and pause at the supported top point.",
+    },
   },
   Quadriceps: {
-    main: "Wall-supported mini squat hold",
-    alt: "Long-arc quad extension from chair",
-    cue: "Aim for smooth tempo over deep range.",
+    main: {
+      title: "Long-arc quad extension",
+      summary: "Seated knee extension with a clear pause at the top.",
+      cue: "Prioritize a clean stop at the top over a bigger range.",
+      setup: "Sit tall with one foot planted and the working leg ready to extend.",
+      equipment: "Chair",
+      videoBrief: "Capture the side or front view of the knee extending, the brief hold, and the soft return to the floor.",
+      steps: [
+        "Show the grounded leg and steady seated posture first.",
+        "Extend one knee to the comfortable height and pause for control.",
+        "Lower slowly and mention that shaking is a cue to shorten the range.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Lift and extend one leg into the top quad position and hold.",
+      startPrompt: "Demo started. Match the leg extension hold and stay smooth.",
+    },
+    alt: {
+      title: "Wall-supported mini squat hold",
+      summary: "Short squat or chair-hover hold with external support.",
+      cue: "Aim for a stable hover instead of a deeper bend.",
+      setup: "Stand near a wall or counter with feet under hips and hands ready for support.",
+      equipment: "Wall or counter support",
+      videoBrief: "Show the stance, the small bend into the hover, and the steady return without dropping quickly.",
+      steps: [
+        "Set the feet under the hips and show where the support hand goes.",
+        "Bend slightly into the hover and pause while the chest stays lifted.",
+        "Rise slowly and explain how to shorten the bend on low-energy days.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Move into the small supported squat hold and stay tall.",
+      startPrompt: "Demo started. Follow the mini squat hold and keep the range small.",
+    },
   },
   Ankles: {
-    main: "Counter-supported calf raise pulse",
-    alt: "Ankle dorsiflexion band activation",
-    cue: "Use support and keep weight shifts small.",
+    main: {
+      title: "Counter-supported calf raise pulse",
+      summary: "Small heel lift with support for balance and ankle control.",
+      cue: "Think up-and-soft instead of pushing hard into the floor.",
+      setup: "Stand at a counter or sturdy surface with even weight through both feet.",
+      equipment: "Counter or sturdy support",
+      videoBrief: "Show the hands on support, the gentle heel lift, and the slow return so the ankle motion reads clearly on camera.",
+      steps: [
+        "Frame both ankles and show the light grip on the support surface.",
+        "Lift the heels a small amount and pause without rocking forward.",
+        "Lower quietly and explain that the pulse should stay narrow.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Lift the heels into the supported calf raise and hold the top softly.",
+      startPrompt: "Demo started. Match the calf raise pulse and keep the weight shifts small.",
+    },
+    alt: {
+      title: "Seated ankle dorsiflexion set",
+      summary: "Toe lift from the chair to rehearse ankle control with less whole-body load.",
+      cue: "Lift from the ankle without pulling the hips back.",
+      setup: "Sit tall with heels grounded and knees comfortable under the chair.",
+      equipment: "Chair",
+      videoBrief: "Record a close front view that shows the toes lifting, the brief pause, and the reset between repetitions.",
+      steps: [
+        "Show the seated setup with heels planted under the knees.",
+        "Lift the forefoot or toes and pause without leaning backward.",
+        "Lower slowly and remind the viewer that the movement should stay small.",
+      ],
+      movementPattern: "lowerLift",
+      workflowPrompt: "Lift the toes into the dorsiflexion hold and stay centered.",
+      startPrompt: "Demo started. Follow the ankle lift and keep the movement precise.",
+    },
   },
   Grip: {
-    main: "Therapy putty squeeze intervals",
-    alt: "Towel grip isometric set",
-    cue: "Relax between squeezes to manage fatigue.",
+    main: {
+      title: "Reach-and-squeeze hold",
+      summary: "Light forward reach with a towel squeeze to pair posture and hand work.",
+      cue: "Keep the squeeze light enough that the shoulders stay relaxed.",
+      setup: "Sit tall holding a folded towel with elbows soft and hands shoulder-width apart.",
+      equipment: "Chair and towel",
+      videoBrief: "Show the towel grip, the light forward reach, and explain that the squeeze should never drive shoulder tension.",
+      steps: [
+        "Show the towel folded in the hands with elbows slightly bent.",
+        "Reach forward a short distance and add a gentle squeeze at the pause.",
+        "Return to the chest and explain how to relax fully between efforts.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Reach forward into the light squeeze hold and keep the shoulders quiet.",
+      startPrompt: "Demo started. Match the reach-and-squeeze hold and stay easy through the neck and shoulders.",
+    },
+    alt: {
+      title: "Supported towel isometric set",
+      summary: "Short-interval squeeze with the elbows supported close to the body.",
+      cue: "Let the hands work while the rest of the body stays quiet.",
+      setup: "Sit with elbows tucked near the ribs and forearms supported if needed.",
+      equipment: "Chair, towel, optional arm support",
+      videoBrief: "Use a closer shot that shows elbow support, the smaller squeeze, and the short recovery after each hold.",
+      steps: [
+        "Position the elbows near the ribs and show any forearm support being used.",
+        "Squeeze the towel lightly for one calm hold without shrugging.",
+        "Release fully and explain that the reset is part of the rep.",
+      ],
+      movementPattern: "upperHold",
+      workflowPrompt: "Press into the supported squeeze hold and stay relaxed through the shoulders.",
+      startPrompt: "Demo started. Follow the supported squeeze hold and keep the effort light.",
+    },
   },
 };
 
@@ -208,6 +383,13 @@ const els = {
   sessionFeedback: document.querySelector("#session-feedback"),
   selectedDemoTitle: document.querySelector("#selected-demo-title"),
   selectedDemoCopy: document.querySelector("#selected-demo-copy"),
+  selectedDemoVideoStatus: document.querySelector("#selected-demo-video-status"),
+  selectedDemoFocus: document.querySelector("#selected-demo-focus"),
+  selectedDemoVariant: document.querySelector("#selected-demo-variant"),
+  selectedDemoTarget: document.querySelector("#selected-demo-target"),
+  selectedDemoSetup: document.querySelector("#selected-demo-setup"),
+  selectedDemoScript: document.querySelector("#selected-demo-script"),
+  selectedDemoSteps: document.querySelector("#selected-demo-steps"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
@@ -218,6 +400,8 @@ const els = {
   workflowStepCalibration: document.querySelector("#step-calibration"),
   workflowStepDemo: document.querySelector("#step-demo"),
   workflowStepSession: document.querySelector("#step-session"),
+  cameraPrimaryControls: document.querySelector("#camera-primary-controls"),
+  cameraSecondaryControls: document.querySelector("#camera-secondary-controls"),
   calibrationCountdown: document.querySelector("#calibration-countdown"),
   calibrationCount: document.querySelector("#calibration-count"),
   calibrationProgressBar: document.querySelector("#calibration-progress-bar"),
@@ -264,6 +448,7 @@ const MOTION_CONFIRMATION_FRAMES = 18;
 const AUTO_CALIBRATION_READY_FRAMES = 8;
 const AUTO_CALIBRATION_HOLD_MS = 1200;
 const CALIBRATION_HOLD_GRACE_MS = 240;
+const ARM_CALIBRATION_TARGET_SCALE = 0.82;
 const FIRST_CALIBRATION_HOLD_MS = 2200;
 const FIRST_CALIBRATION_STEP_DELAY_MS = 10000;
 const FOLLOWUP_CALIBRATION_STEP_DELAY_MS = 3000;
@@ -596,42 +781,96 @@ function handleAssessmentSubmit(event) {
   persistState();
 }
 
-function buildProgramItems() {
-  const defaultPlan = {
-    focuses: ["Shoulders", "Core"],
-    baseSets: 2,
-    holdSeconds: 18,
+function getDefaultPlan() {
+  return {
+    patientName: "Jordan Lee",
+    diagnosis: "Duchenne muscular dystrophy",
     weeklyReps: 24,
-    sessionsPerWeek: 3,
     energy: "variable",
     protectedMode: true,
+    cadence: "24 reps/week | 3 sessions",
+    sessionsPerWeek: 3,
+    holdSeconds: 18,
+    baseSets: 2,
+    rewardRate: 0.18,
+    programValue: DEFAULT_PROGRAM_VALUE,
+    reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
+    focuses: ["Shoulders", "Core", "Hips"],
   };
+}
 
-  const plan = state.plan || defaultPlan;
-  const weeklyReps = plan.weeklyReps || 24;
+function getActivePlan() {
+  return state.plan || getDefaultPlan();
+}
+
+function buildProgramItem(focus, variant, plan, sessionLabel = "") {
+  const library = exerciseLibrary[focus] || exerciseLibrary.Core;
+  const exercise = library[variant];
+  const setCount = variant === "main" ? plan.baseSets : Math.max(1, plan.baseSets - 1);
+  const holdSeconds = variant === "main" ? plan.holdSeconds : Math.max(8, plan.holdSeconds - 8);
+
+  return {
+    focus,
+    title: variant === "main" && sessionLabel ? `${sessionLabel}: ${exercise.title}` : exercise.title,
+    description: variant === "main"
+      ? `${setCount} sets, ${holdSeconds} sec holds, ${plan.weeklyReps} reps per week, adapted for a ${plan.energy} energy profile.`
+      : `Use on low-energy days. ${setCount} sets with ${holdSeconds} sec holds and a smaller movement range.`,
+    cue: exercise.cue,
+    summary: exercise.summary,
+    setup: exercise.setup,
+    equipment: exercise.equipment,
+    videoBrief: exercise.videoBrief,
+    steps: exercise.steps,
+    movementPattern: exercise.movementPattern,
+    workflowPrompt: exercise.workflowPrompt,
+    startPrompt: exercise.startPrompt,
+    typeLabel: variant === "main" ? "Primary demo" : "Low-energy option",
+    statusLabel: "MP4 pending",
+    targetLabel: `${setCount} sets x ${holdSeconds} sec`,
+  };
+}
+
+function buildProgramItems() {
+  const plan = getActivePlan();
   const sessionNames = ["Calibrate", "Train", "Report"];
 
   const main = plan.focuses.map((focus, index) => {
-    const library = exerciseLibrary[focus] || exerciseLibrary.Core;
-    return {
-      focus,
-      title: `${sessionNames[index % sessionNames.length]}: ${library.main}`,
-      description: `${plan.baseSets} sets, ${plan.holdSeconds} sec holds, ${weeklyReps} reps per week, adapted for a ${plan.energy} energy profile.`,
-      cue: library.cue,
-    };
+    return buildProgramItem(focus, "main", plan, sessionNames[index % sessionNames.length]);
   });
 
   const alt = plan.focuses.map((focus) => {
-    const library = exerciseLibrary[focus] || exerciseLibrary.Core;
-    return {
-      focus,
-      title: library.alt,
-      description: `Use on low-energy days. Reduce one set and shorten holds to ${Math.max(8, plan.holdSeconds - 8)} sec.`,
-      cue: "Keep the same pattern with less total volume.",
-    };
+    return buildProgramItem(focus, "alt", plan);
   });
 
   return { main, alt };
+}
+
+function buildSessionDemoLibrary() {
+  const plan = getActivePlan();
+  const focusSeed = [...new Set([...(plan.focuses || []), ...DEFAULT_DEMO_FOCUSES])].slice(0, 3);
+
+  return focusSeed.flatMap((focus) => {
+    const primary = buildProgramItem(focus, "main", plan);
+    const alternate = buildProgramItem(focus, "alt", plan);
+    return [
+      {
+        ...primary,
+        description: `${primary.summary} ${primary.targetLabel}.`,
+      },
+      {
+        ...alternate,
+        description: `${alternate.summary} ${alternate.targetLabel}.`,
+      },
+    ];
+  });
+}
+
+function getSelectedDemo() {
+  const demos = buildSessionDemoLibrary();
+  if (!demos.length) return null;
+  const maxIndex = Math.max(0, demos.length - 1);
+  state.session.selectedDemo = Math.min(Math.max(0, state.session.selectedDemo || 0), maxIndex);
+  return demos[state.session.selectedDemo] || demos[0];
 }
 
 function renderPlan() {
@@ -664,28 +903,49 @@ function renderPlan() {
 }
 
 function renderSessionDemos() {
-  const { main, alt } = buildProgramItems();
+  const demos = buildSessionDemoLibrary();
   const planLabel = state.plan ? `${state.plan.patientName}'s session lab` : "Session lab";
 
   els.sessionPlanTitle.textContent = planLabel;
-  els.sessionPlanNote.textContent = state.plan ? "Recommended drills" : "Defaults";
+  els.sessionPlanNote.textContent = state.plan ? "Instruction demos" : "Demo defaults";
 
-  const merged = [...main, ...alt.slice(0, 2)].slice(0, 3);
-  const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, merged.length - 1));
+  const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, demos.length - 1));
   state.session.selectedDemo = Math.max(0, selectedIndex);
 
-  const selected = merged[state.session.selectedDemo];
+  const selected = demos[state.session.selectedDemo];
   if (selected) {
     els.selectedDemoTitle.textContent = selected.title;
-    els.selectedDemoCopy.textContent = `${selected.description} ${selected.cue}`;
+    els.selectedDemoCopy.textContent = `${selected.summary} ${selected.cue}`;
+    els.selectedDemoVideoStatus.textContent = selected.statusLabel;
+    els.selectedDemoFocus.textContent = `${selected.focus} focus`;
+    els.selectedDemoVariant.textContent = selected.typeLabel;
+    els.selectedDemoTarget.textContent = selected.targetLabel;
+    els.selectedDemoSetup.textContent = `Setup: ${selected.setup} Equipment: ${selected.equipment}.`;
+    els.selectedDemoScript.textContent = `Recording brief: ${selected.videoBrief}`;
+    els.selectedDemoSteps.innerHTML = selected.steps
+      .map((step, index) => `
+        <article class="demo-step">
+          <span>${String(index + 1).padStart(2, "0")}</span>
+          <p>${step}</p>
+        </article>
+      `)
+      .join("");
   }
 
-  els.recommendedDemoList.innerHTML = merged
+  els.recommendedDemoList.innerHTML = demos
     .map((item, index) => `
       <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+        <div class="demo-card-top">
+          <span class="demo-card-kicker">${item.typeLabel}</span>
+          <span class="demo-card-status">${item.statusLabel}</span>
+        </div>
         <strong>${index + 1}. ${item.title}</strong>
         <p>${item.description}</p>
-        <span>${item.cue}</span>
+        <div class="demo-card-tags">
+          <span class="demo-chip">${item.focus}</span>
+          <span class="demo-chip">${item.targetLabel}</span>
+          <span class="demo-chip">${item.equipment}</span>
+        </div>
       </article>
     `)
     .join("");
@@ -1039,7 +1299,7 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
   const liveShoulderWidth = liveLeftShoulder && liveRightShoulder
     ? Math.max(0.08, distance(liveLeftShoulder, liveRightShoulder))
     : baselineShoulderWidth;
-  const scale = Math.min(1.18, Math.max(0.9, liveShoulderWidth / baselineShoulderWidth));
+  const scale = ARM_CALIBRATION_TARGET_SCALE * Math.min(1.14, Math.max(0.88, liveShoulderWidth / baselineShoulderWidth));
   const shoulderCenterX = liveLeftShoulder && liveRightShoulder
     ? average(liveLeftShoulder.x, liveRightShoulder.x)
     : average(baseline.leftShoulder.x, baseline.rightShoulder.x);
@@ -1049,7 +1309,7 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
   const hipCenterY = liveLeftHip && liveRightHip
     ? average(liveLeftHip.y, liveRightHip.y)
     : average(baseline.leftHip.y, baseline.rightHip.y);
-  const targetY = Math.min(shoulderY, hipCenterY - 0.14);
+  const targetY = Math.min(shoulderY + 0.012, hipCenterY - 0.14);
   const halfShoulderWidth = liveShoulderWidth / 2;
   const leftShoulder = {
     x: shoulderCenterX - halfShoulderWidth,
@@ -1064,19 +1324,19 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
   const leftForearmLength = Math.max(0.08, distance(baseline.leftElbow, baseline.leftWrist) * scale);
   const rightForearmLength = Math.max(0.08, distance(baseline.rightElbow, baseline.rightWrist) * scale);
   const leftElbow = {
-    x: Math.max(0.08, leftShoulder.x - leftUpperArmLength),
+    x: Math.max(0.1, leftShoulder.x - leftUpperArmLength),
     y: targetY,
   };
   const rightElbow = {
-    x: Math.min(0.92, rightShoulder.x + rightUpperArmLength),
+    x: Math.min(0.9, rightShoulder.x + rightUpperArmLength),
     y: targetY,
   };
   const leftWrist = {
-    x: Math.max(0.04, leftElbow.x - leftForearmLength),
+    x: Math.max(0.08, leftElbow.x - leftForearmLength),
     y: targetY,
   };
   const rightWrist = {
-    x: Math.min(0.96, rightElbow.x + rightForearmLength),
+    x: Math.min(0.92, rightElbow.x + rightForearmLength),
     y: targetY,
   };
 
@@ -1236,7 +1496,7 @@ function startDemoWalkthrough() {
   state.session.demoCompleted = false;
   state.session.demoProgress = 0;
   demoHoldStartedAt = 0;
-  setFeedback("Demo started. Follow the selected drill and hold the target position.");
+  setFeedback(getSelectedDemo()?.startPrompt || "Demo started. Follow the selected drill and hold the target position.");
   renderWorkflow();
   renderControlStates();
   persistState();
@@ -1420,6 +1680,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const rightElbow = landmarks[14];
     const leftWrist = landmarks[15];
     const rightWrist = landmarks[16];
+    const baselineLeftWrist = baseline.leftWrist;
+    const baselineRightWrist = baseline.rightWrist;
 
     if (![leftShoulder, rightShoulder, leftElbow, rightElbow, leftWrist, rightWrist].every((point) => hasReliablePoint(point, 0.35))) {
       return {
@@ -1434,35 +1696,39 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const targetY = average(leftShoulder.y, rightShoulder.y);
     const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.09;
     const elbowsNearHeight =
-      Math.abs(leftElbow.y - targetY) < 0.17 &&
-      Math.abs(rightElbow.y - targetY) < 0.17;
+      Math.abs(leftElbow.y - targetY) < 0.19 &&
+      Math.abs(rightElbow.y - targetY) < 0.19;
     const wristsNearHeight =
-      Math.abs(leftWrist.y - targetY) < 0.19 &&
-      Math.abs(rightWrist.y - targetY) < 0.19;
+      Math.abs(leftWrist.y - targetY) < 0.2 &&
+      Math.abs(rightWrist.y - targetY) < 0.2;
+    const wristsRaisedFromBaseline =
+      (baselineLeftWrist.y - leftWrist.y) > 0.12 &&
+      (baselineRightWrist.y - rightWrist.y) > 0.12;
+    const wristHeightReady = wristsNearHeight || wristsRaisedFromBaseline;
     const wristsWideEnough =
-      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.58 &&
-      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.58;
+      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.44 &&
+      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.44;
     const elbowsWideEnough =
-      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.2 &&
-      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.2;
+      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.14 &&
+      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.14;
     const elbowsBetweenShouldersAndWrists =
-      leftElbow.x < leftShoulder.x - shoulderWidth * 0.04 && leftElbow.x > leftWrist.x + shoulderWidth * 0.04 &&
-      rightElbow.x > rightShoulder.x + shoulderWidth * 0.04 && rightElbow.x < rightWrist.x - shoulderWidth * 0.04;
-    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.16;
-    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.16;
+      leftElbow.x < leftShoulder.x - shoulderWidth * 0.02 && leftElbow.x > leftWrist.x + shoulderWidth * 0.02 &&
+      rightElbow.x > rightShoulder.x + shoulderWidth * 0.02 && rightElbow.x < rightWrist.x - shoulderWidth * 0.02;
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.18;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.18;
     const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
     const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 138 && rightArmAngle > 138;
+    const armsMostlyStraight = leftArmAngle > 128 && rightArmAngle > 128;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: wristsNearHeight,
-        hint: "Lift both wrists to shoulder height.",
+        pass: wristHeightReady,
+        hint: "Lift both hands out from your sides a bit more.",
         shortHint: "Lift wrists",
       },
       {
         pass: wristsWideEnough,
-        hint: "Reach wider through both hands to match the T-shape.",
+        hint: "Open your arms a little wider to match the smaller T-shape.",
         shortHint: "Reach wider",
       },
       {
@@ -1477,7 +1743,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       },
       {
         pass: elbowsNearHeight,
-        hint: "Bring both elbows closer to shoulder height.",
+        hint: "Bring both elbows a touch closer to shoulder height.",
         shortHint: "Lift elbows",
       },
       {
@@ -1500,11 +1766,11 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         hint: "Keep both elbows even.",
         shortHint: "Even elbows",
       },
-    ], 7, "Hold the T-shape to save this step.", "Hold steady");
+    ], 6, "Hold the T-shape to save this step.", "Hold steady");
 
     return {
       ...assessment,
-      matched: assessment.matched && wristsNearHeight && wristsWideEnough,
+      matched: assessment.matched && wristHeightReady && wristsWideEnough,
     };
   }
 
@@ -1611,8 +1877,8 @@ function getCalibrationSummary(stepKey, landmarks = latestPoseLandmarks, baselin
 function updateDemoProgress(landmarks) {
   if (!state.session.demoActive || !state.session.baseline || !landmarks?.length) return;
 
-  const focus = getSelectedFocus();
-  const matched = matchesDemoTarget(focus, landmarks, state.session.baseline);
+  const selectedDemo = getSelectedDemo();
+  const matched = matchesDemoTarget(selectedDemo?.movementPattern || "upperHold", landmarks, state.session.baseline);
 
   if (matched) {
     if (!demoHoldStartedAt) demoHoldStartedAt = performance.now();
@@ -1635,24 +1901,25 @@ function updateDemoProgress(landmarks) {
 }
 
 function getSelectedFocus() {
-  const { main, alt } = buildProgramItems();
-  const merged = [...main, ...alt.slice(0, 2)];
-  return merged[state.session.selectedDemo]?.focus || "Shoulders";
+  return getSelectedDemo()?.focus || "Shoulders";
 }
 
-function matchesDemoTarget(focus, landmarks, baseline) {
-  if (focus === "Hips" || focus === "Quadriceps" || focus === "Ankles") {
-    const leftKneeLift = baseline.leftKnee.y - landmarks[25].y > 0.06;
-    const rightKneeLift = baseline.rightKnee.y - landmarks[26].y > 0.06;
-    return leftKneeLift || rightKneeLift;
+function matchesDemoTarget(movementPattern, landmarks, baseline) {
+  if (movementPattern === "lowerLift") {
+    const leftKneeLift = (baseline.leftKnee?.y ?? 0) - (landmarks[25]?.y ?? 0) > 0.06;
+    const rightKneeLift = (baseline.rightKnee?.y ?? 0) - (landmarks[26]?.y ?? 0) > 0.06;
+    const leftHeelLift = (baseline.leftHeel?.y ?? 0) - (landmarks[29]?.y ?? 0) > 0.024;
+    const rightHeelLift = (baseline.rightHeel?.y ?? 0) - (landmarks[30]?.y ?? 0) > 0.024;
+    return leftKneeLift || rightKneeLift || leftHeelLift || rightHeelLift;
   }
 
   const leftShoulder = landmarks[11];
   const rightShoulder = landmarks[12];
   const leftWrist = landmarks[15];
   const rightWrist = landmarks[16];
+  if (!leftShoulder || !rightShoulder || !leftWrist || !rightWrist) return false;
   const wristsRaised = leftWrist.y < leftShoulder.y + 0.03 && rightWrist.y < rightShoulder.y + 0.03;
-  const wristsAboveBaseline = leftWrist.y < baseline.leftWrist.y - 0.08 && rightWrist.y < baseline.rightWrist.y - 0.08;
+  const wristsAboveBaseline = leftWrist.y < (baseline.leftWrist?.y ?? 1) - 0.08 && rightWrist.y < (baseline.rightWrist?.y ?? 1) - 0.08;
   return wristsRaised && wristsAboveBaseline;
 }
 
@@ -1986,6 +2253,44 @@ function renderControlStates() {
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
   els.completeSession.disabled = state.session.completed || (!state.session.running && state.session.reps === 0 && state.session.totalTension === 0);
+
+  const primaryButtons = [
+    els.startCamera,
+    els.stopCamera,
+    els.startDemo,
+    els.toggleSession,
+    els.completeSession,
+  ];
+  const secondaryButtons = [
+    els.captureCalibration,
+    els.resetCalibration,
+    els.toggleHold,
+    els.manualRep,
+  ];
+  const allButtons = [...primaryButtons, ...secondaryButtons];
+
+  allButtons.forEach((button) => {
+    button.classList.remove("button-primary");
+  });
+
+  primaryButtons.forEach((button) => {
+    button.hidden = button.disabled;
+  });
+  secondaryButtons.forEach((button) => {
+    button.hidden = button.disabled;
+  });
+
+  const emphasizedAction = primaryButtons.find((button) => !button.hidden)
+    || secondaryButtons.find((button) => !button.hidden);
+  emphasizedAction?.classList.add("button-primary");
+
+  if (els.cameraPrimaryControls) {
+    els.cameraPrimaryControls.hidden = primaryButtons.every((button) => button.hidden);
+  }
+
+  if (els.cameraSecondaryControls) {
+    els.cameraSecondaryControls.hidden = secondaryButtons.every((button) => button.hidden);
+  }
 }
 
 function renderCalibration() {
@@ -2084,14 +2389,14 @@ function renderWorkflow() {
       ? "Auto capture running"
       : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
   } else if (!state.session.demoCompleted) {
-    const focus = getSelectedFocus();
-    els.workflowTitle.textContent = state.session.demoActive ? "Demo" : "Finished Calibrating";
+    const selectedDemo = getSelectedDemo();
+    els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Demo") : "Finished Calibrating";
     els.workflowCopy.textContent = state.session.demoActive
-      ? (focus === "Hips" || focus === "Quadriceps" || focus === "Ankles"
-        ? "Lift one knee and hold."
-        : "Raise both arms and hold.")
-      : "Start the guided demo.";
-    els.workflowCheckPrimary.textContent = "Calibration done";
+      ? (selectedDemo?.workflowPrompt || "Match the selected demo hold.")
+      : selectedDemo
+        ? `Start the ${selectedDemo.title} demo.`
+        : "Start the guided demo.";
+    els.workflowCheckPrimary.textContent = selectedDemo ? `${selectedDemo.focus} focus` : "Calibration done";
     els.workflowCheckSecondary.textContent = state.session.demoActive ? `Demo ${state.session.demoProgress}%` : "Start demo";
   } else if (!state.session.running) {
     els.workflowTitle.textContent = "Ready To Work";
