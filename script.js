@@ -542,6 +542,39 @@ const demoCatalog = [
   },
 ];
 
+const DEMO_LIBRARY_GROUPS = [
+  {
+    focus: "Ankles",
+    title: "Ankle And Foot Control",
+    summary: "These demos focus on ankle mobility, foot control, and lower-leg stability that supports safer walking and balance.",
+  },
+  {
+    focus: "Shoulders",
+    title: "Shoulder And Upper-Body Isometrics",
+    summary: "These demos build shoulder positioning, arm stability, and upper-body strength through guided isometric holds.",
+  },
+  {
+    focus: "Grip",
+    title: "Grip And Forearm Strength",
+    summary: "These demos support hand strength and forearm endurance for everyday grasping and distal control.",
+  },
+  {
+    focus: "Core",
+    title: "Core Control And Spine Mobility",
+    summary: "These demos improve trunk stability and spinal movement quality for steadier posture and body control.",
+  },
+  {
+    focus: "Hips",
+    title: "Hip And Posterior Chain Support",
+    summary: "These demos target glutes, hamstrings, and unilateral balance to support gait and lower-body stability.",
+  },
+  {
+    focus: "Quadriceps",
+    title: "Quadriceps Endurance",
+    summary: "These demos build knee-supporting leg endurance for standing and staying mobile longer.",
+  },
+];
+
 const els = {
   form: document.querySelector("#assessment-form"),
   authForm: document.querySelector("#auth-form"),
@@ -1786,27 +1819,44 @@ function renderAllDemos() {
   }));
 
   if (!els.allDemoList) return;
-  els.allDemoList.innerHTML = demos
-    .map((item) => `
-      <article class="demo-library-card">
-        <div class="demo-card-top">
-          <span class="demo-card-kicker">${item.focus}</span>
-          <span class="demo-card-status">${item.statusLabel}</span>
-        </div>
-        <strong>${item.title}</strong>
-        <div class="demo-player-shell demo-library-player-shell">
-          <video class="demo-player" controls playsinline preload="metadata" src="${item.videoPath || ""}"></video>
-        </div>
-        <p class="demo-detail-copy">${item.summary}</p>
-        <div class="demo-card-tags">
-          <span class="demo-chip">${item.targetLabel}</span>
-          <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
-        </div>
-        <p class="demo-detail-copy"><strong>Helpful Tip:</strong> ${item.cue}</p>
-        <p class="demo-detail-copy"><strong>Purpose:</strong> ${item.summary}</p>
-      </article>
-    `)
+  const sections = DEMO_LIBRARY_GROUPS
+    .map((group) => {
+      const groupItems = demos.filter((item) => item.focus === group.focus);
+      if (!groupItems.length) return "";
+
+      return `
+        <section class="demo-library-group">
+          <div class="demo-library-group-head">
+            <p class="panel-label">${group.title}</p>
+            <p class="demo-library-copy">${group.summary}</p>
+          </div>
+          <div class="demo-library-group-grid">
+            ${groupItems.map((item) => `
+              <article class="demo-library-card">
+                <div class="demo-card-top">
+                  <span class="demo-card-kicker">${item.focus}</span>
+                  <span class="demo-card-status">${item.statusLabel}</span>
+                </div>
+                <strong>${item.title}</strong>
+                <div class="demo-player-shell demo-library-player-shell">
+                  <video class="demo-player" controls playsinline preload="metadata" src="${item.videoPath || ""}"></video>
+                </div>
+                <p class="demo-detail-copy">${item.summary}</p>
+                <div class="demo-card-tags">
+                  <span class="demo-chip">${item.targetLabel}</span>
+                  <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+                </div>
+                <p class="demo-detail-copy"><strong>Helpful Tip:</strong> ${item.cue}</p>
+                <p class="demo-detail-copy"><strong>Purpose:</strong> ${item.summary}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    })
     .join("");
+
+  els.allDemoList.innerHTML = sections;
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
@@ -2010,6 +2060,20 @@ function buildFloorPose(overrides = {}, options = {}) {
     ...options,
   };
 }
+
+const GUIDE_DRIVEN_ISOMETRIC_VARIANTS = new Set([
+  "frontRaise",
+  "curlHold",
+  "lateralRaise",
+  "wallSlide",
+  "doorPull",
+  "internalRotation",
+  "shrug",
+  "kickback",
+  "gripHold",
+  "forearmFlexion",
+  "pecPress",
+]);
 
 function mergePosePoints(base, overrides) {
   const merged = { ...base };
@@ -2233,6 +2297,96 @@ function getDemoPoseTemplate(poseVariant) {
         rightWrist: { x: 138, y: 58 },
       });
   }
+}
+
+function buildExercisePoseGuideFromBaseline(selectedDemo, baseline, landmarks) {
+  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
+  if (!baseline || !GUIDE_DRIVEN_ISOMETRIC_VARIANTS.has(poseVariant)) return null;
+
+  const template = getDemoPoseTemplate(poseVariant)?.points;
+  const reference = buildStandingPose().points;
+  if (!template || !reference || !baseline.leftShoulder || !baseline.rightShoulder || !baseline.leftHip || !baseline.rightHip) {
+    return null;
+  }
+
+  const liveLeftShoulder = landmarks?.[11];
+  const liveRightShoulder = landmarks?.[12];
+  const liveLeftHip = landmarks?.[23];
+  const liveRightHip = landmarks?.[24];
+  const hasLiveUpperAnchor = hasReliablePoint(liveLeftShoulder, 0.28) && hasReliablePoint(liveRightShoulder, 0.28);
+  const hasLiveLowerAnchor = hasReliablePoint(liveLeftHip, 0.24) && hasReliablePoint(liveRightHip, 0.24);
+
+  const baselineShoulderCenter = {
+    x: average(baseline.leftShoulder.x, baseline.rightShoulder.x),
+    y: average(baseline.leftShoulder.y, baseline.rightShoulder.y),
+  };
+  const baselineHipCenter = {
+    x: average(baseline.leftHip.x, baseline.rightHip.x),
+    y: average(baseline.leftHip.y, baseline.rightHip.y),
+  };
+  const currentShoulderCenter = hasLiveUpperAnchor
+    ? { x: average(liveLeftShoulder.x, liveRightShoulder.x), y: average(liveLeftShoulder.y, liveRightShoulder.y) }
+    : baselineShoulderCenter;
+  const currentHipCenter = hasLiveLowerAnchor
+    ? { x: average(liveLeftHip.x, liveRightHip.x), y: average(liveLeftHip.y, liveRightHip.y) }
+    : baselineHipCenter;
+  const offsetX = average(currentShoulderCenter.x - baselineShoulderCenter.x, currentHipCenter.x - baselineHipCenter.x);
+  const offsetY = average(currentShoulderCenter.y - baselineShoulderCenter.y, currentHipCenter.y - baselineHipCenter.y);
+
+  const liveShoulderWidth = hasLiveUpperAnchor
+    ? Math.max(0.09, distance(liveLeftShoulder, liveRightShoulder))
+    : Math.max(0.09, distance(baseline.leftShoulder, baseline.rightShoulder));
+  const baselineTorsoHeight = Math.max(0.12, baselineHipCenter.y - baselineShoulderCenter.y);
+  const liveTorsoHeight = hasLiveLowerAnchor
+    ? Math.max(0.12, currentHipCenter.y - currentShoulderCenter.y)
+    : baselineTorsoHeight;
+  const referenceShoulderWidth = Math.max(1, distance(reference.leftShoulder, reference.rightShoulder));
+  const referenceTorsoHeight = Math.max(1, average(reference.leftHip.y, reference.rightHip.y) - average(reference.leftShoulder.y, reference.rightShoulder.y));
+
+  const points = {};
+  Object.entries(template).forEach(([name, point]) => {
+    const baselinePoint = baseline[name];
+    const referencePoint = reference[name] || point;
+    if (!baselinePoint) return;
+
+    const deltaX = ((point.x - referencePoint.x) / referenceShoulderWidth) * liveShoulderWidth;
+    const deltaY = ((point.y - referencePoint.y) / referenceTorsoHeight) * liveTorsoHeight;
+    points[name] = {
+      x: baselinePoint.x + offsetX + deltaX,
+      y: baselinePoint.y + offsetY + deltaY,
+    };
+  });
+
+  return {
+    points,
+    emphasis: ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
+  };
+}
+
+function getGuideDrivenIsometricPairs(poseVariant, landmarks, guidePoints) {
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftElbow = landmarks[13];
+  const rightElbow = landmarks[14];
+  const leftWrist = landmarks[15];
+  const rightWrist = landmarks[16];
+  const pairs = [];
+
+  if (poseVariant === "shrug") {
+    pairs.push(
+      [leftShoulder, guidePoints?.leftShoulder],
+      [rightShoulder, guidePoints?.rightShoulder]
+    );
+  }
+
+  pairs.push(
+    [leftElbow, guidePoints?.leftElbow],
+    [rightElbow, guidePoints?.rightElbow],
+    [leftWrist, guidePoints?.leftWrist],
+    [rightWrist, guidePoints?.rightWrist]
+  );
+
+  return pairs;
 }
 
 function openCameraPermissionModal() {
@@ -3420,6 +3574,7 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
 
   const movementPattern = selectedDemo?.movementPattern || "upperHold";
   const focus = selectedDemo?.focus || getSelectedFocus();
+  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
   const leftShoulder = landmarks[11];
   const rightShoulder = landmarks[12];
   const leftWrist = landmarks[15];
@@ -3518,6 +3673,29 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
   const wristsNearShoulderLine =
     Math.abs(leftWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24 &&
     Math.abs(rightWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24;
+  const exerciseGuide = buildExercisePoseGuideFromBaseline(selectedDemo, baseline, landmarks)?.points;
+
+  if (exerciseGuide && GUIDE_DRIVEN_ISOMETRIC_VARIANTS.has(poseVariant)) {
+    const guideOffset = getMeanNormalizedGuideOffset(
+      getGuideDrivenIsometricPairs(poseVariant, landmarks, exerciseGuide),
+      shoulderWidth
+    );
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.3;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.3;
+    const symmetryReady = poseVariant === "kickback" || poseVariant === "doorPull" || poseVariant === "internalRotation"
+      ? elbowsMatched || wristsMatched
+      : wristsMatched || elbowsMatched;
+    const close = shouldersLevel && (guideOffset < 0.92 || symmetryReady);
+    const active = shouldersLevel && (guideOffset < 0.68 || (guideOffset < 0.78 && symmetryReady));
+    const score = Math.max(0, Math.min(1, (0.98 - Math.min(guideOffset, 0.98)) / 0.98));
+
+    return {
+      state: active ? "matched" : close ? "close" : "off",
+      score,
+      close,
+      active,
+    };
+  }
 
   if (focus === "Shoulders") {
     const armGuide = buildArmsGuideFromBaseline(baseline, landmarks)?.points;
