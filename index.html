@@ -48,6 +48,7 @@
           <button class="tab-button" type="button" data-tab-target="demos" role="tab" aria-selected="false">Demos</button>
           <button class="tab-button" type="button" data-tab-target="reports" role="tab" aria-selected="false">Clinician</button>
           <button class="tab-button" type="button" data-tab-target="rewards" role="tab" aria-selected="false">Rewards</button>
+          <button class="tab-button" type="button" data-tab-target="about" role="tab" aria-selected="false">About Us</button>
         </div>
       <section class="tab-panel is-active" data-tab-panel="overview">
         <div class="overview-grid overview-grid--hero">
@@ -518,17 +519,25 @@
                   </div>
                   <div class="calibration-countdown hidden" id="calibration-countdown" aria-live="polite">10</div>
                   <div class="camera-overlay">
-                    <div class="video-guide">
-                      <div class="video-guide-meta">
-                        <span class="status-pill" id="camera-status">Offline</span>
-                        <div class="video-guide-stats">
-                          <span id="tracking-state">Tracking off</span>
-                          <span id="tracked-joints">0 points</span>
+                    <div class="camera-overlay-grid">
+                      <div class="video-guide">
+                        <div class="video-guide-meta">
+                          <span class="status-pill" id="camera-status">Offline</span>
+                          <div class="video-guide-stats">
+                            <span id="tracking-state">Tracking off</span>
+                            <span id="tracked-joints">0 points</span>
+                          </div>
                         </div>
+                        <strong id="workflow-title">Start camera</strong>
+                        <p id="session-feedback">Start the camera to begin.</p>
                       </div>
-                      <strong id="workflow-title">Start camera</strong>
-                      <p id="workflow-copy">Stand full-body in frame.</p>
-                      <p id="session-feedback">Start the camera to begin.</p>
+                      <div class="camera-target-card" id="camera-target-card">
+                        <div class="camera-target-head">
+                          <p class="panel-label">Live target</p>
+                          <span class="status-pill muted-pill" id="camera-target-label">Waiting</span>
+                        </div>
+                        <div class="camera-target-figure" id="camera-target-figure" aria-hidden="true"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -643,6 +652,7 @@
               <div class="demo-player-shell demo-player-shell-large">
                 <video id="library-demo-player" class="demo-player" controls playsinline preload="metadata"></video>
               </div>
+              <p class="panel-label">Embedded MP4 + explanation</p>
               <p class="demo-detail-copy" id="library-demo-copy">Select any demo card to preview the matching MP4, helper tip, and purpose.</p>
               <div class="demo-detail-meta" aria-label="Library demo metadata">
                 <span id="library-demo-focus">Demo focus</span>
@@ -656,7 +666,7 @@
             <div class="panel">
               <div class="demo-library-head">
                 <p class="panel-label">All demos</p>
-                <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder.</p>
+                <p class="demo-library-copy">Browse every uploaded demo video from the `assets/Demos` folder. The embedded player and explanation panel on the left stay active for the selected demo.</p>
               </div>
               <div class="demo-grid" id="all-demo-list"></div>
             </div>
@@ -738,8 +748,8 @@
                   <strong id="wallet-streak">0 sessions</strong>
                 </article>
                 <article>
-                  <span>Unlocked tier</span>
-                  <strong id="wallet-tier">Starter</strong>
+                  <span>Monthly plan</span>
+                  <strong id="wallet-tier">$15 / month</strong>
                 </article>
                 <article>
                   <span>Left this month</span>
@@ -754,22 +764,106 @@
             </div>
 
             <div class="panel reward-tier-panel">
-              <p class="eyebrow">Tier ladder</p>
-              <div class="tier-list">
-                <div class="tier-item">
-                  <strong>Starter</strong>
-                  <span>1-2 sessions completed</span>
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Subscription</p>
+                  <h2>Flat $15 per month</h2>
                 </div>
-                <div class="tier-item">
-                  <strong>Recovery Builder</strong>
-                  <span>3-5 sessions completed</span>
+                <span class="status-pill muted-pill" id="wallet-next-unlock">$15 monthly earn-back cap</span>
+              </div>
+              <p class="demo-detail-copy" id="wallet-tier-copy">Complete the month’s prescribed reps to make the subscription back.</p>
+              <div class="tier-progress-shell">
+                <div class="progress-track">
+                  <div class="progress-fill" id="wallet-tier-bar"></div>
                 </div>
-                <div class="tier-item">
-                  <strong>Consistency+</strong>
-                  <span>6+ sessions completed</span>
+                <div class="tier-list tier-list-usable">
+                  <article class="tier-item">
+                    <div class="tier-item-head">
+                      <strong>Monthly fee</strong>
+                      <span>$15 / month</span>
+                    </div>
+                    <p>One subscription price for every user.</p>
+                  </article>
+                  <article class="tier-item">
+                    <div class="tier-item-head">
+                      <strong>Monthly goal</strong>
+                      <span id="wallet-monthly-goal">0 reps</span>
+                    </div>
+                    <p id="wallet-monthly-goal-copy">Finish your prescribed monthly reps to unlock the full earn-back.</p>
+                  </article>
+                  <article class="tier-item">
+                    <div class="tier-item-head">
+                      <strong>Current month</strong>
+                      <span id="wallet-subscription-status">In progress</span>
+                    </div>
+                    <p id="wallet-subscription-summary">Progress resets at the start of each month.</p>
+                  </article>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="about">
+          <div class="overview-grid">
+            <article class="panel">
+              <p class="eyebrow">About IsoTrack</p>
+              <h2>Why we built it.</h2>
+              <p>
+                IsoTrack is a therapeutic exercise prototype designed to make guided home care easier to start,
+                easier to follow, and easier to review. The experience connects assessment, camera guidance,
+                prescribed exercise flow, clinician visibility, and motivation into one continuous workflow.
+              </p>
+              <div class="flow-list flow-list--stacked">
+                <div>
+                  <strong>Assessment-led</strong>
+                  <p>Session Lab now follows the personalized plan instead of generic defaults.</p>
+                </div>
+                <div>
+                  <strong>Supportive at home</strong>
+                  <p>Camera guidance, calibration, demos, and progress feedback reduce uncertainty during sessions.</p>
+                </div>
+                <div>
+                  <strong>Clinician-aware</strong>
+                  <p>Time under tension, user-entered RPE, and session summaries can be reviewed more clearly.</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <p class="eyebrow">Team</p>
+              <h2>MedSprint Group 35</h2>
+              <div class="tier-list tier-list-usable about-team-list">
+                <article class="tier-item">
+                  <div class="tier-item-head">
+                    <strong>Djordje Spasovic</strong>
+                    <span>Team member</span>
+                  </div>
+                  <p>Product and prototype contributor.</p>
+                </article>
+                <article class="tier-item">
+                  <div class="tier-item-head">
+                    <strong>Dong Jin</strong>
+                    <span>Team member</span>
+                  </div>
+                  <p>Product and prototype contributor.</p>
+                </article>
+                <article class="tier-item">
+                  <div class="tier-item-head">
+                    <strong>Ignatius Ho</strong>
+                    <span>Team member</span>
+                  </div>
+                  <p>Product and prototype contributor.</p>
+                </article>
+                <article class="tier-item">
+                  <div class="tier-item-head">
+                    <strong>Hrish Dave</strong>
+                    <span>Team member</span>
+                  </div>
+                  <p>Product and prototype contributor.</p>
+                </article>
+              </div>
+            </article>
           </div>
         </section>
       </section>

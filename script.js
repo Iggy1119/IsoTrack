@@ -47,8 +47,7 @@ const LIMB_VISIBILITY_THRESHOLD = 0.58;
 const LIMB_CAPTURE_THRESHOLD = 6;
 const DEFAULT_PROGRAM_VALUE = 15;
 const DEFAULT_REIMBURSEMENT_SESSIONS = 12;
-const PROTECTED_MONTHLY_BALANCE = 12;
-const STANDARD_MONTHLY_BALANCE = 15;
+const MONTHLY_SUBSCRIPTION_FEE = 15;
 const CALIBRATION_FALLBACK_GUIDE = {
   points: {
     leftShoulder: { x: 0.45, y: 0.33 },
@@ -104,7 +103,7 @@ const state = {
   rewards: {
     cashback: 0,
     streak: 0,
-    tier: "Starter",
+    tier: "Flat $15 plan",
     targetValue: DEFAULT_PROGRAM_VALUE,
     periodKey: getRewardPeriodKey(),
   },
@@ -639,10 +638,12 @@ const els = {
   demoPreviewFigure: document.querySelector("#demo-preview-figure"),
   demoPreviewCopy: document.querySelector("#demo-preview-copy"),
   demoMatchPill: document.querySelector("#demo-match-pill"),
+  cameraTargetCard: document.querySelector("#camera-target-card"),
+  cameraTargetFigure: document.querySelector("#camera-target-figure"),
+  cameraTargetLabel: document.querySelector("#camera-target-label"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
-  workflowCopy: document.querySelector("#workflow-copy"),
   workflowCheckPrimary: document.querySelector("#workflow-check-primary"),
   workflowCheckSecondary: document.querySelector("#workflow-check-secondary"),
   workflowStepCamera: document.querySelector("#step-camera"),
@@ -682,9 +683,10 @@ const els = {
   walletNextUnlock: document.querySelector("#wallet-next-unlock"),
   walletTierCopy: document.querySelector("#wallet-tier-copy"),
   walletTierBar: document.querySelector("#wallet-tier-bar"),
-  tierStarter: document.querySelector("#tier-starter"),
-  tierRecovery: document.querySelector("#tier-recovery"),
-  tierConsistency: document.querySelector("#tier-consistency"),
+  walletMonthlyGoal: document.querySelector("#wallet-monthly-goal"),
+  walletMonthlyGoalCopy: document.querySelector("#wallet-monthly-goal-copy"),
+  walletSubscriptionStatus: document.querySelector("#wallet-subscription-status"),
+  walletSubscriptionSummary: document.querySelector("#wallet-subscription-summary"),
 };
 
 let mediaStream;
@@ -1175,13 +1177,24 @@ function getMonthlyRepTarget(plan) {
   return Math.max(1, weeklyReps * 4);
 }
 
+function getMonthlyRewardRate(plan) {
+  return Number((MONTHLY_SUBSCRIPTION_FEE / getMonthlyRepTarget(plan)).toFixed(3));
+}
+
 function ensureRewardPeriod() {
   const currentPeriodKey = getRewardPeriodKey();
   if (state.rewards.periodKey === currentPeriodKey) return;
 
   state.rewards.periodKey = currentPeriodKey;
   state.rewards.cashback = 0;
-  state.rewards.targetValue = state.plan?.programValue || DEFAULT_PROGRAM_VALUE;
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
+}
+
+function normalizePlanSubscription(plan) {
+  if (!plan) return null;
+  plan.programValue = MONTHLY_SUBSCRIPTION_FEE;
+  plan.rewardRate = getMonthlyRewardRate(plan);
+  return plan;
 }
 
 function getCalibrationStepDelayMs() {
@@ -1295,8 +1308,8 @@ function handleAssessmentSubmit(event) {
   const cadence = `${weeklyReps} reps/week | ${sessionsPerWeek} sessions`;
   const holdSeconds = protectedMode ? 15 : confidence >= 8 ? 30 : 22;
   const baseSets = protectedMode ? 2 : weeklyReps >= 48 ? 4 : 3;
-  const programValue = protectedMode ? PROTECTED_MONTHLY_BALANCE : STANDARD_MONTHLY_BALANCE;
-  const rewardRate = Number((programValue / getMonthlyRepTarget({ weeklyReps })).toFixed(3));
+  const programValue = MONTHLY_SUBSCRIPTION_FEE;
+  const rewardRate = getMonthlyRewardRate({ weeklyReps });
   const reimbursementSessions = sessionsPerWeek * 4;
   const focuses = focus.length ? focus : ["Shoulders", "Core"];
 
@@ -1318,7 +1331,7 @@ function handleAssessmentSubmit(event) {
     focuses,
   };
   state.rewards.cashback = 0;
-  state.rewards.targetValue = programValue;
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.rewards.periodKey = getRewardPeriodKey();
 
   state.report = null;
@@ -1393,15 +1406,15 @@ function getDefaultPlan() {
     sessionsPerWeek: 3,
     holdSeconds: 18,
     baseSets: 2,
-    rewardRate: 0.18,
-    programValue: DEFAULT_PROGRAM_VALUE,
+    rewardRate: getMonthlyRewardRate({ weeklyReps: 24 }),
+    programValue: MONTHLY_SUBSCRIPTION_FEE,
     reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
     focuses: ["Shoulders", "Core", "Hips"],
   };
 }
 
 function getActivePlan() {
-  return state.plan || getDefaultPlan();
+  return normalizePlanSubscription(state.plan || getDefaultPlan());
 }
 
 function buildProgramItem(focus, variant, plan, sessionLabel = "") {
@@ -1609,7 +1622,7 @@ function renderPlan() {
   els.planDiagnosis.textContent = state.plan.diagnosis;
   els.planGoal.textContent = `${weeklyReps} reps / week`;
   els.planCadence.textContent = state.plan.cadence;
-  els.planReward.textContent = `$${state.plan.programValue} monthly balance available`;
+  els.planReward.textContent = `$${MONTHLY_SUBSCRIPTION_FEE} monthly subscription with earn-back tracking`;
   els.planStatus.textContent = state.plan.protectedMode ? "Protected plan active" : "Adaptive plan ready";
   els.careNote.textContent = `${state.plan.patientName} starts with a ${state.plan.protectedMode ? "conservative" : "moderate"} program focused on ${state.plan.focuses.join(", ")} with a weekly target of ${weeklyReps} reps. Prioritize clean movement and stable breathing.`;
 
@@ -1818,16 +1831,28 @@ function renderAllDemos() {
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
-  if (!els.demoPreviewCard || !els.demoPreviewFigure || !els.demoMatchPill || !els.demoPreviewCopy) return;
-
   const matchState = state.session.exerciseMatchState || "idle";
   const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
   const demoLabel = getDemoDisplayLabel(selectedDemo);
-
-  els.demoPreviewCard.dataset.matchState = matchState;
-  els.demoPreviewFigure.innerHTML = buildDemoPreviewFigureMarkup({
+  const figureMarkup = buildDemoPreviewFigureMarkup({
     poseVariant,
   });
+
+  if (els.demoPreviewCard) {
+    els.demoPreviewCard.dataset.matchState = matchState;
+  }
+  if (els.demoPreviewFigure) {
+    els.demoPreviewFigure.innerHTML = figureMarkup;
+  }
+  if (els.cameraTargetCard) {
+    els.cameraTargetCard.dataset.matchState = matchState;
+  }
+  if (els.cameraTargetFigure) {
+    els.cameraTargetFigure.innerHTML = figureMarkup;
+  }
+  if (els.cameraTargetLabel) {
+    els.cameraTargetLabel.textContent = state.session.cameraReady ? "Current pose" : "Waiting";
+  }
 
   const matchLabels = {
     idle: "Waiting",
@@ -1844,8 +1869,12 @@ function renderDemoPreview(selectedDemo = getSelectedDemo()) {
     matched: "Good match. Stay there and hold to keep time under tension counting.",
   };
 
-  els.demoMatchPill.textContent = matchLabels[matchState] || "Waiting";
-  els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
+  if (els.demoMatchPill) {
+    els.demoMatchPill.textContent = matchLabels[matchState] || "Waiting";
+  }
+  if (els.demoPreviewCopy) {
+    els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
+  }
 }
 
 function getDemoDisplayLabel(demo) {
@@ -3763,14 +3792,14 @@ function completeSession() {
     patientName: "Demo User",
     fatigue: 5,
     energy: "variable",
-    rewardRate: 0.18,
-    programValue: DEFAULT_PROGRAM_VALUE,
+    rewardRate: getMonthlyRewardRate({ weeklyReps: 24 }),
+    programValue: MONTHLY_SUBSCRIPTION_FEE,
     reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
     focuses: [getSelectedFocus()],
   };
   const preRpe = clampRpe(state.session.preRpe || 0);
   const postRpe = clampRpe(state.session.postRpe || 0);
-  const reimbursementTarget = activePlan.programValue || DEFAULT_PROGRAM_VALUE;
+  const reimbursementTarget = MONTHLY_SUBSCRIPTION_FEE;
   const remainingBalance = Math.max(0, reimbursementTarget - state.rewards.cashback);
   const monthlyRepTarget = getMonthlyRepTarget(activePlan);
   const sessionRepProgress = Math.min(1, state.session.reps / monthlyRepTarget);
@@ -3823,11 +3852,11 @@ function completeSession() {
     state.rewards.cashback + cashbackEarned
   ).toFixed(2));
   state.rewards.streak += 1;
-  state.rewards.tier = state.rewards.streak >= 6 ? "Consistency+" : state.rewards.streak >= 3 ? "Recovery Builder" : "Starter";
-  state.rewards.targetValue = reimbursementTarget;
+  state.rewards.tier = "Flat $15 plan";
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.session.completed = true;
 
-  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's balance.`);
+  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's $${MONTHLY_SUBSCRIPTION_FEE} subscription.`);
   renderSession();
   renderControlStates();
   renderReport();
@@ -4010,7 +4039,6 @@ function renderWorkflow() {
     updateStepChip(els.workflowStepDemo, false, false);
     updateStepChip(els.workflowStepSession, false, false);
     els.workflowTitle.textContent = "Start With Assessment";
-    els.workflowCopy.textContent = "Open Assessment first to build the prescribed exercise session.";
     els.workflowCheckPrimary.textContent = "Overview -> Assessment";
     els.workflowCheckSecondary.textContent = "Session Lab unlocks after plan creation";
     return;
@@ -4030,7 +4058,6 @@ function renderWorkflow() {
 
   if (!state.session.cameraReady) {
     els.workflowTitle.textContent = "Start Camera";
-    els.workflowCopy.textContent = "Stand full-body in frame.";
     els.workflowCheckPrimary.textContent = `${LIMB_CAPTURE_THRESHOLD}+ points`;
     els.workflowCheckSecondary.textContent = "Calibration pending";
   } else if (!state.session.calibrated) {
@@ -4040,15 +4067,6 @@ function renderWorkflow() {
       ? getCalibrationPoseAssessment(currentStep.key, latestPoseLandmarks, state.session.baseline)
       : null;
     els.workflowTitle.textContent = calibrationHoldStartedAt ? "Calibrating" : "Get Ready";
-    els.workflowCopy.textContent = currentStep
-      ? calibrationHoldStartedAt
-        ? `${currentStep.title}. Hold still to save.`
-        : stepCountdown > 0
-          ? `${currentStep.title}. Watch the countdown.`
-          : assessment?.matched
-            ? `${currentStep.title}. Hold steady to auto-save.`
-            : `${currentStep.title}. ${getCalibrationSummary(currentStep.key)}`
-      : "Capture the remaining steps.";
     els.workflowCheckPrimary.textContent = stepCountdown > 0
       ? "Countdown active"
       : calibrationHoldStartedAt
@@ -4064,17 +4082,7 @@ function renderWorkflow() {
   } else if (!state.session.demoCompleted) {
     const selectedDemo = getSelectedDemo();
     const matchState = state.session.exerciseMatchState;
-    const demoStateCopy = matchState === "matched"
-      ? "On target. Keep holding the figure."
-      : matchState === "close"
-        ? "Close enough. Tighten the shape a touch."
-        : selectedDemo?.workflowPrompt || "Match the selected demo hold.";
     els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Demo") : "Finished Calibrating";
-    els.workflowCopy.textContent = state.session.demoActive
-      ? demoStateCopy
-      : selectedDemo
-        ? `Start the prescribed ${selectedDemo.title} demo.`
-        : "Start the guided demo.";
     els.workflowCheckPrimary.textContent = selectedDemo ? `Exercise ${(selectedDemo.sessionIndex || 0) + 1} of ${buildSessionDemoLibrary().length}` : "Calibration done";
     els.workflowCheckSecondary.textContent = state.session.demoActive
       ? `${matchState === "matched" ? "Locked" : matchState === "close" ? "Close" : "Adjust"} • Demo ${state.session.demoProgress}%`
@@ -4083,14 +4091,10 @@ function renderWorkflow() {
     const selectedDemo = getSelectedDemo();
     if (isPrescribedSessionComplete()) {
       els.workflowTitle.textContent = "Session Done";
-      els.workflowCopy.textContent = "All prescribed exercises are complete. Submit post-session RPE and finish.";
       els.workflowCheckPrimary.textContent = "Plan complete";
       els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
     } else {
       els.workflowTitle.textContent = "Ready To Work";
-      els.workflowCopy.textContent = selectedDemo
-        ? `Complete the prescribed target for ${selectedDemo.title}.`
-        : "Calibration and demo are complete.";
       els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "Calibration done";
       els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
     }
@@ -4098,11 +4102,6 @@ function renderWorkflow() {
     const matchState = state.session.exerciseMatchState;
     const selectedDemo = getSelectedDemo();
     els.workflowTitle.textContent = "Working";
-    els.workflowCopy.textContent = matchState === "matched"
-      ? "Good match. Time under tension is counting."
-      : matchState === "close"
-        ? "Close enough. Stay with the figure to keep TUT counting."
-        : "Move back toward the figure before the hold continues.";
     els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "TUT live";
     els.workflowCheckSecondary.textContent = selectedDemo
       ? `Target ${selectedDemo.repTarget} reps or ${selectedDemo.holdTarget}s`
@@ -4240,53 +4239,50 @@ function buildExerciseHistoryRows(history) {
 
 function renderRewards() {
   ensureRewardPeriod();
-  const targetValue = state.rewards.targetValue || DEFAULT_PROGRAM_VALUE;
+  const activePlan = getActivePlan();
+  const targetValue = MONTHLY_SUBSCRIPTION_FEE;
   const returned = Math.min(targetValue, state.rewards.cashback);
   const remaining = Math.max(0, targetValue - returned);
   const progress = Math.round((returned / targetValue) * 100);
   const sessions = state.rewards.streak;
-  const tierSteps = [
-    { key: "starter", element: els.tierStarter, min: 1, max: 2, title: "Starter" },
-    { key: "recovery", element: els.tierRecovery, min: 3, max: 5, title: "Recovery Builder" },
-    { key: "consistency", element: els.tierConsistency, min: 6, max: Infinity, title: "Consistency+" },
-  ];
-  const ladderProgress = Math.min(100, Math.round((Math.min(sessions, 6) / 6) * 100));
-  const nextTier = sessions < 3
-    ? { title: "Recovery Builder", remaining: Math.max(0, 3 - sessions) }
-    : sessions < 6
-      ? { title: "Consistency+", remaining: Math.max(0, 6 - sessions) }
-      : null;
+  const monthlyRepTarget = getMonthlyRepTarget(activePlan);
+  const rewardRate = getMonthlyRewardRate(activePlan);
 
   els.walletTotal.textContent = `$${returned.toFixed(2)}`;
   els.walletStreak.textContent = `${state.rewards.streak} sessions`;
-  els.walletTier.textContent = state.rewards.tier;
+  els.walletTier.textContent = `$${MONTHLY_SUBSCRIPTION_FEE} / month`;
   els.walletRemaining.textContent = `$${remaining.toFixed(2)}`;
   els.walletProgress.textContent = `${progress}%`;
   if (els.walletTierBar) {
-    els.walletTierBar.style.width = `${ladderProgress}%`;
+    els.walletTierBar.style.width = `${progress}%`;
   }
   if (els.walletNextUnlock) {
-    els.walletNextUnlock.textContent = nextTier
-      ? `${nextTier.remaining} session${nextTier.remaining === 1 ? "" : "s"} to ${nextTier.title}`
-      : "Top tier reached";
+    els.walletNextUnlock.textContent = remaining > 0
+      ? `$${remaining.toFixed(2)} left to earn back`
+      : "Subscription earned back";
   }
   if (els.walletTierCopy) {
-    els.walletTierCopy.textContent = nextTier
-      ? `You are currently in ${state.rewards.tier}. Complete ${nextTier.remaining} more session${nextTier.remaining === 1 ? "" : "s"} to unlock ${nextTier.title}.`
-      : `You are in ${state.rewards.tier}. Keep going to maintain your top-tier momentum.`;
+    els.walletTierCopy.textContent = `One flat subscription for everyone: $${MONTHLY_SUBSCRIPTION_FEE} per month. Finish the month’s prescribed reps to make that back.`;
   }
-  tierSteps.forEach((step) => {
-    if (!step.element) return;
-    const complete = sessions >= step.min;
-    const current = complete && sessions <= step.max;
-    step.element.classList.toggle("is-complete", complete);
-    step.element.classList.toggle("is-current", current);
-  });
+  if (els.walletMonthlyGoal) {
+    els.walletMonthlyGoal.textContent = `${monthlyRepTarget} reps`;
+  }
+  if (els.walletMonthlyGoalCopy) {
+    els.walletMonthlyGoalCopy.textContent = `Each completed rep is worth about $${rewardRate.toFixed(2)} back this month.`;
+  }
+  if (els.walletSubscriptionStatus) {
+    els.walletSubscriptionStatus.textContent = remaining > 0 ? "In progress" : "Earned back";
+  }
+  if (els.walletSubscriptionSummary) {
+    els.walletSubscriptionSummary.textContent = remaining > 0
+      ? `You have earned back $${returned.toFixed(2)} of the $${MONTHLY_SUBSCRIPTION_FEE} monthly fee so far.`
+      : `You have earned back the full $${MONTHLY_SUBSCRIPTION_FEE} subscription for this month.`;
+  }
   els.walletNote.textContent = state.rewards.streak
     ? remaining > 0
-      ? `${state.rewards.streak} sessions completed. ${state.rewards.tier} tier active. Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)}.`
-      : `Monthly balance fully earned back. ${state.rewards.tier} tier active.`
-    : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} balance.`;
+      ? `${state.rewards.streak} sessions completed. Keep going to earn back the full $${targetValue.toFixed(2)} this month.`
+      : `Monthly subscription fully earned back for this month.`
+    : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} subscription cost.`;
 }
 
 function setFeedback(message, force = true) {
@@ -4476,6 +4472,9 @@ function restoreState() {
     state.auth.pendingEmail = state.auth.pendingEmail || "";
     state.auth.pendingName = state.auth.pendingName || "";
     state.auth.pendingPassword = state.auth.pendingPassword || "";
+    normalizePlanSubscription(state.plan);
+    state.rewards.tier = "Flat $15 plan";
+    state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
     state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
     state.session.preRpe = clampRpe(state.session.preRpe);
     state.session.postRpe = clampRpe(state.session.postRpe);
