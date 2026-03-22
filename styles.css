@@ -1745,6 +1745,34 @@ h3 {
   line-height: 1.5;
 }
 
+.demo-library-usage {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 1.1rem;
+}
+
+.demo-library-usage article {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(89, 220, 255, 0.04)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.demo-library-usage strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.demo-library-usage p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .demo-step-list {
   display: grid;
   gap: 0.75rem;

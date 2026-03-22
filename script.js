@@ -370,6 +370,7 @@ const demoCatalog = [
     purpose: "Train ankle mobility and ankle strength during eversion.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "ankleEversion",
     videoPath: "assets/Demos/Ankle Eversion Compress.mp4",
   },
   {
@@ -378,6 +379,7 @@ const demoCatalog = [
     purpose: "Train ankle mobility and ankle strength during inversion.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "ankleInversion",
     videoPath: "assets/Demos/Ankle Inversion Compress.mp4",
   },
   {
@@ -386,6 +388,7 @@ const demoCatalog = [
     purpose: "Train shoulder stability, and contribute to shoulder abduction.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "anteriorDeltoid",
     videoPath: "assets/Demos/Anterior Deltoid Isometric Compress.mp4",
   },
   {
@@ -394,6 +397,7 @@ const demoCatalog = [
     purpose: "Train grip strength and distal forearm muscle endurance.",
     focus: "Grip",
     movementPattern: "upperHold",
+    poseVariant: "ballGrip",
     videoPath: "assets/Demos/Ball Grip Isometric Compress.mp4",
   },
   {
@@ -402,6 +406,7 @@ const demoCatalog = [
     purpose: "Train biceps to assist during pulling exercises and stability of arm.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "bicepCurl",
     videoPath: "assets/Demos/Bicep Isometric Compress.mp4",
   },
   {
@@ -410,6 +415,7 @@ const demoCatalog = [
     purpose: "Train stability during walking to minimize falls.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "calfRaise",
     videoPath: "assets/Demos/Calf Raise Isometric Compress.mp4",
   },
   {
@@ -418,6 +424,7 @@ const demoCatalog = [
     purpose: "Train spinal mobility and reduce back stiffness.",
     focus: "Core",
     movementPattern: "upperHold",
+    poseVariant: "catCow",
     videoPath: "assets/Demos/Cat Cow Lower Back Mobility Compress.mp4",
   },
   {
@@ -426,6 +433,7 @@ const demoCatalog = [
     purpose: "Train latissimus dorsi muscles for upper body stability and pulling strength.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "doorPull",
     videoPath: "assets/Demos/Door Pull Lats Isometric Compress.mp4",
   },
   {
@@ -434,6 +442,7 @@ const demoCatalog = [
     purpose: "Improve the tibialis anterior to minimize foot drop.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "dorsiflexion",
     videoPath: "assets/Demos/Foot Dorsiflexion Compress.mp4",
   },
   {
@@ -442,6 +451,7 @@ const demoCatalog = [
     purpose: "Prevent loss of grip-related strength.",
     focus: "Grip",
     movementPattern: "upperHold",
+    poseVariant: "forearmFlexion",
     videoPath: "assets/Demos/Forearm Flexion Compress.mp4",
   },
   {
@@ -450,6 +460,7 @@ const demoCatalog = [
     purpose: "Improve hip stability, glutes contribute to walking ability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "gluteBridge",
     videoPath: "assets/Demos/Glute Bridge Compress.mp4",
   },
   {
@@ -458,6 +469,7 @@ const demoCatalog = [
     purpose: "Improve knee joint stability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "hamstringPress",
     videoPath: "assets/Demos/Hamstring Isometric Compress.mp4",
   },
   {
@@ -466,6 +478,7 @@ const demoCatalog = [
     purpose: "Improve core strength for stability.",
     focus: "Core",
     movementPattern: "upperHold",
+    poseVariant: "hollowBody",
     videoPath: "assets/Demos/Hollow Body Holds Compress.mp4",
   },
   {
@@ -474,6 +487,7 @@ const demoCatalog = [
     purpose: "Prevent loss of shoulder abduction ability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "lateralDeltoid",
     videoPath: "assets/Demos/Lateral Deltoid Isometric Compress.mp4",
   },
   {
@@ -482,6 +496,7 @@ const demoCatalog = [
     purpose: "Improve pecs for maintaining pushing abilities.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "pecPress",
     videoPath: "assets/Demos/Pecs Isometric Compress.mp4",
   },
   {
@@ -490,6 +505,7 @@ const demoCatalog = [
     purpose: "Improve shoulder joint stability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "internalRotation",
     videoPath: "assets/Demos/Rotator Cuff Internal Rotation Compress.mp4",
   },
   {
@@ -498,6 +514,7 @@ const demoCatalog = [
     purpose: "Prevents loss of grip strength, strengthens traps for neck/shoulder stability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "shrug",
     videoPath: "assets/Demos/Shrug Isometric Compress.mp4",
   },
   {
@@ -506,6 +523,7 @@ const demoCatalog = [
     purpose: "Improve elbow stability, prevent loss of pushing motion ability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "tricepKickback",
     videoPath: "assets/Demos/Tricep Kickback Isometric Compress.mp4",
   },
   {
@@ -514,6 +532,7 @@ const demoCatalog = [
     purpose: "Strengthen Tibialis Anterior to minimize foot drop.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "tibialisWall",
     videoPath: "assets/Demos/Wall Calf Stretch+Tibialis Hold Compress.mp4",
   },
   {
@@ -522,6 +541,7 @@ const demoCatalog = [
     purpose: "Improve quadriceps endurance for staying mobile.",
     focus: "Quadriceps",
     movementPattern: "lowerLift",
+    poseVariant: "wallSit",
     videoPath: "assets/Demos/Wall Sits Quads Compress.mp4",
   },
   {
@@ -530,6 +550,7 @@ const demoCatalog = [
     purpose: "Improve shoulder mobility.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "wallSlide",
     videoPath: "assets/Demos/Wall Slides Compress.mp4",
   },
   {
@@ -538,6 +559,7 @@ const demoCatalog = [
     purpose: "Strengthen unilateral balance and stability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "supportedLunge",
     videoPath: "assets/Demos/Wall Supported Lunge Hold Compress.mp4",
   },
 ];
@@ -1508,7 +1530,7 @@ function buildSessionDemoLibrary() {
       targetLabel: `${repTarget} reps or ${holdTarget}s TUT`,
       instructionSteps: prescription.steps,
       purpose: videoDemo.purpose,
-      poseVariant: getDemoPoseVariant(videoDemo),
+      poseVariant: videoDemo.poseVariant || getDemoPoseVariant(videoDemo),
       repTarget,
       holdTarget,
       sessionIndex: index,
@@ -1785,7 +1807,9 @@ function renderAllDemos() {
     targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
   }));
 
-  const selected = getSelectedLibraryDemo();
+  const selectedIndex = Math.min(Math.max(0, state.session.librarySelectedDemo || 0), Math.max(0, demos.length - 1));
+  state.session.librarySelectedDemo = selectedIndex;
+  const selected = demos[selectedIndex] || demos[0];
 
   if (selected) {
     if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
@@ -1809,7 +1833,7 @@ function renderAllDemos() {
   if (!els.allDemoList) return;
   els.allDemoList.innerHTML = demos
     .map((item, index) => `
-      <article class="demo-card ${index === state.session.librarySelectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
+      <article class="demo-card ${index === selectedIndex ? "is-selected" : ""}" data-demo-index="${index}">
         <div class="demo-card-top">
           <span class="demo-card-kicker">${item.focus}</span>
           <span class="demo-card-status">${item.statusLabel}</span>
@@ -1854,7 +1878,7 @@ function renderDemoPreview(selectedDemo = getSelectedDemo()) {
     els.cameraTargetFigure.innerHTML = figureMarkup;
   }
   if (els.cameraTargetLabel) {
-    els.cameraTargetLabel.textContent = state.session.cameraReady ? "Current pose" : "Waiting";
+    els.cameraTargetLabel.textContent = state.session.cameraReady ? demoLabel : "Waiting";
   }
 
   const matchLabels = {
@@ -1885,6 +1909,7 @@ function getDemoDisplayLabel(demo) {
 }
 
 function getDemoPoseVariant(demo) {
+  if (demo?.poseVariant) return demo.poseVariant;
   const label = `${demo?.demoTitle || ""} ${demo?.title || ""}`.toLowerCase();
 
   if (label.includes("ankle eversion")) return "ankleEversion";
@@ -1893,25 +1918,25 @@ function getDemoPoseVariant(demo) {
   if (label.includes("wall calf stretch")) return "tibialisWall";
   if (label.includes("calf raise")) return "calfRaise";
   if (label.includes("wall sits")) return "wallSit";
-  if (label.includes("wall supported lunge")) return "lunge";
-  if (label.includes("glute bridge")) return "bridge";
-  if (label.includes("hamstring")) return "bridge";
+  if (label.includes("wall supported lunge")) return "supportedLunge";
+  if (label.includes("glute bridge")) return "gluteBridge";
+  if (label.includes("hamstring")) return "hamstringPress";
   if (label.includes("cat cow")) return "catCow";
   if (label.includes("hollow body")) return "hollowBody";
   if (label.includes("wall slides")) return "wallSlide";
-  if (label.includes("lateral deltoid")) return "lateralRaise";
-  if (label.includes("anterior deltoid")) return "frontRaise";
-  if (label.includes("bicep")) return "curlHold";
+  if (label.includes("lateral deltoid")) return "lateralDeltoid";
+  if (label.includes("anterior deltoid")) return "anteriorDeltoid";
+  if (label.includes("bicep")) return "bicepCurl";
   if (label.includes("door pull")) return "doorPull";
   if (label.includes("rotator cuff")) return "internalRotation";
   if (label.includes("shrug")) return "shrug";
-  if (label.includes("tricep kickback")) return "kickback";
-  if (label.includes("ball grip")) return "gripHold";
+  if (label.includes("tricep kickback")) return "tricepKickback";
+  if (label.includes("ball grip")) return "ballGrip";
   if (label.includes("forearm flexion")) return "forearmFlexion";
   if (label.includes("pecs")) return "pecPress";
   if (demo?.movementPattern === "lowerLift") return "calfRaise";
-  if (demo?.focus === "Shoulders") return "lateralRaise";
-  return "gripHold";
+  if (demo?.focus === "Shoulders") return "lateralDeltoid";
+  return "ballGrip";
 }
 
 function buildDemoPreviewFigureMarkup({ poseVariant }) {
@@ -2036,6 +2061,11 @@ function buildFloorPose(overrides = {}, options = {}) {
 }
 
 const GUIDE_DRIVEN_ISOMETRIC_VARIANTS = new Set([
+  "anteriorDeltoid",
+  "ballGrip",
+  "bicepCurl",
+  "lateralDeltoid",
+  "tricepKickback",
   "frontRaise",
   "curlHold",
   "lateralRaise",
@@ -2119,6 +2149,7 @@ function getDemoPoseTemplate(poseVariant) {
       }, {
         backdrop: `<path class="figure-line" style="opacity:0.14" d="M128 18 L128 150"></path>`,
       });
+    case "supportedLunge":
     case "lunge":
       return buildStandingPose({
         leftHip: { x: 70, y: 98 },
@@ -2129,7 +2160,12 @@ function getDemoPoseTemplate(poseVariant) {
         rightAnkle: { x: 120, y: 156 },
         leftWrist: { x: 36, y: 96 },
         rightWrist: { x: 124, y: 96 },
-      });
+      }, poseVariant === "supportedLunge"
+        ? {
+          backdrop: `<path class="figure-line" style="opacity:0.14" d="M22 24 L22 156"></path>`,
+        }
+        : undefined);
+    case "gluteBridge":
     case "bridge":
       return buildFloorPose({
         head: { x: 42, y: 118 },
@@ -2146,6 +2182,23 @@ function getDemoPoseTemplate(poseVariant) {
         rightKnee: { x: 128, y: 110 },
         leftAnkle: { x: 128, y: 144 },
         rightAnkle: { x: 138, y: 146 },
+      });
+    case "hamstringPress":
+      return buildFloorPose({
+        head: { x: 42, y: 120 },
+        neck: { x: 56, y: 116 },
+        leftShoulder: { x: 70, y: 114 },
+        rightShoulder: { x: 78, y: 116 },
+        leftElbow: { x: 56, y: 130 },
+        rightElbow: { x: 88, y: 130 },
+        leftWrist: { x: 44, y: 146 },
+        rightWrist: { x: 98, y: 146 },
+        leftHip: { x: 90, y: 108 },
+        rightHip: { x: 100, y: 108 },
+        leftKnee: { x: 112, y: 118 },
+        rightKnee: { x: 122, y: 118 },
+        leftAnkle: { x: 112, y: 146 },
+        rightAnkle: { x: 122, y: 146 },
       });
     case "catCow":
       return buildFloorPose({
@@ -2190,13 +2243,15 @@ function getDemoPoseTemplate(poseVariant) {
       }, {
         backdrop: `<path class="figure-line" style="opacity:0.14" d="M132 20 L132 154"></path>`,
       });
+    case "anteriorDeltoid":
     case "frontRaise":
       return buildStandingPose({
-        leftElbow: { x: 64, y: 74 },
-        rightElbow: { x: 96, y: 74 },
-        leftWrist: { x: 62, y: 44 },
-        rightWrist: { x: 98, y: 44 },
+        leftElbow: { x: 70, y: 74 },
+        rightElbow: { x: 90, y: 74 },
+        leftWrist: { x: 68, y: 42 },
+        rightWrist: { x: 92, y: 42 },
       });
+    case "bicepCurl":
     case "curlHold":
       return buildStandingPose({
         leftElbow: { x: 64, y: 86 },
@@ -2224,6 +2279,7 @@ function getDemoPoseTemplate(poseVariant) {
         leftShoulder: { x: 58, y: 46 },
         rightShoulder: { x: 102, y: 46 },
       });
+    case "tricepKickback":
     case "kickback":
       return buildStandingPose({
         head: { x: 92, y: 22 },
@@ -2241,12 +2297,13 @@ function getDemoPoseTemplate(poseVariant) {
         leftAnkle: { x: 66, y: 160 },
         rightAnkle: { x: 100, y: 162 },
       });
+    case "ballGrip":
     case "gripHold":
       return buildStandingPose({
-        leftElbow: { x: 64, y: 76 },
-        rightElbow: { x: 96, y: 76 },
-        leftWrist: { x: 54, y: 60 },
-        rightWrist: { x: 106, y: 60 },
+        leftElbow: { x: 66, y: 78 },
+        rightElbow: { x: 94, y: 78 },
+        leftWrist: { x: 70, y: 64 },
+        rightWrist: { x: 90, y: 64 },
       });
     case "forearmFlexion":
       return buildStandingPose({
@@ -2262,6 +2319,7 @@ function getDemoPoseTemplate(poseVariant) {
         leftWrist: { x: 50, y: 60 },
         rightWrist: { x: 110, y: 60 },
       });
+    case "lateralDeltoid":
     case "lateralRaise":
     default:
       return buildStandingPose({
@@ -3656,7 +3714,10 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
     );
     const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.3;
     const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.3;
-    const symmetryReady = poseVariant === "kickback" || poseVariant === "doorPull" || poseVariant === "internalRotation"
+    const symmetryReady = poseVariant === "tricepKickback"
+      || poseVariant === "kickback"
+      || poseVariant === "doorPull"
+      || poseVariant === "internalRotation"
       ? elbowsMatched || wristsMatched
       : wristsMatched || elbowsMatched;
     const close = shouldersLevel && (guideOffset < 0.92 || symmetryReady);
