@@ -39,6 +39,12 @@ Then open:
 ```text
 http://127.0.0.1:4173
 ```
+or
+
+```text
+https://iggy1119.github.io/IsoTrack/
+```
+
 
 ## Camera And Tracking Notes
 
