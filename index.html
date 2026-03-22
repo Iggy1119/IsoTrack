@@ -317,28 +317,6 @@
         <section class="tab-panel is-active" data-tab-panel="session">
           <div class="session-grid">
             <div class="panel camera-panel">
-              <div class="camera-panel-head">
-                <div>
-                  <p class="eyebrow">Session capture</p>
-                  <h2>Camera flow</h2>
-                  <p class="camera-panel-copy">Keep your full body in frame and follow one cue at a time.</p>
-                </div>
-                <div class="camera-stats" aria-label="Camera status">
-                  <article class="camera-stat">
-                    <span>Camera</span>
-                    <strong id="camera-status">Offline</strong>
-                  </article>
-                  <article class="camera-stat">
-                    <span>Tracking</span>
-                    <strong id="tracking-state">Tracking off</strong>
-                  </article>
-                  <article class="camera-stat">
-                    <span>Points</span>
-                    <strong id="tracked-joints">0 points</strong>
-                  </article>
-                </div>
-              </div>
-
               <div class="camera-shell">
                 <video id="camera" playsinline muted></video>
                 <canvas id="tracking-canvas" width="960" height="720"></canvas>
@@ -358,53 +336,49 @@
                 <div class="calibration-countdown hidden" id="calibration-countdown" aria-live="polite">10</div>
                 <div class="camera-overlay">
                   <div class="video-guide">
-                    <span class="video-guide-label">Current step</span>
+                    <div class="video-guide-meta">
+                      <span class="status-pill" id="camera-status">Offline</span>
+                      <div class="video-guide-stats">
+                        <span id="tracking-state">Tracking off</span>
+                        <span id="tracked-joints">0 points</span>
+                      </div>
+                    </div>
                     <strong id="workflow-title">Start camera</strong>
                     <p id="workflow-copy">Stand full-body in frame.</p>
+                    <p id="session-feedback">Start the camera to begin.</p>
                   </div>
-                  <strong id="session-feedback">Start the camera to begin.</strong>
                 </div>
               </div>
 
               <div class="camera-support-grid">
-                <div class="camera-support-card">
-                  <p class="panel-label">Progress</p>
+                <div class="camera-support-card camera-progress-card">
+                  <div class="camera-progress-head">
+                    <p class="panel-label">Flow</p>
+                    <span id="workflow-check-primary">Tracking not ready</span>
+                  </div>
                   <div class="workflow-steps">
                     <span class="workflow-step" id="step-camera">Camera</span>
                     <span class="workflow-step" id="step-calibration">Calibration</span>
                     <span class="workflow-step" id="step-demo">Demo</span>
                     <span class="workflow-step" id="step-session">Work</span>
                   </div>
-                  <div class="workflow-checks">
-                    <span id="workflow-check-primary">Tracking not ready</span>
-                    <span id="workflow-check-secondary">Calibration not captured</span>
-                  </div>
+                  <p class="camera-progress-copy" id="workflow-check-secondary">Calibration not captured</p>
                 </div>
 
                 <div class="camera-support-card camera-actions-card">
-                  <div class="camera-action-section">
-                    <p class="panel-label">Main actions</p>
-                    <div class="control-row">
-                      <div class="control-group control-group-primary">
-                        <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
-                        <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
-                        <button class="button button-secondary" id="start-demo" type="button">Run Demo</button>
-                        <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
-                        <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
-                      </div>
-                    </div>
+                  <div class="control-group control-group-primary" id="camera-primary-controls">
+                    <button class="button button-primary" id="start-camera" type="button">Start Camera</button>
+                    <button class="button button-secondary" id="stop-camera" type="button">Stop Camera</button>
+                    <button class="button button-secondary" id="start-demo" type="button">Run Demo</button>
+                    <button class="button button-secondary" id="toggle-session" type="button">Start Session</button>
+                    <button class="button button-secondary" id="complete-session" type="button">Finish Session</button>
                   </div>
 
-                  <div class="camera-action-section">
-                    <p class="panel-label">Manual tools</p>
-                    <div class="control-row">
-                      <div class="control-group control-group-secondary">
-                        <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
-                        <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
-                        <button class="button button-secondary" id="toggle-hold" type="button">Start Hold</button>
-                        <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
-                      </div>
-                    </div>
+                  <div class="control-group control-group-secondary" id="camera-secondary-controls">
+                    <button class="button button-secondary" id="capture-calibration" type="button">Capture Step</button>
+                    <button class="button button-secondary" id="reset-calibration" type="button">Reset Calibration</button>
+                    <button class="button button-secondary" id="toggle-hold" type="button">Start Hold</button>
+                    <button class="button button-secondary" id="manual-rep" type="button">Log Rep</button>
                   </div>
                 </div>
               </div>
@@ -455,6 +429,24 @@
                     </div>
                   </div>
                   <span class="status-pill muted-pill" id="session-plan-note">Recommended drills</span>
+                </div>
+                <div class="demo-detail-card">
+                  <div class="demo-detail-head">
+                    <p class="panel-label">Selected demo brief</p>
+                    <span class="status-pill muted-pill" id="selected-demo-video-status">MP4 pending</span>
+                  </div>
+                  <div class="demo-detail-meta" aria-label="Selected demo metadata">
+                    <span id="selected-demo-focus">Shoulders</span>
+                    <span id="selected-demo-variant">Primary demo</span>
+                    <span id="selected-demo-target">3 sets</span>
+                  </div>
+                  <p class="demo-detail-copy" id="selected-demo-setup">Select an exercise card to preview the setup and recording brief.</p>
+                  <p class="demo-detail-copy" id="selected-demo-script">Upload MP4 later with the setup, one clean rep or hold, the pacing cue, and the stop cue.</p>
+                  <div class="demo-step-list" id="selected-demo-steps" aria-label="Selected demo instruction steps"></div>
+                </div>
+                <div class="demo-library-head">
+                  <p class="panel-label">Exercise list</p>
+                  <p class="demo-library-copy">Use these cards as the base for your future instruction videos and voiceover explanations.</p>
                 </div>
                 <div class="demo-grid" id="recommended-demo-list"></div>
               </div>
