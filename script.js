@@ -731,6 +731,7 @@ let poseBusy = false;
 let latestPoseLandmarks;
 let demoHoldStartedAt = 0;
 let revealObserver;
+let demosLibraryInitialized = false;
 const FEEDBACK_COOLDOWN_MS = 1800;
 const MOTION_CONFIRMATION_FRAMES = 18;
 const AUTO_CALIBRATION_READY_FRAMES = 8;
@@ -926,6 +927,10 @@ function renderActiveTab() {
   els.tabPanels.forEach((panel) => {
     panel.classList.toggle("is-active", panel.dataset.tabPanel === state.activeTab);
   });
+
+  if (state.activeTab === "demos") {
+    renderAllDemos();
+  }
 
   refreshRevealElements();
 }
@@ -1847,6 +1852,9 @@ function renderSessionDemos() {
 }
 
 function renderAllDemos() {
+  if (!els.allDemoList) return;
+  if (state.activeTab !== "demos" && !demosLibraryInitialized) return;
+
   const demos = demoCatalog.map((item) => ({
     ...item,
     description: item.purpose,
@@ -1864,9 +1872,12 @@ function renderAllDemos() {
     if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
     if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = `${demos.length} demos ready`;
     if (els.libraryDemoPlayer) {
-      els.libraryDemoPlayer.src = selected.videoPath || "";
-      els.libraryDemoPlayer.poster = "";
-      els.libraryDemoPlayer.load();
+      const nextSrc = selected.videoPath || "";
+      if (state.activeTab === "demos" && els.libraryDemoPlayer.getAttribute("src") !== nextSrc) {
+        els.libraryDemoPlayer.src = nextSrc;
+        els.libraryDemoPlayer.poster = "";
+        els.libraryDemoPlayer.load();
+      }
     }
     if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
     if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
@@ -1879,7 +1890,6 @@ function renderAllDemos() {
     if (els.libraryDemoPurpose) els.libraryDemoPurpose.textContent = `Purpose: ${selected.summary}`;
   }
 
-  if (!els.allDemoList) return;
   const groupedDemos = demos.reduce((groups, item, index) => {
     const key = item.focus || "Other";
     if (!groups[key]) groups[key] = [];
@@ -1898,44 +1908,51 @@ function renderAllDemos() {
       return aIndex - bIndex;
     });
 
-  els.allDemoList.innerHTML = orderedGroups
-    .map((focus) => `
-      <section class="demo-library-group">
-        <div class="demo-library-group-head">
-          <div>
-            <strong>${focus}</strong>
-            <p>${DEMO_LIBRARY_GROUP_SUMMARIES[focus] || "Exercise demos matched from the assets library."}</p>
+  if (!demosLibraryInitialized) {
+    els.allDemoList.innerHTML = orderedGroups
+      .map((focus) => `
+        <section class="demo-library-group">
+          <div class="demo-library-group-head">
+            <div>
+              <strong>${focus}</strong>
+              <p>${DEMO_LIBRARY_GROUP_SUMMARIES[focus] || "Exercise demos matched from the assets library."}</p>
+            </div>
+            <span class="demo-chip">${groupedDemos[focus].length} demos</span>
           </div>
-          <span class="demo-chip">${groupedDemos[focus].length} demos</span>
-        </div>
-        <div class="demo-library-group-grid">
-          ${groupedDemos[focus].map((item) => `
-            <article class="demo-card ${item.catalogIndex === selectedIndex ? "is-selected" : ""}" data-demo-index="${item.catalogIndex}">
-              <div class="demo-card-top">
-                <span class="demo-card-kicker">${item.focus}</span>
-                <span class="demo-card-status">${item.statusLabel}</span>
-              </div>
-              <strong>${item.title}</strong>
-              <p>${item.summary}</p>
-              <p class="demo-card-tip">Helpful Tip: ${item.cue}</p>
-              <div class="demo-card-tags">
-                <span class="demo-chip">${item.targetLabel}</span>
-                <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
-              </div>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `)
-    .join("");
+          <div class="demo-library-group-grid">
+            ${groupedDemos[focus].map((item) => `
+              <article class="demo-card ${item.catalogIndex === selectedIndex ? "is-selected" : ""}" data-demo-index="${item.catalogIndex}">
+                <div class="demo-card-top">
+                  <span class="demo-card-kicker">${item.focus}</span>
+                  <span class="demo-card-status">${item.statusLabel}</span>
+                </div>
+                <strong>${item.title}</strong>
+                <p>${item.summary}</p>
+                <p class="demo-card-tip">Helpful Tip: ${item.cue}</p>
+                <div class="demo-card-tags">
+                  <span class="demo-chip">${item.targetLabel}</span>
+                  <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `)
+      .join("");
 
-  els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
-      renderAllDemos();
-      persistState();
+    els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
+        renderAllDemos();
+        persistState();
+      });
     });
-  });
+    demosLibraryInitialized = true;
+  } else {
+    els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
+      card.classList.toggle("is-selected", Number(card.dataset.demoIndex) === selectedIndex);
+    });
+  }
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
