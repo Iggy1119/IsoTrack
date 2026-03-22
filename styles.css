@@ -185,10 +185,13 @@ h2 {
   line-height: 0.95;
 }
 
-.tab-panel[data-tab-panel="reports"] .panel > h2 {
-  margin-bottom: 2rem;
+.tab-panel[data-tab-panel="reports"] h2 {
+  margin-bottom: 2.5rem !important;
 }
 
+.tab-panel[data-tab-panel="reports"] .panel-head {
+  margin-bottom: 1.5rem !important;
+}
 
 h1 {
   margin: 0 0 2rem;
