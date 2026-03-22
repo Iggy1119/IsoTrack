@@ -882,7 +882,7 @@ function bindEvents() {
   els.cameraPermissionContinue?.addEventListener("click", requestCameraAccess);
   els.captureCalibration.addEventListener("click", captureCalibration);
   els.resetCalibration.addEventListener("click", resetCalibration);
-  els.startDemo.addEventListener("click", startDemoWalkthrough);
+  els.startDemo?.addEventListener("click", startDemoWalkthrough);
   els.preRpe.addEventListener("input", handleRpeInput);
   els.postRpe.addEventListener("input", handleRpeInput);
   els.submitRpe?.addEventListener("click", () => submitRpe());
@@ -3108,11 +3108,12 @@ function saveCalibrationStep(currentStep, landmarks, manualCapture = false) {
   updateCalibrationButtonLabel();
   const nextStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
   const nextDelaySeconds = Math.round(getCalibrationStepDelayMs() / 1000);
-  setFeedback(
-    state.session.calibrated
-      ? "Calibration complete. Start the guided demo next."
-      : `${currentStep.title} saved. ${nextStep?.title || "Next step"} begins in ${nextDelaySeconds} seconds.`
-  );
+  if (state.session.calibrated) {
+    startDemoWalkthrough({ automatic: true });
+    setFeedback("Calibration complete. First exercise preview is now running.");
+  } else {
+    setFeedback(`${currentStep.title} saved. ${nextStep?.title || "Next step"} begins in ${nextDelaySeconds} seconds.`);
+  }
   renderCalibration();
   renderWorkflow();
   renderControlStates();
@@ -3142,7 +3143,7 @@ function resetCalibration() {
   persistState();
 }
 
-function startDemoWalkthrough() {
+function startDemoWalkthrough({ automatic = false } = {}) {
   if (!state.session.cameraReady) {
     setFeedback("Start the camera first.");
     return;
@@ -3165,7 +3166,11 @@ function startDemoWalkthrough() {
   state.session.exerciseMatchScore = 0;
   demoHoldStartedAt = 0;
   resetExerciseHoldTracking();
-  setFeedback(getSelectedDemo()?.startPrompt || "Demo started. Follow the selected drill and hold the target position.");
+  setFeedback(
+    automatic
+      ? (getSelectedDemo()?.startPrompt || "First exercise preview started. Match the target position.")
+      : (getSelectedDemo()?.startPrompt || "Demo started. Follow the selected drill and hold the target position.")
+  );
   renderWorkflow();
   renderControlStates();
   persistState();
@@ -3194,7 +3199,7 @@ function renderCalibrationCountdown() {
 
   const seconds = getCalibrationCountdownSeconds();
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 0) {
+  if (!state.session.cameraReady || state.session.calibrated || !currentStep || calibrationHoldStartedAt || seconds <= 1) {
     els.calibrationCountdown.classList.add("hidden");
     els.calibrationCountdown.dataset.label = "";
     return;
@@ -3659,7 +3664,7 @@ function updateExerciseMatchState(landmarks) {
     return;
   }
 
-  updateExerciseHoldTracking(assessment.active);
+  updateExerciseHoldTracking(assessment.active || assessment.close);
 }
 
 function updateExerciseHoldTracking(active) {
@@ -3798,8 +3803,8 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
       getLiftDelta(baseline.rightKnee, rightKnee)
     );
     const bestLift = Math.max(leftLift, rightLift);
-    const close = shouldersLevel && (bestGuideOffset < 0.36 || bestLift > 0.014);
-    const active = shouldersLevel && (hipsLevel || centered) && (bestGuideOffset < 0.26 || bestLift > 0.022);
+    const close = shouldersLevel && (bestGuideOffset < 0.42 || bestLift > 0.011);
+    const active = shouldersLevel && (hipsLevel || centered) && (bestGuideOffset < 0.31 || bestLift > 0.018);
     const score = Math.max(0, Math.min(1, ((0.42 - Math.min(bestGuideOffset, 0.42)) / 0.42) * 0.7 + Math.min(bestLift / 0.03, 1) * 0.3));
 
     return {
@@ -3835,8 +3840,8 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
       || poseVariant === "internalRotation"
       ? elbowsMatched || wristsMatched
       : wristsMatched || elbowsMatched;
-    const close = shouldersLevel && (guideOffset < 0.92 || symmetryReady);
-    const active = shouldersLevel && (guideOffset < 0.68 || (guideOffset < 0.78 && symmetryReady));
+    const close = shouldersLevel && (guideOffset < 1.02 || symmetryReady);
+    const active = shouldersLevel && (guideOffset < 0.78 || (guideOffset < 0.88 && symmetryReady));
     const score = Math.max(0, Math.min(1, (0.98 - Math.min(guideOffset, 0.98)) / 0.98));
 
     return {
@@ -3857,8 +3862,8 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
     ], shoulderWidth);
     const wristsRaisedFromBaseline =
       average((baseline.leftWrist?.y ?? 1) - leftWrist.y, (baseline.rightWrist?.y ?? 1) - rightWrist.y);
-    const close = shouldersLevel && (guideOffset < 1.02 || wristsRaisedFromBaseline > 0.05);
-    const active = shouldersLevel && wristsLevel && (guideOffset < 0.84 || wristsRaisedFromBaseline > 0.08);
+    const close = shouldersLevel && (guideOffset < 1.12 || wristsRaisedFromBaseline > 0.04);
+    const active = shouldersLevel && wristsLevel && (guideOffset < 0.95 || wristsRaisedFromBaseline > 0.065);
     const score = Math.max(0, Math.min(1, ((1.08 - Math.min(guideOffset, 1.08)) / 1.08) * 0.75 + Math.min(wristsRaisedFromBaseline / 0.1, 1) * 0.25));
 
     return {
@@ -3877,8 +3882,8 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
   const baselineElbowInset = average(Math.abs((baseline.leftElbow?.x ?? 0.38) - baselineCenterX), Math.abs((baseline.rightElbow?.x ?? 0.62) - baselineCenterX));
   const inwardReach = Math.max(0, (baselineInset - wristInset) / shoulderWidth);
   const elbowReach = Math.max(0, (baselineElbowInset - elbowInset) / shoulderWidth);
-  const close = shouldersLevel && wristsLevel && (inwardReach > 0.08 || elbowReach > 0.05);
-  const active = shouldersLevel && wristsNearShoulderLine && (inwardReach > 0.15 || (inwardReach > 0.08 && elbowReach > 0.08));
+  const close = shouldersLevel && wristsLevel && (inwardReach > 0.06 || elbowReach > 0.04);
+  const active = shouldersLevel && wristsNearShoulderLine && (inwardReach > 0.11 || (inwardReach > 0.06 && elbowReach > 0.06));
   const score = Math.max(0, Math.min(1, Math.max(inwardReach / 0.22, elbowReach / 0.18)));
 
   return {
@@ -4244,7 +4249,10 @@ function renderControlStates() {
   els.stopCamera.disabled = !state.session.cameraReady;
   els.captureCalibration.disabled = !state.session.cameraReady || state.session.calibrated || getCalibrationCountdownSeconds() > 0;
   els.resetCalibration.disabled = !state.session.cameraReady && !hasSavedCalibration();
-  els.startDemo.disabled = !state.plan || !state.session.cameraReady || !state.session.calibrated || isPrescribedSessionComplete();
+  if (els.startDemo) {
+    els.startDemo.disabled = true;
+    els.startDemo.hidden = true;
+  }
   els.toggleSession.disabled = !state.plan || !state.session.cameraReady || !state.session.calibrated || !state.session.demoCompleted || isPrescribedSessionComplete();
   els.toggleHold.disabled = !state.session.running;
   els.manualRep.disabled = !state.session.running;
@@ -4258,16 +4266,15 @@ function renderControlStates() {
   const primaryButtons = [
     els.startCamera,
     els.stopCamera,
-    els.startDemo,
     els.toggleSession,
     els.completeSession,
-  ];
+  ].filter(Boolean);
   const secondaryButtons = [
     els.captureCalibration,
     els.resetCalibration,
     els.toggleHold,
     els.manualRep,
-  ];
+  ].filter(Boolean);
   const allButtons = [...primaryButtons, ...secondaryButtons];
 
   allButtons.forEach((button) => {
@@ -4392,11 +4399,11 @@ function renderWorkflow() {
   } else if (!state.session.demoCompleted) {
     const selectedDemo = getSelectedDemo();
     const matchState = state.session.exerciseMatchState;
-    els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Demo") : "Finished Calibrating";
+    els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Exercise Preview") : "Finished Calibrating";
     els.workflowCheckPrimary.textContent = selectedDemo ? `Exercise ${(selectedDemo.sessionIndex || 0) + 1} of ${buildSessionDemoLibrary().length}` : "Calibration done";
     els.workflowCheckSecondary.textContent = state.session.demoActive
       ? `${matchState === "matched" ? "Locked" : matchState === "close" ? "Close" : "Adjust"} • Demo ${state.session.demoProgress}%`
-      : "Run prescribed demo";
+      : "First exercise preview starting";
   } else if (!state.session.running) {
     const selectedDemo = getSelectedDemo();
     if (isPrescribedSessionComplete()) {
