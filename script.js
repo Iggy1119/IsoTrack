@@ -1918,28 +1918,26 @@ function renderAllDemos() {
         </div>
         <div class="demo-library-group-grid">
           ${groupedDemos[focus].map((item) => `
-            <article class="demo-card ${item.catalogIndex === selectedIndex ? "is-selected" : ""}" data-demo-index="${item.catalogIndex}">
-              <div class="demo-card-top">
-                <span class="demo-card-kicker">${item.focus}</span>
-                <span class="demo-card-status">${item.statusLabel}</span>
-              </div>
-              <strong>${item.title}</strong>
-              <p>${item.summary}</p>
-              <p class="demo-card-tip">Helpful Tip: ${item.cue}</p>
-              <div class="demo-card-tags">
-                <span class="demo-chip">${item.targetLabel}</span>
-                <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
-              </div>
-            </article>
+            <button
+              class="demo-library-button ${item.catalogIndex === selectedIndex ? "is-selected" : ""}"
+              type="button"
+              data-demo-index="${item.catalogIndex}"
+            >
+              <span class="demo-library-button-main">
+                <strong>${item.title}</strong>
+                <small>${item.focus} • ${item.targetLabel}</small>
+              </span>
+              <span class="demo-library-button-file">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+            </button>
           `).join("")}
         </div>
       </section>
     `)
     .join("");
 
-  els.allDemoList.querySelectorAll(".demo-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.session.librarySelectedDemo = Number(card.dataset.demoIndex);
+  els.allDemoList.querySelectorAll(".demo-library-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.session.librarySelectedDemo = Number(button.dataset.demoIndex);
       renderAllDemos();
       persistState();
     });

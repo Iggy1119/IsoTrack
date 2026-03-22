@@ -1721,6 +1721,73 @@ h3 {
   gap: 0.8rem;
 }
 
+.demo-library-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+    rgba(10, 12, 18, 0.55);
+  color: var(--soft);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.demo-library-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+}
+
+.demo-library-button.is-selected {
+  border-color: rgba(143, 215, 191, 0.4);
+  background:
+    linear-gradient(180deg, rgba(143, 215, 191, 0.12), rgba(143, 215, 191, 0.04)),
+    rgba(10, 12, 18, 0.62);
+  box-shadow: 0 12px 24px rgba(143, 215, 191, 0.12);
+}
+
+.demo-library-button-main {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.demo-library-button strong {
+  display: block;
+  color: var(--soft);
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
+}
+
+.demo-library-button small {
+  color: var(--muted);
+  font-size: 0.83rem;
+  line-height: 1.4;
+}
+
+.demo-library-button-file {
+  display: inline-flex;
+  align-items: center;
+  max-width: 16rem;
+  padding: 0.32rem 0.6rem;
+  border: 1px solid rgba(216, 166, 161, 0.24);
+  border-radius: 999px;
+  color: var(--accent);
+  background: rgba(216, 166, 161, 0.06);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .demo-step-list {
   display: grid;
   gap: 0.75rem;
@@ -1919,72 +1986,6 @@ h3 {
 .demo-library-head {
   margin-bottom: 0;
   gap: 0.45rem;
-}
-
-.demo-card {
-  display: grid;
-  gap: 0.55rem;
-  cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
-  padding: 1rem 1.05rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.15rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
-    rgba(10, 12, 18, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.02),
-    0 10px 22px rgba(0, 0, 0, 0.14);
-}
-
-.demo-card-top {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  margin-bottom: 0.25rem;
-}
-
-.demo-card-kicker {
-  color: var(--accent-2);
-  border-color: rgba(143, 215, 191, 0.24);
-  background: rgba(143, 215, 191, 0.09);
-}
-
-.demo-card-status {
-  color: var(--soft);
-}
-
-.demo-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--line-strong);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
-}
-
-.demo-card.is-selected {
-  border-color: var(--line-strong);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(143, 215, 191, 0.07));
-}
-
-.demo-card strong {
-  display: block;
-  margin-bottom: 0.35rem;
-  color: var(--soft);
-  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
-  font-size: 1.08rem;
-  letter-spacing: -0.02em;
-}
-
-.demo-card p {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-.demo-card-tip {
-  margin-top: 0.1rem;
-  color: rgba(255, 240, 212, 0.76);
-  font-size: 0.82rem;
-  line-height: 1.45;
 }
 
 .demo-card-tags {
