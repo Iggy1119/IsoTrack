@@ -1843,25 +1843,24 @@ h3 {
 .overview-grid--hero {
   grid-template-columns: 1.4fr 0.6fr;
   align-items: start;
-  gap: 1.5rem;
+  gap: 1.8rem;
 }
 
 .overview-story--main {
-  padding: 2rem 2.2rem;
+  padding: 2.2rem 2.6rem;
 }
 .flow-panel {
-  margin-top: 2.2rem;
+  margin-top: 3rem;
 }
 
 .benefit-row {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 0.95fr;
-  gap: 1rem;
-  margin-top: 1.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.2rem;
+  margin-top: 2rem;
 }
-
 .benefit-pill {
-  padding: 1rem 1rem 1.05rem;
+  padding: 1.15rem 1.15rem 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.025);
@@ -1932,12 +1931,12 @@ h3 {
   transform: translateY(2rem);
 }
 .overview-story h2 {
-  max-width: 14ch;
+  max-width: 18ch;
   margin-bottom: 1rem;
 }
 
 .overview-story p {
-  max-width: 58ch;
+  max-width: 74ch;
 }
 
 .feature-card--featured h3 {
