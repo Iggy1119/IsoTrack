@@ -5,7 +5,7 @@ IsoTrack is a browser-based therapeutic exercise prototype for guided home care.
 ## Live Demo
 
 - Production URL: [https://iggy1119.github.io/IsoTrack/](https://iggy1119.github.io/IsoTrack/)
-- Vidoe Demo: https://www.canva.com/design/DAHEr-UXkJY/e1XAqcS_HW5ABp7uH_04RQ/edit?utm_content=DAHEr-UXkJY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+- Video Demo: https://www.canva.com/design/DAHEr-UXkJY/e1XAqcS_HW5ABp7uH_04RQ/edit?utm_content=DAHEr-UXkJY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 - Presentation Link: https://www.canva.com/design/DAHEl7OaD-o/LtmzysWI8sjnTTsCoJkIrA/edit
 
 ## Current Product Flow
