@@ -47,8 +47,7 @@ const LIMB_VISIBILITY_THRESHOLD = 0.58;
 const LIMB_CAPTURE_THRESHOLD = 6;
 const DEFAULT_PROGRAM_VALUE = 15;
 const DEFAULT_REIMBURSEMENT_SESSIONS = 12;
-const PROTECTED_MONTHLY_BALANCE = 12;
-const STANDARD_MONTHLY_BALANCE = 15;
+const MONTHLY_SUBSCRIPTION_FEE = 15;
 const CALIBRATION_FALLBACK_GUIDE = {
   points: {
     leftShoulder: { x: 0.45, y: 0.33 },
@@ -104,7 +103,7 @@ const state = {
   rewards: {
     cashback: 0,
     streak: 0,
-    tier: "Starter",
+    tier: "Flat $15 plan",
     targetValue: DEFAULT_PROGRAM_VALUE,
     periodKey: getRewardPeriodKey(),
   },
@@ -371,6 +370,7 @@ const demoCatalog = [
     purpose: "Train ankle mobility and ankle strength during eversion.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "ankleEversion",
     videoPath: "assets/Demos/Ankle Eversion Compress.mp4",
   },
   {
@@ -379,6 +379,7 @@ const demoCatalog = [
     purpose: "Train ankle mobility and ankle strength during inversion.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "ankleInversion",
     videoPath: "assets/Demos/Ankle Inversion Compress.mp4",
   },
   {
@@ -387,6 +388,7 @@ const demoCatalog = [
     purpose: "Train shoulder stability, and contribute to shoulder abduction.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "anteriorDeltoid",
     videoPath: "assets/Demos/Anterior Deltoid Isometric Compress.mp4",
   },
   {
@@ -395,6 +397,7 @@ const demoCatalog = [
     purpose: "Train grip strength and distal forearm muscle endurance.",
     focus: "Grip",
     movementPattern: "upperHold",
+    poseVariant: "ballGrip",
     videoPath: "assets/Demos/Ball Grip Isometric Compress.mp4",
   },
   {
@@ -403,6 +406,7 @@ const demoCatalog = [
     purpose: "Train biceps to assist during pulling exercises and stability of arm.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "bicepCurl",
     videoPath: "assets/Demos/Bicep Isometric Compress.mp4",
   },
   {
@@ -411,6 +415,7 @@ const demoCatalog = [
     purpose: "Train stability during walking to minimize falls.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "calfRaise",
     videoPath: "assets/Demos/Calf Raise Isometric Compress.mp4",
   },
   {
@@ -419,6 +424,7 @@ const demoCatalog = [
     purpose: "Train spinal mobility and reduce back stiffness.",
     focus: "Core",
     movementPattern: "upperHold",
+    poseVariant: "catCow",
     videoPath: "assets/Demos/Cat Cow Lower Back Mobility Compress.mp4",
   },
   {
@@ -427,6 +433,7 @@ const demoCatalog = [
     purpose: "Train latissimus dorsi muscles for upper body stability and pulling strength.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "doorPull",
     videoPath: "assets/Demos/Door Pull Lats Isometric Compress.mp4",
   },
   {
@@ -435,6 +442,7 @@ const demoCatalog = [
     purpose: "Improve the tibialis anterior to minimize foot drop.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "dorsiflexion",
     videoPath: "assets/Demos/Foot Dorsiflexion Compress.mp4",
   },
   {
@@ -443,6 +451,7 @@ const demoCatalog = [
     purpose: "Prevent loss of grip-related strength.",
     focus: "Grip",
     movementPattern: "upperHold",
+    poseVariant: "forearmFlexion",
     videoPath: "assets/Demos/Forearm Flexion Compress.mp4",
   },
   {
@@ -451,6 +460,7 @@ const demoCatalog = [
     purpose: "Improve hip stability, glutes contribute to walking ability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "gluteBridge",
     videoPath: "assets/Demos/Glute Bridge Compress.mp4",
   },
   {
@@ -459,6 +469,7 @@ const demoCatalog = [
     purpose: "Improve knee joint stability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "hamstringPress",
     videoPath: "assets/Demos/Hamstring Isometric Compress.mp4",
   },
   {
@@ -467,6 +478,7 @@ const demoCatalog = [
     purpose: "Improve core strength for stability.",
     focus: "Core",
     movementPattern: "upperHold",
+    poseVariant: "hollowBody",
     videoPath: "assets/Demos/Hollow Body Holds Compress.mp4",
   },
   {
@@ -475,6 +487,7 @@ const demoCatalog = [
     purpose: "Prevent loss of shoulder abduction ability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "lateralDeltoid",
     videoPath: "assets/Demos/Lateral Deltoid Isometric Compress.mp4",
   },
   {
@@ -483,6 +496,7 @@ const demoCatalog = [
     purpose: "Improve pecs for maintaining pushing abilities.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "pecPress",
     videoPath: "assets/Demos/Pecs Isometric Compress.mp4",
   },
   {
@@ -491,6 +505,7 @@ const demoCatalog = [
     purpose: "Improve shoulder joint stability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "internalRotation",
     videoPath: "assets/Demos/Rotator Cuff Internal Rotation Compress.mp4",
   },
   {
@@ -499,6 +514,7 @@ const demoCatalog = [
     purpose: "Prevents loss of grip strength, strengthens traps for neck/shoulder stability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "shrug",
     videoPath: "assets/Demos/Shrug Isometric Compress.mp4",
   },
   {
@@ -507,6 +523,7 @@ const demoCatalog = [
     purpose: "Improve elbow stability, prevent loss of pushing motion ability.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "tricepKickback",
     videoPath: "assets/Demos/Tricep Kickback Isometric Compress.mp4",
   },
   {
@@ -515,6 +532,7 @@ const demoCatalog = [
     purpose: "Strengthen Tibialis Anterior to minimize foot drop.",
     focus: "Ankles",
     movementPattern: "lowerLift",
+    poseVariant: "tibialisWall",
     videoPath: "assets/Demos/Wall Calf Stretch+Tibialis Hold Compress.mp4",
   },
   {
@@ -523,6 +541,7 @@ const demoCatalog = [
     purpose: "Improve quadriceps endurance for staying mobile.",
     focus: "Quadriceps",
     movementPattern: "lowerLift",
+    poseVariant: "wallSit",
     videoPath: "assets/Demos/Wall Sits Quads Compress.mp4",
   },
   {
@@ -531,6 +550,7 @@ const demoCatalog = [
     purpose: "Improve shoulder mobility.",
     focus: "Shoulders",
     movementPattern: "upperHold",
+    poseVariant: "wallSlide",
     videoPath: "assets/Demos/Wall Slides Compress.mp4",
   },
   {
@@ -539,9 +559,19 @@ const demoCatalog = [
     purpose: "Strengthen unilateral balance and stability.",
     focus: "Hips",
     movementPattern: "lowerLift",
+    poseVariant: "supportedLunge",
     videoPath: "assets/Demos/Wall Supported Lunge Hold Compress.mp4",
   },
 ];
+
+const DEMO_LIBRARY_GROUP_SUMMARIES = {
+  Ankles: "Foot and ankle demos focused on balance, toe lift, heel raise control, and tibialis strength.",
+  Shoulders: "Upper-body demos for shoulder stability, arm control, pressing strength, and controlled isometrics.",
+  Grip: "Hand and forearm demos built around grip endurance and distal control.",
+  Hips: "Lower-body demos for hip drive, bridge strength, hamstring tension, and unilateral stability.",
+  Core: "Floor and mobility demos for trunk control, spinal movement, and core stiffness.",
+  Quadriceps: "Leg endurance demos that support sit-to-stand strength and walking tolerance.",
+};
 
 const els = {
   form: document.querySelector("#assessment-form"),
@@ -635,14 +665,9 @@ const els = {
   libraryDemoFile: document.querySelector("#library-demo-file"),
   libraryDemoTip: document.querySelector("#library-demo-tip"),
   libraryDemoPurpose: document.querySelector("#library-demo-purpose"),
-  demoPreviewCard: document.querySelector("#demo-preview-card"),
-  demoPreviewFigure: document.querySelector("#demo-preview-figure"),
-  demoPreviewCopy: document.querySelector("#demo-preview-copy"),
-  demoMatchPill: document.querySelector("#demo-match-pill"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
-  workflowCopy: document.querySelector("#workflow-copy"),
   workflowCheckPrimary: document.querySelector("#workflow-check-primary"),
   workflowCheckSecondary: document.querySelector("#workflow-check-secondary"),
   workflowStepCamera: document.querySelector("#step-camera"),
@@ -683,6 +708,13 @@ const els = {
   walletRemaining: document.querySelector("#wallet-remaining"),
   walletProgress: document.querySelector("#wallet-progress"),
   walletNote: document.querySelector("#wallet-note"),
+  walletNextUnlock: document.querySelector("#wallet-next-unlock"),
+  walletTierCopy: document.querySelector("#wallet-tier-copy"),
+  walletTierBar: document.querySelector("#wallet-tier-bar"),
+  walletMonthlyGoal: document.querySelector("#wallet-monthly-goal"),
+  walletMonthlyGoalCopy: document.querySelector("#wallet-monthly-goal-copy"),
+  walletSubscriptionStatus: document.querySelector("#wallet-subscription-status"),
+  walletSubscriptionSummary: document.querySelector("#wallet-subscription-summary"),
 };
 
 let mediaStream;
@@ -1180,13 +1212,24 @@ function getMonthlyRepTarget(plan) {
   return Math.max(1, weeklyReps * 4);
 }
 
+function getMonthlyRewardRate(plan) {
+  return Number((MONTHLY_SUBSCRIPTION_FEE / getMonthlyRepTarget(plan)).toFixed(3));
+}
+
 function ensureRewardPeriod() {
   const currentPeriodKey = getRewardPeriodKey();
   if (state.rewards.periodKey === currentPeriodKey) return;
 
   state.rewards.periodKey = currentPeriodKey;
   state.rewards.cashback = 0;
-  state.rewards.targetValue = state.plan?.programValue || DEFAULT_PROGRAM_VALUE;
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
+}
+
+function normalizePlanSubscription(plan) {
+  if (!plan) return null;
+  plan.programValue = MONTHLY_SUBSCRIPTION_FEE;
+  plan.rewardRate = getMonthlyRewardRate(plan);
+  return plan;
 }
 
 function getCalibrationStepDelayMs() {
@@ -1300,8 +1343,8 @@ function handleAssessmentSubmit(event) {
   const cadence = `${weeklyReps} reps/week | ${sessionsPerWeek} sessions`;
   const holdSeconds = protectedMode ? 15 : confidence >= 8 ? 30 : 22;
   const baseSets = protectedMode ? 2 : weeklyReps >= 48 ? 4 : 3;
-  const programValue = protectedMode ? PROTECTED_MONTHLY_BALANCE : STANDARD_MONTHLY_BALANCE;
-  const rewardRate = Number((programValue / getMonthlyRepTarget({ weeklyReps })).toFixed(3));
+  const programValue = MONTHLY_SUBSCRIPTION_FEE;
+  const rewardRate = getMonthlyRewardRate({ weeklyReps });
   const reimbursementSessions = sessionsPerWeek * 4;
   const focuses = focus.length ? focus : ["Shoulders", "Core"];
 
@@ -1323,7 +1366,7 @@ function handleAssessmentSubmit(event) {
     focuses,
   };
   state.rewards.cashback = 0;
-  state.rewards.targetValue = programValue;
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.rewards.periodKey = getRewardPeriodKey();
 
   state.report = null;
@@ -1398,15 +1441,15 @@ function getDefaultPlan() {
     sessionsPerWeek: 3,
     holdSeconds: 18,
     baseSets: 2,
-    rewardRate: 0.18,
-    programValue: DEFAULT_PROGRAM_VALUE,
+    rewardRate: getMonthlyRewardRate({ weeklyReps: 24 }),
+    programValue: MONTHLY_SUBSCRIPTION_FEE,
     reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
     focuses: ["Shoulders", "Core", "Hips"],
   };
 }
 
 function getActivePlan() {
-  return state.plan || getDefaultPlan();
+  return normalizePlanSubscription(state.plan || getDefaultPlan());
 }
 
 function buildProgramItem(focus, variant, plan, sessionLabel = "") {
@@ -1485,6 +1528,7 @@ function buildSessionDemoLibrary() {
 
     return {
       ...videoDemo,
+      demoTitle: videoDemo.title,
       title: prescription.title,
       description: prescription.description,
       summary: `${prescription.summary} Prescribed from the assessment plan.`,
@@ -1499,6 +1543,7 @@ function buildSessionDemoLibrary() {
       targetLabel: `${repTarget} reps or ${holdTarget}s TUT`,
       instructionSteps: prescription.steps,
       purpose: videoDemo.purpose,
+      poseVariant: videoDemo.poseVariant || getDemoPoseVariant(videoDemo),
       repTarget,
       holdTarget,
       sessionIndex: index,
@@ -1612,7 +1657,7 @@ function renderPlan() {
   els.planDiagnosis.textContent = state.plan.diagnosis;
   els.planGoal.textContent = `${weeklyReps} reps / week`;
   els.planCadence.textContent = state.plan.cadence;
-  els.planReward.textContent = `$${state.plan.programValue} monthly balance available`;
+  els.planReward.textContent = `$${MONTHLY_SUBSCRIPTION_FEE} monthly subscription with earn-back tracking`;
   els.planStatus.textContent = state.plan.protectedMode ? "Protected plan active" : "Adaptive plan ready";
   els.careNote.textContent = `${state.plan.patientName} starts with a ${state.plan.protectedMode ? "conservative" : "moderate"} program focused on ${state.plan.focuses.join(", ")} with a weekly target of ${weeklyReps} reps. Prioritize clean movement and stable breathing.`;
 
@@ -1733,6 +1778,7 @@ function renderSessionDemos() {
     if (els.selectedDemoPlayer) {
       els.selectedDemoPlayer.src = selected.videoPath || "";
       els.selectedDemoPlayer.poster = "";
+      els.selectedDemoPlayer.load();
     }
     els.selectedDemoFocus.textContent = `${selected.focus} focus`;
     els.selectedDemoVariant.textContent = selected.typeLabel;
@@ -1773,14 +1819,18 @@ function renderAllDemos() {
     statusLabel: "MP4 ready",
     targetLabel: item.movementPattern === "lowerLift" ? "Lower-body demo" : "Upper-body demo",
   }));
-  const selected = getSelectedLibraryDemo();
+
+  const selectedIndex = Math.min(Math.max(0, state.session.librarySelectedDemo || 0), Math.max(0, demos.length - 1));
+  state.session.librarySelectedDemo = selectedIndex;
+  const selected = demos[selectedIndex] || demos[0];
 
   if (selected) {
     if (els.libraryDemoTitle) els.libraryDemoTitle.textContent = selected.title;
-    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = selected.statusLabel;
+    if (els.libraryDemoStatus) els.libraryDemoStatus.textContent = `${demos.length} demos ready`;
     if (els.libraryDemoPlayer) {
       els.libraryDemoPlayer.src = selected.videoPath || "";
       els.libraryDemoPlayer.poster = "";
+      els.libraryDemoPlayer.load();
     }
     if (els.libraryDemoCopy) els.libraryDemoCopy.textContent = selected.summary;
     if (els.libraryDemoFocus) els.libraryDemoFocus.textContent = `${selected.focus} focus`;
@@ -1794,20 +1844,52 @@ function renderAllDemos() {
   }
 
   if (!els.allDemoList) return;
-  els.allDemoList.innerHTML = demos
-    .map((item, index) => `
-      <article class="demo-card ${index === state.session.librarySelectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
-        <div class="demo-card-top">
-          <span class="demo-card-kicker">${item.focus}</span>
-          <span class="demo-card-status">${item.statusLabel}</span>
+  const groupedDemos = demos.reduce((groups, item, index) => {
+    const key = item.focus || "Other";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ ...item, catalogIndex: index });
+    return groups;
+  }, {});
+
+  const focusOrder = ["Ankles", "Shoulders", "Grip", "Hips", "Core", "Quadriceps"];
+  const orderedGroups = Object.keys(groupedDemos)
+    .sort((a, b) => {
+      const aIndex = focusOrder.indexOf(a);
+      const bIndex = focusOrder.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+
+  els.allDemoList.innerHTML = orderedGroups
+    .map((focus) => `
+      <section class="demo-library-group">
+        <div class="demo-library-group-head">
+          <div>
+            <strong>${focus}</strong>
+            <p>${DEMO_LIBRARY_GROUP_SUMMARIES[focus] || "Exercise demos matched from the assets library."}</p>
+          </div>
+          <span class="demo-chip">${groupedDemos[focus].length} demos</span>
         </div>
-        <strong>${item.title}</strong>
-        <p>${item.summary}</p>
-        <div class="demo-card-tags">
-          <span class="demo-chip">${item.targetLabel}</span>
-          <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+        <div class="demo-library-group-grid">
+          ${groupedDemos[focus].map((item) => `
+            <article class="demo-card ${item.catalogIndex === selectedIndex ? "is-selected" : ""}" data-demo-index="${item.catalogIndex}">
+              <div class="demo-card-top">
+                <span class="demo-card-kicker">${item.focus}</span>
+                <span class="demo-card-status">${item.statusLabel}</span>
+              </div>
+              <strong>${item.title}</strong>
+              <p>${item.summary}</p>
+              <p class="demo-card-tip">Helpful Tip: ${item.cue}</p>
+              <div class="demo-card-tags">
+                <span class="demo-chip">${item.targetLabel}</span>
+                <span class="demo-chip">${String(item.videoPath || "").split("/").pop() || "MP4"}</span>
+              </div>
+            </article>
+          `).join("")}
         </div>
-      </article>
+      </section>
     `)
     .join("");
 
@@ -1821,103 +1903,524 @@ function renderAllDemos() {
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
-  if (!els.demoPreviewCard || !els.demoPreviewFigure || !els.demoMatchPill || !els.demoPreviewCopy) return;
-
-  const movementPattern = selectedDemo?.movementPattern || "upperHold";
-  const focus = selectedDemo?.focus || getSelectedFocus();
-  const matchState = state.session.exerciseMatchState || "idle";
-  const isForwardPress = movementPattern === "upperHold" && focus !== "Shoulders";
-
-  els.demoPreviewCard.dataset.matchState = matchState;
-  els.demoPreviewFigure.innerHTML = buildDemoPreviewFigureMarkup({
-    movementPattern,
-    isForwardPress,
-  });
-
-  const matchLabels = {
-    idle: "Waiting",
-    searching: "Align body",
-    off: "Not matched",
-    close: "Close enough",
-    matched: "On target",
-  };
-  const previewCopy = {
-    idle: "Start the demo or session and match the figure loosely to light it up.",
-    searching: "Bring your full body back into frame so the demo figure can react.",
-    off: "Move toward the figure. The match area is intentionally forgiving.",
-    close: "You are close. Tighten the shape slightly to lock the hold.",
-    matched: "Good match. Stay there and hold to keep time under tension counting.",
-  };
-
-  els.demoMatchPill.textContent = matchLabels[matchState] || "Waiting";
-  els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
+  return selectedDemo;
 }
 
-function buildDemoPreviewFigureMarkup({ movementPattern, isForwardPress }) {
-  if (movementPattern === "lowerLift") {
-    return `
-      <svg viewBox="0 0 160 180" role="presentation">
-        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-        <path class="figure-line" d="M80 26 L80 56"></path>
-        <path class="figure-line" d="M80 56 L80 96"></path>
-        <path class="figure-line" d="M80 56 L53 84"></path>
-        <path class="figure-line" d="M80 56 L107 84"></path>
-        <path class="figure-line" d="M80 96 L58 132"></path>
-        <path class="figure-line" d="M58 132 L54 160"></path>
-        <path class="figure-line" d="M80 96 L108 116"></path>
-        <path class="figure-line" d="M108 116 L126 96"></path>
-        <circle class="figure-joint" cx="80" cy="19" r="10"></circle>
-        <circle class="figure-joint" cx="53" cy="84" r="5"></circle>
-        <circle class="figure-joint" cx="107" cy="84" r="5"></circle>
-        <circle class="figure-joint" cx="58" cy="132" r="5"></circle>
-        <circle class="figure-joint" cx="108" cy="116" r="5"></circle>
-      </svg>
-    `;
-  }
+function getDemoDisplayLabel(demo) {
+  return demo?.demoTitle || demo?.title || "Current exercise";
+}
 
-  if (isForwardPress) {
-    return `
-      <svg viewBox="0 0 160 180" role="presentation">
-        <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-        <path class="figure-line" d="M80 24 L80 56"></path>
-        <path class="figure-line" d="M80 56 L80 100"></path>
-        <path class="figure-line" d="M80 60 L62 80"></path>
-        <path class="figure-line" d="M62 80 L70 95"></path>
-        <path class="figure-line" d="M80 60 L98 80"></path>
-        <path class="figure-line" d="M98 80 L90 95"></path>
-        <path class="figure-line" d="M80 100 L62 140"></path>
-        <path class="figure-line" d="M62 140 L58 160"></path>
-        <path class="figure-line" d="M80 100 L98 140"></path>
-        <path class="figure-line" d="M98 140 L102 160"></path>
-        <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
-        <circle class="figure-joint" cx="62" cy="80" r="5"></circle>
-        <circle class="figure-joint" cx="98" cy="80" r="5"></circle>
-        <circle class="figure-joint" cx="70" cy="95" r="5"></circle>
-        <circle class="figure-joint" cx="90" cy="95" r="5"></circle>
-      </svg>
-    `;
-  }
+function getDemoPoseVariant(demo) {
+  if (demo?.poseVariant) return demo.poseVariant;
+  const label = `${demo?.demoTitle || ""} ${demo?.title || ""}`.toLowerCase();
+
+  if (label.includes("ankle eversion")) return "ankleEversion";
+  if (label.includes("ankle inversion")) return "ankleInversion";
+  if (label.includes("foot dorsiflexion")) return "dorsiflexion";
+  if (label.includes("wall calf stretch")) return "tibialisWall";
+  if (label.includes("calf raise")) return "calfRaise";
+  if (label.includes("wall sits")) return "wallSit";
+  if (label.includes("wall supported lunge")) return "supportedLunge";
+  if (label.includes("glute bridge")) return "gluteBridge";
+  if (label.includes("hamstring")) return "hamstringPress";
+  if (label.includes("cat cow")) return "catCow";
+  if (label.includes("hollow body")) return "hollowBody";
+  if (label.includes("wall slides")) return "wallSlide";
+  if (label.includes("lateral deltoid")) return "lateralDeltoid";
+  if (label.includes("anterior deltoid")) return "anteriorDeltoid";
+  if (label.includes("bicep")) return "bicepCurl";
+  if (label.includes("door pull")) return "doorPull";
+  if (label.includes("rotator cuff")) return "internalRotation";
+  if (label.includes("shrug")) return "shrug";
+  if (label.includes("tricep kickback")) return "tricepKickback";
+  if (label.includes("ball grip")) return "ballGrip";
+  if (label.includes("forearm flexion")) return "forearmFlexion";
+  if (label.includes("pecs")) return "pecPress";
+  if (demo?.movementPattern === "lowerLift") return "calfRaise";
+  if (demo?.focus === "Shoulders") return "lateralDeltoid";
+  return "ballGrip";
+}
+
+function buildDemoPreviewFigureMarkup({ poseVariant }) {
+  const template = getDemoPoseTemplate(poseVariant);
+  const points = template.points || {};
+  const shadow = template.shadow === false
+    ? ""
+    : `<ellipse class="figure-shadow" cx="${template.shadow?.cx ?? 80}" cy="${template.shadow?.cy ?? 167}" rx="${template.shadow?.rx ?? 42}" ry="${template.shadow?.ry ?? 10}"></ellipse>`;
+  const lineMarkup = (template.connections || DEMO_PREVIEW_CONNECTIONS)
+    .map(([from, to]) => {
+      const start = points[from];
+      const end = points[to];
+      if (!start || !end) return "";
+      return `<path class="figure-line" d="M${start.x} ${start.y} L${end.x} ${end.y}"></path>`;
+    })
+    .join("");
+  const jointMarkup = (template.joints || DEMO_PREVIEW_JOINTS)
+    .map((name) => {
+      const point = points[name];
+      if (!point) return "";
+      return `<circle class="figure-joint" cx="${point.x}" cy="${point.y}" r="${name.includes("Shoulder") || name.includes("Hip") ? 5.5 : 4.5}"></circle>`;
+    })
+    .join("");
+  const headMarkup = points.head
+    ? `<circle class="figure-joint" cx="${points.head.x}" cy="${points.head.y}" r="${template.headRadius ?? 10}"></circle>`
+    : "";
 
   return `
-    <svg viewBox="0 0 160 180" role="presentation">
-      <ellipse class="figure-shadow" cx="80" cy="167" rx="42" ry="10"></ellipse>
-      <path class="figure-line" d="M80 24 L80 56"></path>
-      <path class="figure-line" d="M80 56 L80 102"></path>
-      <path class="figure-line" d="M80 58 L38 58"></path>
-      <path class="figure-line" d="M38 58 L20 58"></path>
-      <path class="figure-line" d="M80 58 L122 58"></path>
-      <path class="figure-line" d="M122 58 L140 58"></path>
-      <path class="figure-line" d="M80 102 L62 142"></path>
-      <path class="figure-line" d="M62 142 L58 160"></path>
-      <path class="figure-line" d="M80 102 L98 142"></path>
-      <path class="figure-line" d="M98 142 L102 160"></path>
-      <circle class="figure-joint" cx="80" cy="18" r="10"></circle>
-      <circle class="figure-joint" cx="38" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="122" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="20" cy="58" r="5"></circle>
-      <circle class="figure-joint" cx="140" cy="58" r="5"></circle>
+    <svg viewBox="${template.viewBox || "0 0 160 180"}" role="presentation">
+      ${template.backdrop || ""}
+      ${shadow}
+      ${lineMarkup}
+      ${jointMarkup}
+      ${headMarkup}
     </svg>
   `;
+}
+
+const DEMO_PREVIEW_CONNECTIONS = [
+  ["neck", "leftShoulder"],
+  ["neck", "rightShoulder"],
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["leftElbow", "leftWrist"],
+  ["rightShoulder", "rightElbow"],
+  ["rightElbow", "rightWrist"],
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["leftKnee", "leftAnkle"],
+  ["rightHip", "rightKnee"],
+  ["rightKnee", "rightAnkle"],
+];
+
+const DEMO_PREVIEW_JOINTS = [
+  "leftShoulder",
+  "rightShoulder",
+  "leftElbow",
+  "rightElbow",
+  "leftWrist",
+  "rightWrist",
+  "leftHip",
+  "rightHip",
+  "leftKnee",
+  "rightKnee",
+  "leftAnkle",
+  "rightAnkle",
+];
+
+function buildStandingPose(overrides = {}, options = {}) {
+  const base = {
+    head: { x: 80, y: 20 },
+    neck: { x: 80, y: 38 },
+    leftShoulder: { x: 58, y: 52 },
+    rightShoulder: { x: 102, y: 52 },
+    leftElbow: { x: 44, y: 78 },
+    rightElbow: { x: 116, y: 78 },
+    leftWrist: { x: 36, y: 100 },
+    rightWrist: { x: 124, y: 100 },
+    leftHip: { x: 68, y: 98 },
+    rightHip: { x: 92, y: 98 },
+    leftKnee: { x: 64, y: 136 },
+    rightKnee: { x: 96, y: 136 },
+    leftAnkle: { x: 60, y: 160 },
+    rightAnkle: { x: 100, y: 160 },
+  };
+
+  return {
+    viewBox: "0 0 160 180",
+    shadow: { cx: 80, cy: 168, rx: 44, ry: 10 },
+    points: mergePosePoints(base, overrides),
+    ...options,
+  };
+}
+
+function buildFloorPose(overrides = {}, options = {}) {
+  const base = {
+    head: { x: 48, y: 116 },
+    neck: { x: 60, y: 114 },
+    leftShoulder: { x: 74, y: 112 },
+    rightShoulder: { x: 82, y: 112 },
+    leftElbow: { x: 58, y: 126 },
+    rightElbow: { x: 90, y: 126 },
+    leftWrist: { x: 46, y: 142 },
+    rightWrist: { x: 102, y: 142 },
+    leftHip: { x: 92, y: 114 },
+    rightHip: { x: 100, y: 114 },
+    leftKnee: { x: 116, y: 124 },
+    rightKnee: { x: 126, y: 124 },
+    leftAnkle: { x: 138, y: 136 },
+    rightAnkle: { x: 146, y: 136 },
+  };
+
+  return {
+    viewBox: "0 0 160 180",
+    shadow: false,
+    backdrop: `<path class="figure-line" style="opacity:0.14" d="M22 150 L138 150"></path>`,
+    points: mergePosePoints(base, overrides),
+    ...options,
+  };
+}
+
+const GUIDE_DRIVEN_ISOMETRIC_VARIANTS = new Set([
+  "anteriorDeltoid",
+  "ballGrip",
+  "bicepCurl",
+  "lateralDeltoid",
+  "tricepKickback",
+  "frontRaise",
+  "curlHold",
+  "lateralRaise",
+  "wallSlide",
+  "doorPull",
+  "internalRotation",
+  "shrug",
+  "kickback",
+  "gripHold",
+  "forearmFlexion",
+  "pecPress",
+]);
+
+function mergePosePoints(base, overrides) {
+  const merged = { ...base };
+  Object.entries(overrides || {}).forEach(([key, value]) => {
+    merged[key] = { ...(base[key] || {}), ...(value || {}) };
+  });
+  return merged;
+}
+
+function getDemoPoseTemplate(poseVariant) {
+  switch (poseVariant) {
+    case "ankleEversion":
+      return buildStandingPose({
+        rightHip: { x: 94, y: 98 },
+        rightKnee: { x: 104, y: 136 },
+        rightAnkle: { x: 116, y: 158 },
+      });
+    case "ankleInversion":
+      return buildStandingPose({
+        rightHip: { x: 90, y: 98 },
+        rightKnee: { x: 92, y: 136 },
+        rightAnkle: { x: 84, y: 158 },
+      });
+    case "dorsiflexion":
+      return buildStandingPose({
+        rightKnee: { x: 100, y: 134 },
+        rightAnkle: { x: 104, y: 156 },
+        leftElbow: { x: 42, y: 82 },
+        rightElbow: { x: 118, y: 82 },
+      });
+    case "tibialisWall":
+      return buildStandingPose({
+        leftHip: { x: 70, y: 98 },
+        rightHip: { x: 92, y: 96 },
+        leftKnee: { x: 66, y: 132 },
+        rightKnee: { x: 106, y: 126 },
+        leftAnkle: { x: 62, y: 158 },
+        rightAnkle: { x: 118, y: 154 },
+        leftWrist: { x: 32, y: 98 },
+        rightWrist: { x: 128, y: 98 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M136 22 L136 156"></path>`,
+      });
+    case "calfRaise":
+      return buildStandingPose({
+        leftElbow: { x: 48, y: 82 },
+        rightElbow: { x: 112, y: 82 },
+        leftWrist: { x: 40, y: 102 },
+        rightWrist: { x: 120, y: 102 },
+        leftAnkle: { x: 62, y: 154 },
+        rightAnkle: { x: 98, y: 154 },
+      });
+    case "wallSit":
+      return buildStandingPose({
+        head: { x: 88, y: 22 },
+        neck: { x: 88, y: 40 },
+        leftShoulder: { x: 72, y: 54 },
+        rightShoulder: { x: 104, y: 54 },
+        leftElbow: { x: 60, y: 82 },
+        rightElbow: { x: 114, y: 82 },
+        leftWrist: { x: 56, y: 104 },
+        rightWrist: { x: 118, y: 104 },
+        leftHip: { x: 74, y: 106 },
+        rightHip: { x: 96, y: 106 },
+        leftKnee: { x: 106, y: 106 },
+        rightKnee: { x: 122, y: 106 },
+        leftAnkle: { x: 106, y: 142 },
+        rightAnkle: { x: 122, y: 142 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M128 18 L128 150"></path>`,
+      });
+    case "supportedLunge":
+    case "lunge":
+      return buildStandingPose({
+        leftHip: { x: 70, y: 98 },
+        rightHip: { x: 92, y: 96 },
+        leftKnee: { x: 66, y: 136 },
+        rightKnee: { x: 108, y: 126 },
+        leftAnkle: { x: 62, y: 160 },
+        rightAnkle: { x: 120, y: 156 },
+        leftWrist: { x: 36, y: 96 },
+        rightWrist: { x: 124, y: 96 },
+      }, poseVariant === "supportedLunge"
+        ? {
+          backdrop: `<path class="figure-line" style="opacity:0.14" d="M22 24 L22 156"></path>`,
+        }
+        : undefined);
+    case "gluteBridge":
+    case "bridge":
+      return buildFloorPose({
+        head: { x: 42, y: 118 },
+        neck: { x: 56, y: 114 },
+        leftShoulder: { x: 70, y: 112 },
+        rightShoulder: { x: 78, y: 114 },
+        leftElbow: { x: 56, y: 128 },
+        rightElbow: { x: 88, y: 128 },
+        leftWrist: { x: 44, y: 144 },
+        rightWrist: { x: 98, y: 144 },
+        leftHip: { x: 92, y: 92 },
+        rightHip: { x: 102, y: 92 },
+        leftKnee: { x: 118, y: 108 },
+        rightKnee: { x: 128, y: 110 },
+        leftAnkle: { x: 128, y: 144 },
+        rightAnkle: { x: 138, y: 146 },
+      });
+    case "hamstringPress":
+      return buildFloorPose({
+        head: { x: 42, y: 120 },
+        neck: { x: 56, y: 116 },
+        leftShoulder: { x: 70, y: 114 },
+        rightShoulder: { x: 78, y: 116 },
+        leftElbow: { x: 56, y: 130 },
+        rightElbow: { x: 88, y: 130 },
+        leftWrist: { x: 44, y: 146 },
+        rightWrist: { x: 98, y: 146 },
+        leftHip: { x: 90, y: 108 },
+        rightHip: { x: 100, y: 108 },
+        leftKnee: { x: 112, y: 118 },
+        rightKnee: { x: 122, y: 118 },
+        leftAnkle: { x: 112, y: 146 },
+        rightAnkle: { x: 122, y: 146 },
+      });
+    case "catCow":
+      return buildFloorPose({
+        head: { x: 120, y: 78 },
+        neck: { x: 104, y: 82 },
+        leftShoulder: { x: 88, y: 84 },
+        rightShoulder: { x: 100, y: 88 },
+        leftElbow: { x: 72, y: 104 },
+        rightElbow: { x: 86, y: 108 },
+        leftWrist: { x: 58, y: 124 },
+        rightWrist: { x: 74, y: 128 },
+        leftHip: { x: 76, y: 104 },
+        rightHip: { x: 90, y: 106 },
+        leftKnee: { x: 60, y: 134 },
+        rightKnee: { x: 76, y: 138 },
+        leftAnkle: { x: 52, y: 158 },
+        rightAnkle: { x: 68, y: 162 },
+      });
+    case "hollowBody":
+      return buildFloorPose({
+        head: { x: 44, y: 118 },
+        neck: { x: 58, y: 114 },
+        leftShoulder: { x: 74, y: 110 },
+        rightShoulder: { x: 82, y: 110 },
+        leftElbow: { x: 94, y: 100 },
+        rightElbow: { x: 102, y: 98 },
+        leftWrist: { x: 116, y: 90 },
+        rightWrist: { x: 126, y: 86 },
+        leftHip: { x: 92, y: 118 },
+        rightHip: { x: 100, y: 118 },
+        leftKnee: { x: 116, y: 124 },
+        rightKnee: { x: 126, y: 122 },
+        leftAnkle: { x: 138, y: 132 },
+        rightAnkle: { x: 146, y: 130 },
+      });
+    case "wallSlide":
+      return buildStandingPose({
+        leftElbow: { x: 50, y: 58 },
+        rightElbow: { x: 110, y: 58 },
+        leftWrist: { x: 48, y: 30 },
+        rightWrist: { x: 112, y: 30 },
+      }, {
+        backdrop: `<path class="figure-line" style="opacity:0.14" d="M132 20 L132 154"></path>`,
+      });
+    case "anteriorDeltoid":
+    case "frontRaise":
+      return buildStandingPose({
+        leftElbow: { x: 70, y: 74 },
+        rightElbow: { x: 90, y: 74 },
+        leftWrist: { x: 68, y: 42 },
+        rightWrist: { x: 92, y: 42 },
+      });
+    case "bicepCurl":
+    case "curlHold":
+      return buildStandingPose({
+        leftElbow: { x: 64, y: 86 },
+        rightElbow: { x: 96, y: 86 },
+        leftWrist: { x: 58, y: 56 },
+        rightWrist: { x: 102, y: 56 },
+      });
+    case "doorPull":
+      return buildStandingPose({
+        leftElbow: { x: 48, y: 76 },
+        rightElbow: { x: 112, y: 76 },
+        leftWrist: { x: 40, y: 98 },
+        rightWrist: { x: 120, y: 98 },
+      });
+    case "internalRotation":
+      return buildStandingPose({
+        leftElbow: { x: 66, y: 82 },
+        rightElbow: { x: 94, y: 82 },
+        leftWrist: { x: 74, y: 104 },
+        rightWrist: { x: 86, y: 104 },
+      });
+    case "shrug":
+      return buildStandingPose({
+        neck: { x: 80, y: 34 },
+        leftShoulder: { x: 58, y: 46 },
+        rightShoulder: { x: 102, y: 46 },
+      });
+    case "tricepKickback":
+    case "kickback":
+      return buildStandingPose({
+        head: { x: 92, y: 22 },
+        neck: { x: 86, y: 40 },
+        leftShoulder: { x: 70, y: 56 },
+        rightShoulder: { x: 92, y: 58 },
+        leftElbow: { x: 100, y: 74 },
+        rightElbow: { x: 116, y: 76 },
+        leftWrist: { x: 126, y: 68 },
+        rightWrist: { x: 140, y: 70 },
+        leftHip: { x: 74, y: 96 },
+        rightHip: { x: 96, y: 98 },
+        leftKnee: { x: 70, y: 136 },
+        rightKnee: { x: 98, y: 138 },
+        leftAnkle: { x: 66, y: 160 },
+        rightAnkle: { x: 100, y: 162 },
+      });
+    case "ballGrip":
+    case "gripHold":
+      return buildStandingPose({
+        leftElbow: { x: 66, y: 78 },
+        rightElbow: { x: 94, y: 78 },
+        leftWrist: { x: 70, y: 64 },
+        rightWrist: { x: 90, y: 64 },
+      });
+    case "forearmFlexion":
+      return buildStandingPose({
+        leftElbow: { x: 66, y: 80 },
+        rightElbow: { x: 94, y: 80 },
+        leftWrist: { x: 62, y: 66 },
+        rightWrist: { x: 98, y: 66 },
+      });
+    case "pecPress":
+      return buildStandingPose({
+        leftElbow: { x: 62, y: 70 },
+        rightElbow: { x: 98, y: 70 },
+        leftWrist: { x: 50, y: 60 },
+        rightWrist: { x: 110, y: 60 },
+      });
+    case "lateralDeltoid":
+    case "lateralRaise":
+    default:
+      return buildStandingPose({
+        leftElbow: { x: 40, y: 58 },
+        rightElbow: { x: 120, y: 58 },
+        leftWrist: { x: 22, y: 58 },
+        rightWrist: { x: 138, y: 58 },
+      });
+  }
+}
+
+function buildExercisePoseGuideFromBaseline(selectedDemo, baseline, landmarks) {
+  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
+  if (!baseline || !GUIDE_DRIVEN_ISOMETRIC_VARIANTS.has(poseVariant)) return null;
+
+  const template = getDemoPoseTemplate(poseVariant)?.points;
+  const reference = buildStandingPose().points;
+  if (!template || !reference || !baseline.leftShoulder || !baseline.rightShoulder || !baseline.leftHip || !baseline.rightHip) {
+    return null;
+  }
+
+  const liveLeftShoulder = landmarks?.[11];
+  const liveRightShoulder = landmarks?.[12];
+  const liveLeftHip = landmarks?.[23];
+  const liveRightHip = landmarks?.[24];
+  const hasLiveUpperAnchor = hasReliablePoint(liveLeftShoulder, 0.28) && hasReliablePoint(liveRightShoulder, 0.28);
+  const hasLiveLowerAnchor = hasReliablePoint(liveLeftHip, 0.24) && hasReliablePoint(liveRightHip, 0.24);
+
+  const baselineShoulderCenter = {
+    x: average(baseline.leftShoulder.x, baseline.rightShoulder.x),
+    y: average(baseline.leftShoulder.y, baseline.rightShoulder.y),
+  };
+  const baselineHipCenter = {
+    x: average(baseline.leftHip.x, baseline.rightHip.x),
+    y: average(baseline.leftHip.y, baseline.rightHip.y),
+  };
+  const currentShoulderCenter = hasLiveUpperAnchor
+    ? { x: average(liveLeftShoulder.x, liveRightShoulder.x), y: average(liveLeftShoulder.y, liveRightShoulder.y) }
+    : baselineShoulderCenter;
+  const currentHipCenter = hasLiveLowerAnchor
+    ? { x: average(liveLeftHip.x, liveRightHip.x), y: average(liveLeftHip.y, liveRightHip.y) }
+    : baselineHipCenter;
+  const offsetX = average(currentShoulderCenter.x - baselineShoulderCenter.x, currentHipCenter.x - baselineHipCenter.x);
+  const offsetY = average(currentShoulderCenter.y - baselineShoulderCenter.y, currentHipCenter.y - baselineHipCenter.y);
+
+  const liveShoulderWidth = hasLiveUpperAnchor
+    ? Math.max(0.09, distance(liveLeftShoulder, liveRightShoulder))
+    : Math.max(0.09, distance(baseline.leftShoulder, baseline.rightShoulder));
+  const baselineTorsoHeight = Math.max(0.12, baselineHipCenter.y - baselineShoulderCenter.y);
+  const liveTorsoHeight = hasLiveLowerAnchor
+    ? Math.max(0.12, currentHipCenter.y - currentShoulderCenter.y)
+    : baselineTorsoHeight;
+  const referenceShoulderWidth = Math.max(1, distance(reference.leftShoulder, reference.rightShoulder));
+  const referenceTorsoHeight = Math.max(1, average(reference.leftHip.y, reference.rightHip.y) - average(reference.leftShoulder.y, reference.rightShoulder.y));
+
+  const points = {};
+  Object.entries(template).forEach(([name, point]) => {
+    const baselinePoint = baseline[name];
+    const referencePoint = reference[name] || point;
+    if (!baselinePoint) return;
+
+    const deltaX = ((point.x - referencePoint.x) / referenceShoulderWidth) * liveShoulderWidth;
+    const deltaY = ((point.y - referencePoint.y) / referenceTorsoHeight) * liveTorsoHeight;
+    points[name] = {
+      x: baselinePoint.x + offsetX + deltaX,
+      y: baselinePoint.y + offsetY + deltaY,
+    };
+  });
+
+  return {
+    points,
+    emphasis: ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
+  };
+}
+
+function getGuideDrivenIsometricPairs(poseVariant, landmarks, guidePoints) {
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftElbow = landmarks[13];
+  const rightElbow = landmarks[14];
+  const leftWrist = landmarks[15];
+  const rightWrist = landmarks[16];
+  const pairs = [];
+
+  if (poseVariant === "shrug") {
+    pairs.push(
+      [leftShoulder, guidePoints?.leftShoulder],
+      [rightShoulder, guidePoints?.rightShoulder]
+    );
+  }
+
+  pairs.push(
+    [leftElbow, guidePoints?.leftElbow],
+    [rightElbow, guidePoints?.rightElbow],
+    [leftWrist, guidePoints?.leftWrist],
+    [rightWrist, guidePoints?.rightWrist]
+  );
+
+  return pairs;
 }
 
 function openCameraPermissionModal() {
@@ -1980,6 +2483,8 @@ async function requestCameraAccess() {
     return;
   }
 
+  let cameraStarted = false;
+
   try {
     setFeedback("Waiting for camera permission...");
     if (els.cameraPermissionTitle) {
@@ -1992,26 +2497,76 @@ async function requestCameraAccess() {
       els.cameraPermissionContinue.disabled = true;
       els.cameraPermissionContinue.textContent = "Waiting...";
     }
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false,
-    });
+    const videoProfiles = [
+      {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      {
+        facingMode: "user",
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
+    ];
+    let lastError;
+
+    for (const video of videoProfiles) {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!mediaStream) {
+      throw lastError || new Error("Camera access unavailable");
+    }
 
     els.camera.srcObject = mediaStream;
     await els.camera.play();
+    cameraStarted = true;
+    closeCameraPermissionModal();
     resetCalibrationSequenceForCameraStart();
     state.session.cameraReady = true;
-    await ensurePoseTracking();
-    scheduleCalibrationStepDelay();
-    setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
+    state.session.trackingStatus = "Camera live";
     renderSession();
     renderControlStates();
-    renderCalibration();
-    renderWorkflow();
-    startMotionAnalysis();
-    closeCameraPermissionModal();
-    persistState();
+
+    try {
+      await ensurePoseTracking();
+      scheduleCalibrationStepDelay();
+      setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
+      renderCalibration();
+      renderWorkflow();
+      startMotionAnalysis();
+      persistState();
+    } catch (setupError) {
+      state.session.trackingStatus = "Camera live";
+      closeCameraPermissionModal();
+      renderSession();
+      renderControlStates();
+      renderCalibration();
+      renderWorkflow();
+      persistState();
+      setFeedback("Camera is on. Tracking setup needs a moment, but permission is already granted.");
+      console.error(setupError);
+    }
   } catch (error) {
+    if (cameraStarted || state.session.cameraReady) {
+      closeCameraPermissionModal();
+      state.session.trackingStatus = "Camera live";
+      renderSession();
+      renderControlStates();
+      renderCalibration();
+      renderWorkflow();
+      persistState();
+      setFeedback("Camera is on. Permission is already granted.");
+      console.error(error);
+      return;
+    }
+
     if (els.cameraPermissionModal) {
       els.cameraPermissionModal.classList.remove("hidden");
       els.cameraPermissionModal.setAttribute("aria-hidden", "false");
@@ -2068,7 +2623,7 @@ function handlePoseResults(results) {
 
   if (!results.poseLandmarks?.length) {
     state.session.trackedJoints = 0;
-    state.session.trackingStatus = state.session.cameraReady ? "Searching" : "Tracking off";
+    state.session.trackingStatus = state.session.cameraReady ? "Camera live • step into frame" : "Tracking off";
     state.session.trackingQuality = 0;
     updateExerciseMatchState(null);
     renderDemoPreview();
@@ -2362,16 +2917,16 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
 
 function buildHeelRaiseGuideFromBaseline(baseline, activeSideOrLandmarks = "right") {
   const ankleLift = Math.max(
-    0.012,
-    average(distance(baseline.leftKnee, baseline.leftAnkle), distance(baseline.rightKnee, baseline.rightAnkle)) * 0.08
+    0.01,
+    average(distance(baseline.leftKnee, baseline.leftAnkle), distance(baseline.rightKnee, baseline.rightAnkle)) * 0.065
   );
   const heelLift = Math.max(
-    0.024,
-    average(distance(baseline.leftAnkle, baseline.leftHeel), distance(baseline.rightAnkle, baseline.rightHeel)) * 0.85
+    0.02,
+    average(distance(baseline.leftAnkle, baseline.leftHeel), distance(baseline.rightAnkle, baseline.rightHeel)) * 0.72
   );
   const footLift = Math.max(
-    0.018,
-    average(distance(baseline.leftHeel, baseline.leftFootIndex), distance(baseline.rightHeel, baseline.rightFootIndex)) * 0.72
+    0.014,
+    average(distance(baseline.leftHeel, baseline.leftFootIndex), distance(baseline.rightHeel, baseline.rightFootIndex)) * 0.58
   );
   const activeSide = resolveHeelRaiseGuideSide(baseline, activeSideOrLandmarks);
   const points = {
@@ -2702,19 +3257,19 @@ function updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now
 
 function getSteadyCalibrationScoreThreshold(stepKey) {
   if (stepKey === "arms") return 0.36;
-  if (stepKey === "knee") return 0.34;
+  if (stepKey === "knee") return 0.3;
   return 0.55;
 }
 
 function getSteadyCalibrationCaptureMs(stepKey) {
   if (stepKey === "arms") return 3000;
-  if (stepKey === "knee") return 2800;
+  if (stepKey === "knee") return 2400;
   return AUTO_CALIBRATION_STEADY_CAPTURE_MS;
 }
 
 function getSteadyCalibrationMovementThreshold(stepKey) {
   if (stepKey === "arms") return 0.028;
-  if (stepKey === "knee") return 0.026;
+  if (stepKey === "knee") return 0.03;
   return AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD;
 }
 
@@ -2928,8 +3483,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       getLiftDelta(baseline.rightAnkle, rightAnkle) * 1.15
     );
     const bestLift = Math.max(leftLift, rightLift);
-    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
-    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.1;
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.11;
+    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.11;
     const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
     const lowerBodyScale = Math.max(
       0.12,
@@ -2945,13 +3500,13 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       [rightHeel, rightHeelRaiseGuide?.rightHeel],
       [landmarks[32], rightHeelRaiseGuide?.rightFootIndex],
     ], lowerBodyScale);
-    const leftHeelReady = leftGuideOffset < 0.34 || leftLift > 0.014;
-    const rightHeelReady = rightGuideOffset < 0.34 || rightLift > 0.014;
+    const leftHeelReady = leftGuideOffset < 0.4 || leftLift > 0.011;
+    const rightHeelReady = rightGuideOffset < 0.4 || rightLift > 0.011;
     const heelGuideReady = leftHeelReady || rightHeelReady;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: heelGuideReady || bestLift > 0.014,
+        pass: heelGuideReady || bestLift > 0.011,
         hint: "Lift either heel toward the bright outline.",
         shortHint: "Lift either heel",
       },
@@ -3105,6 +3660,7 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
 
   const movementPattern = selectedDemo?.movementPattern || "upperHold";
   const focus = selectedDemo?.focus || getSelectedFocus();
+  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
   const leftShoulder = landmarks[11];
   const rightShoulder = landmarks[12];
   const leftWrist = landmarks[15];
@@ -3203,6 +3759,32 @@ function getExerciseMatchAssessment(landmarks, selectedDemo = getSelectedDemo(),
   const wristsNearShoulderLine =
     Math.abs(leftWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24 &&
     Math.abs(rightWrist.y - average(leftShoulder.y, rightShoulder.y)) < 0.24;
+  const exerciseGuide = buildExercisePoseGuideFromBaseline(selectedDemo, baseline, landmarks)?.points;
+
+  if (exerciseGuide && GUIDE_DRIVEN_ISOMETRIC_VARIANTS.has(poseVariant)) {
+    const guideOffset = getMeanNormalizedGuideOffset(
+      getGuideDrivenIsometricPairs(poseVariant, landmarks, exerciseGuide),
+      shoulderWidth
+    );
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.3;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.3;
+    const symmetryReady = poseVariant === "tricepKickback"
+      || poseVariant === "kickback"
+      || poseVariant === "doorPull"
+      || poseVariant === "internalRotation"
+      ? elbowsMatched || wristsMatched
+      : wristsMatched || elbowsMatched;
+    const close = shouldersLevel && (guideOffset < 0.92 || symmetryReady);
+    const active = shouldersLevel && (guideOffset < 0.68 || (guideOffset < 0.78 && symmetryReady));
+    const score = Math.max(0, Math.min(1, (0.98 - Math.min(guideOffset, 0.98)) / 0.98));
+
+    return {
+      state: active ? "matched" : close ? "close" : "off",
+      score,
+      close,
+      active,
+    };
+  }
 
   if (focus === "Shoulders") {
     const armGuide = buildArmsGuideFromBaseline(baseline, landmarks)?.points;
@@ -3456,14 +4038,14 @@ function completeSession() {
     patientName: "Demo User",
     fatigue: 5,
     energy: "variable",
-    rewardRate: 0.18,
-    programValue: DEFAULT_PROGRAM_VALUE,
+    rewardRate: getMonthlyRewardRate({ weeklyReps: 24 }),
+    programValue: MONTHLY_SUBSCRIPTION_FEE,
     reimbursementSessions: DEFAULT_REIMBURSEMENT_SESSIONS,
     focuses: [getSelectedFocus()],
   };
   const preRpe = clampRpe(state.session.preRpe || 0);
   const postRpe = clampRpe(state.session.postRpe || 0);
-  const reimbursementTarget = activePlan.programValue || DEFAULT_PROGRAM_VALUE;
+  const reimbursementTarget = MONTHLY_SUBSCRIPTION_FEE;
   const remainingBalance = Math.max(0, reimbursementTarget - state.rewards.cashback);
   const monthlyRepTarget = getMonthlyRepTarget(activePlan);
   const sessionRepProgress = Math.min(1, state.session.reps / monthlyRepTarget);
@@ -3517,11 +4099,11 @@ function completeSession() {
     state.rewards.cashback + cashbackEarned
   ).toFixed(2));
   state.rewards.streak += 1;
-  state.rewards.tier = state.rewards.streak >= 6 ? "Consistency+" : state.rewards.streak >= 3 ? "Recovery Builder" : "Starter";
-  state.rewards.targetValue = reimbursementTarget;
+  state.rewards.tier = "Flat $15 plan";
+  state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
   state.session.completed = true;
 
-  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's balance.`);
+  setFeedback(`Session completed. $${cashbackEarned.toFixed(2)} earned back toward this month's $${MONTHLY_SUBSCRIPTION_FEE} subscription.`);
   renderSession();
   renderControlStates();
   renderReport();
@@ -3704,7 +4286,6 @@ function renderWorkflow() {
     updateStepChip(els.workflowStepDemo, false, false);
     updateStepChip(els.workflowStepSession, false, false);
     els.workflowTitle.textContent = "Start With Assessment";
-    els.workflowCopy.textContent = "Open Assessment first to build the prescribed exercise session.";
     els.workflowCheckPrimary.textContent = "Overview -> Assessment";
     els.workflowCheckSecondary.textContent = "Session Lab unlocks after plan creation";
     return;
@@ -3724,7 +4305,6 @@ function renderWorkflow() {
 
   if (!state.session.cameraReady) {
     els.workflowTitle.textContent = "Start Camera";
-    els.workflowCopy.textContent = "Stand full-body in frame.";
     els.workflowCheckPrimary.textContent = `${LIMB_CAPTURE_THRESHOLD}+ points`;
     els.workflowCheckSecondary.textContent = "Calibration pending";
   } else if (!state.session.calibrated) {
@@ -3734,15 +4314,6 @@ function renderWorkflow() {
       ? getCalibrationPoseAssessment(currentStep.key, latestPoseLandmarks, state.session.baseline)
       : null;
     els.workflowTitle.textContent = calibrationHoldStartedAt ? "Calibrating" : "Get Ready";
-    els.workflowCopy.textContent = currentStep
-      ? calibrationHoldStartedAt
-        ? `${currentStep.title}. Hold still to save.`
-        : stepCountdown > 0
-          ? `${currentStep.title}. Watch the countdown.`
-          : assessment?.matched
-            ? `${currentStep.title}. Hold steady to auto-save.`
-            : `${currentStep.title}. ${getCalibrationSummary(currentStep.key)}`
-      : "Capture the remaining steps.";
     els.workflowCheckPrimary.textContent = stepCountdown > 0
       ? "Countdown active"
       : calibrationHoldStartedAt
@@ -3751,24 +4322,16 @@ function renderWorkflow() {
           ? "Ready to save"
           : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
             ? "Match outline"
-            : "Step into outline";
+            : "Camera live";
     els.workflowCheckSecondary.textContent = calibrationHoldStartedAt
       ? "Auto capture running"
-      : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
+      : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
+        ? `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`
+        : "Move fully into frame for tracking";
   } else if (!state.session.demoCompleted) {
     const selectedDemo = getSelectedDemo();
     const matchState = state.session.exerciseMatchState;
-    const demoStateCopy = matchState === "matched"
-      ? "On target. Keep holding the figure."
-      : matchState === "close"
-        ? "Close enough. Tighten the shape a touch."
-        : selectedDemo?.workflowPrompt || "Match the selected demo hold.";
     els.workflowTitle.textContent = state.session.demoActive ? (selectedDemo?.title || "Demo") : "Finished Calibrating";
-    els.workflowCopy.textContent = state.session.demoActive
-      ? demoStateCopy
-      : selectedDemo
-        ? `Start the prescribed ${selectedDemo.title} demo.`
-        : "Start the guided demo.";
     els.workflowCheckPrimary.textContent = selectedDemo ? `Exercise ${(selectedDemo.sessionIndex || 0) + 1} of ${buildSessionDemoLibrary().length}` : "Calibration done";
     els.workflowCheckSecondary.textContent = state.session.demoActive
       ? `${matchState === "matched" ? "Locked" : matchState === "close" ? "Close" : "Adjust"} • Demo ${state.session.demoProgress}%`
@@ -3777,14 +4340,10 @@ function renderWorkflow() {
     const selectedDemo = getSelectedDemo();
     if (isPrescribedSessionComplete()) {
       els.workflowTitle.textContent = "Session Done";
-      els.workflowCopy.textContent = "All prescribed exercises are complete. Submit post-session RPE and finish.";
       els.workflowCheckPrimary.textContent = "Plan complete";
       els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
     } else {
       els.workflowTitle.textContent = "Ready To Work";
-      els.workflowCopy.textContent = selectedDemo
-        ? `Complete the prescribed target for ${selectedDemo.title}.`
-        : "Calibration and demo are complete.";
       els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "Calibration done";
       els.workflowCheckSecondary.textContent = `${state.session.completedExercises.length} / ${buildSessionDemoLibrary().length} exercises done`;
     }
@@ -3792,11 +4351,6 @@ function renderWorkflow() {
     const matchState = state.session.exerciseMatchState;
     const selectedDemo = getSelectedDemo();
     els.workflowTitle.textContent = "Working";
-    els.workflowCopy.textContent = matchState === "matched"
-      ? "Good match. Time under tension is counting."
-      : matchState === "close"
-        ? "Close enough. Stay with the figure to keep TUT counting."
-        : "Move back toward the figure before the hold continues.";
     els.workflowCheckPrimary.textContent = selectedDemo ? getCurrentExerciseProgressLabel(selectedDemo) : "TUT live";
     els.workflowCheckSecondary.textContent = selectedDemo
       ? `Target ${selectedDemo.repTarget} reps or ${selectedDemo.holdTarget}s`
@@ -3897,6 +4451,64 @@ function renderReportChart() {
 function renderReportHistory() {
   if (!els.reportHistory) return;
 
+  return Array.from(grouped.values())
+    .sort((a, b) => b.lastDate.localeCompare(a.lastDate))
+    .slice(0, 6)
+    .reverse()
+    .map((value) => ({
+      label: value.label,
+      timeUnderTension: value.timeUnderTension,
+      postRpe: value.rpeTotal / Math.max(1, value.count),
+    }));
+}
+
+function renderRewards() {
+  ensureRewardPeriod();
+  const activePlan = getActivePlan();
+  const targetValue = MONTHLY_SUBSCRIPTION_FEE;
+  const returned = Math.min(targetValue, state.rewards.cashback);
+  const remaining = Math.max(0, targetValue - returned);
+  const progress = Math.round((returned / targetValue) * 100);
+  const sessions = state.rewards.streak;
+  const monthlyRepTarget = getMonthlyRepTarget(activePlan);
+  const rewardRate = getMonthlyRewardRate(activePlan);
+
+  els.walletTotal.textContent = `$${returned.toFixed(2)}`;
+  els.walletStreak.textContent = `${state.rewards.streak} sessions`;
+  els.walletTier.textContent = `$${MONTHLY_SUBSCRIPTION_FEE} / month`;
+  els.walletRemaining.textContent = `$${remaining.toFixed(2)}`;
+  els.walletProgress.textContent = `${progress}%`;
+  if (els.walletTierBar) {
+    els.walletTierBar.style.width = `${progress}%`;
+  }
+  if (els.walletNextUnlock) {
+    els.walletNextUnlock.textContent = remaining > 0
+      ? `$${remaining.toFixed(2)} left to earn back`
+      : "Subscription earned back";
+  }
+  if (els.walletTierCopy) {
+    els.walletTierCopy.textContent = `One flat subscription for everyone: $${MONTHLY_SUBSCRIPTION_FEE} per month. Finish the month’s prescribed reps to make that back.`;
+  }
+  if (els.walletMonthlyGoal) {
+    els.walletMonthlyGoal.textContent = `${monthlyRepTarget} reps`;
+  }
+  if (els.walletMonthlyGoalCopy) {
+    els.walletMonthlyGoalCopy.textContent = `Each completed rep is worth about $${rewardRate.toFixed(2)} back this month.`;
+  }
+  if (els.walletSubscriptionStatus) {
+    els.walletSubscriptionStatus.textContent = remaining > 0 ? "In progress" : "Earned back";
+  }
+  if (els.walletSubscriptionSummary) {
+    els.walletSubscriptionSummary.textContent = remaining > 0
+      ? `You have earned back $${returned.toFixed(2)} of the $${MONTHLY_SUBSCRIPTION_FEE} monthly fee so far.`
+      : `You have earned back the full $${MONTHLY_SUBSCRIPTION_FEE} subscription for this month.`;
+  }
+  els.walletNote.textContent = state.rewards.streak
+    ? remaining > 0
+      ? `${state.rewards.streak} sessions completed. Keep going to earn back the full $${targetValue.toFixed(2)} this month.`
+      : `Monthly subscription fully earned back for this month.`
+    : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} subscription cost.`;
+}
   const history = Array.isArray(state.sessionHistory) ? state.sessionHistory.slice().reverse().slice(0, 6) : [];
   if (!history.length) {
     els.reportHistory.innerHTML = `<p class="report-chart-empty">Session history will appear here after the first completed session.</p>`;
@@ -3991,6 +4603,42 @@ function renderReportHistory() {
 
   const history = state.sessionHistory || [];
 
+  try {
+    const parsed = JSON.parse(raw);
+    Object.assign(state, parsed);
+    Object.assign(state.auth, parsed.auth || {});
+    Object.assign(state.session, parsed.session || {});
+    state.reportView = parsed.reportView || "daily";
+    state.sessionHistory = Array.isArray(parsed.sessionHistory) ? parsed.sessionHistory : [];
+    state.auth.mode = state.auth.mode || "signup";
+    state.auth.stage = state.auth.stage || "credentials";
+    state.auth.authenticated = Boolean(state.auth.authenticated);
+    state.auth.feedback = state.auth.feedback || "Create an account or sign in to unlock Assessment, Session Lab, Clinician, and Rewards.";
+    state.auth.pendingCode = state.auth.pendingCode || "";
+    state.auth.pendingEmail = state.auth.pendingEmail || "";
+    state.auth.pendingName = state.auth.pendingName || "";
+    state.auth.pendingPassword = state.auth.pendingPassword || "";
+    normalizePlanSubscription(state.plan);
+    state.rewards.tier = "Flat $15 plan";
+    state.rewards.targetValue = MONTHLY_SUBSCRIPTION_FEE;
+    state.rewards.periodKey = parsed.rewards?.periodKey || getRewardPeriodKey();
+    state.session.preRpe = clampRpe(state.session.preRpe);
+    state.session.postRpe = clampRpe(state.session.postRpe);
+    state.session.preRpeDraft = clampRpe(state.session.preRpeDraft ?? state.session.preRpe);
+    state.session.postRpeDraft = clampRpe(state.session.postRpeDraft ?? state.session.postRpe);
+    state.session.rpeDirty = Boolean(state.session.rpeDirty);
+    state.session.rpeStatus = state.session.rpeStatus || "Enter values and submit them.";
+    state.session.previewDemoIndex = Number(state.session.previewDemoIndex ?? state.session.selectedDemo ?? 0);
+    state.session.librarySelectedDemo = Number(state.session.librarySelectedDemo || 0);
+    state.session.exerciseReps = Number(state.session.exerciseReps || 0);
+    state.session.exerciseHoldSeconds = Number(state.session.exerciseHoldSeconds || 0);
+    state.session.exerciseTension = Number(state.session.exerciseTension || 0);
+    state.session.completedExercises = Array.isArray(state.session.completedExercises) ? state.session.completedExercises : [];
+    ensureRewardPeriod();
+    state.session.exerciseMatchState = "idle";
+    state.session.exerciseMatchScore = 0;
+  } catch (error) {
+    console.error("Unable to restore demo state", error);
   if (!history.length) {
     els.reportHistory.innerHTML = "<p>No sessions yet</p>";
     return;
