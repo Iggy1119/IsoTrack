@@ -1555,93 +1555,15 @@ h3 {
 
 .demo-preview-layout {
   display: grid;
-  grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
   margin-bottom: 1rem;
 }
 
-.demo-preview-card {
-  padding: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1.1rem;
-  background:
-    radial-gradient(circle at top, rgba(89, 220, 255, 0.1), transparent 55%),
-    rgba(8, 12, 18, 0.58);
-}
-
-.demo-preview-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.demo-preview-head .panel-label {
-  margin-bottom: 0;
-}
-
-.demo-preview-figure {
-  min-height: 12.5rem;
-  display: grid;
-  place-items: center;
-  color: rgba(89, 220, 255, 0.86);
-}
-
-.demo-preview-figure svg {
-  width: min(100%, 11rem);
-  height: auto;
-  overflow: visible;
-}
-
-.demo-preview-figure .figure-shadow {
-  fill: rgba(255, 255, 255, 0.04);
-}
-
-.demo-preview-figure .figure-line {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 16px rgba(89, 220, 255, 0.18));
-}
-
-.demo-preview-figure .figure-joint {
-  fill: currentColor;
-}
-
-.demo-preview-card[data-match-state="close"] .demo-preview-figure,
-.demo-preview-card[data-match-state="close"] #demo-match-pill {
-  color: rgba(255, 196, 107, 0.96);
-}
-
-.demo-preview-card[data-match-state="matched"] .demo-preview-figure,
-.demo-preview-card[data-match-state="matched"] #demo-match-pill {
-  color: rgba(143, 215, 191, 0.98);
-}
-
-.demo-preview-card[data-match-state="matched"] {
-  border-color: rgba(143, 215, 191, 0.4);
-  background:
-    radial-gradient(circle at top, rgba(143, 215, 191, 0.16), transparent 60%),
-    rgba(8, 14, 12, 0.6);
-}
-
-.demo-preview-card[data-match-state="close"] {
-  border-color: rgba(255, 196, 107, 0.34);
-}
-
 .demo-preview-copy-block {
   display: grid;
   gap: 0.8rem;
-}
-
-.demo-preview-copy {
-  margin: 0.75rem 0 0;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.83rem;
-  line-height: 1.45;
 }
 
 .demo-detail-head {
@@ -2245,10 +2167,6 @@ h3 {
   .demo-detail-head,
   .demo-card-top {
     grid-template-columns: 1fr;
-  }
-
-  .demo-preview-figure {
-    min-height: 10.5rem;
   }
 
   .camera-overlay {

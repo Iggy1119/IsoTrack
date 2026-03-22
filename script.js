@@ -656,10 +656,6 @@ const els = {
   libraryDemoFile: document.querySelector("#library-demo-file"),
   libraryDemoTip: document.querySelector("#library-demo-tip"),
   libraryDemoPurpose: document.querySelector("#library-demo-purpose"),
-  demoPreviewCard: document.querySelector("#demo-preview-card"),
-  demoPreviewFigure: document.querySelector("#demo-preview-figure"),
-  demoPreviewCopy: document.querySelector("#demo-preview-copy"),
-  demoMatchPill: document.querySelector("#demo-match-pill"),
   trackingState: document.querySelector("#tracking-state"),
   trackedJoints: document.querySelector("#tracked-joints"),
   workflowTitle: document.querySelector("#workflow-title"),
@@ -1855,40 +1851,7 @@ function renderAllDemos() {
 }
 
 function renderDemoPreview(selectedDemo = getSelectedDemo()) {
-  const matchState = state.session.exerciseMatchState || "idle";
-  const poseVariant = selectedDemo?.poseVariant || getDemoPoseVariant(selectedDemo);
-  const demoLabel = getDemoDisplayLabel(selectedDemo);
-  const figureMarkup = buildDemoPreviewFigureMarkup({
-    poseVariant,
-  });
-
-  if (els.demoPreviewCard) {
-    els.demoPreviewCard.dataset.matchState = matchState;
-  }
-  if (els.demoPreviewFigure) {
-    els.demoPreviewFigure.innerHTML = figureMarkup;
-  }
-  const matchLabels = {
-    idle: "Waiting",
-    searching: "Align body",
-    off: "Not matched",
-    close: "Close enough",
-    matched: "On target",
-  };
-  const previewCopy = {
-    idle: `${demoLabel} outline loaded. Start the demo or session and match it loosely to light the guide up.`,
-    searching: "Bring your full body back into frame so the demo figure can react.",
-    off: `Move toward the ${demoLabel.toLowerCase()} outline. The match area is intentionally forgiving.`,
-    close: `You are close. Tighten the ${demoLabel.toLowerCase()} shape slightly to lock the hold.`,
-    matched: "Good match. Stay there and hold to keep time under tension counting.",
-  };
-
-  if (els.demoMatchPill) {
-    els.demoMatchPill.textContent = matchLabels[matchState] || "Waiting";
-  }
-  if (els.demoPreviewCopy) {
-    els.demoPreviewCopy.textContent = previewCopy[matchState] || previewCopy.idle;
-  }
+  return selectedDemo;
 }
 
 function getDemoDisplayLabel(demo) {
@@ -2509,8 +2472,10 @@ async function requestCameraAccess() {
 
     els.camera.srcObject = mediaStream;
     await els.camera.play();
+    closeCameraPermissionModal();
     resetCalibrationSequenceForCameraStart();
     state.session.cameraReady = true;
+    state.session.trackingStatus = "Camera live";
     await ensurePoseTracking();
     scheduleCalibrationStepDelay();
     setFeedback("Camera ready. Neutral calibration begins in 3 seconds.");
@@ -2519,7 +2484,6 @@ async function requestCameraAccess() {
     renderCalibration();
     renderWorkflow();
     startMotionAnalysis();
-    closeCameraPermissionModal();
     persistState();
   } catch (error) {
     if (els.cameraPermissionModal) {
@@ -2578,7 +2542,7 @@ function handlePoseResults(results) {
 
   if (!results.poseLandmarks?.length) {
     state.session.trackedJoints = 0;
-    state.session.trackingStatus = state.session.cameraReady ? "Searching" : "Tracking off";
+    state.session.trackingStatus = state.session.cameraReady ? "Camera live • step into frame" : "Tracking off";
     state.session.trackingQuality = 0;
     updateExerciseMatchState(null);
     renderDemoPreview();
@@ -4276,10 +4240,12 @@ function renderWorkflow() {
           ? "Ready to save"
           : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
             ? "Match outline"
-            : "Step into outline";
+            : "Camera live";
     els.workflowCheckSecondary.textContent = calibrationHoldStartedAt
       ? "Auto capture running"
-      : `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`;
+      : state.session.trackedJoints >= LIMB_CAPTURE_THRESHOLD
+        ? `${CALIBRATION_SEQUENCE.filter(({ key }) => Boolean(state.session.calibrationShots[key])).length} / 3 steps saved`
+        : "Move fully into frame for tracking";
   } else if (!state.session.demoCompleted) {
     const selectedDemo = getSelectedDemo();
     const matchState = state.session.exerciseMatchState;
