@@ -628,7 +628,7 @@ function getCalibrationHoldMs() {
 
 function getCalibrationReadyFrames() {
   const currentStep = CALIBRATION_SEQUENCE[state.session.currentCalibrationStep];
-  return currentStep?.key === "arms" ? 5 : AUTO_CALIBRATION_READY_FRAMES;
+  return currentStep?.key === "arms" ? 2 : AUTO_CALIBRATION_READY_FRAMES;
 }
 
 function hasReliablePoint(point, minVisibility = 0.42) {
@@ -1711,38 +1711,33 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
     const targetY = average(leftShoulder.y, rightShoulder.y);
     const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.09;
     const elbowsNearHeight =
-      Math.abs(leftElbow.y - targetY) < 0.19 &&
-      Math.abs(rightElbow.y - targetY) < 0.19;
+      Math.abs(leftElbow.y - targetY) < 0.22 &&
+      Math.abs(rightElbow.y - targetY) < 0.22;
     const wristsNearHeight =
-      Math.abs(leftWrist.y - targetY) < 0.2 &&
-      Math.abs(rightWrist.y - targetY) < 0.2;
+      Math.abs(leftWrist.y - targetY) < 0.22 &&
+      Math.abs(rightWrist.y - targetY) < 0.22;
     const wristsRaisedFromBaseline =
       (baselineLeftWrist.y - leftWrist.y) > 0.09 &&
       (baselineRightWrist.y - rightWrist.y) > 0.09;
     const wristHeightReady = wristsNearHeight || wristsRaisedFromBaseline;
-    const wristsWideEnough =
-      (leftShoulder.x - leftWrist.x) > shoulderWidth * 0.28 &&
-      (rightWrist.x - rightShoulder.x) > shoulderWidth * 0.28;
-    const elbowsWideEnough =
-      (leftShoulder.x - leftElbow.x) > shoulderWidth * 0.08 &&
-      (rightElbow.x - rightShoulder.x) > shoulderWidth * 0.08;
-    const elbowsBetweenShouldersAndWrists =
-      leftElbow.x < leftShoulder.x - shoulderWidth * 0.01 && leftElbow.x > leftWrist.x + shoulderWidth * 0.01 &&
-      rightElbow.x > rightShoulder.x + shoulderWidth * 0.01 && rightElbow.x < rightWrist.x - shoulderWidth * 0.01;
-    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.22;
-    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.22;
+    const wristsMatched = Math.abs(leftWrist.y - rightWrist.y) < 0.24;
+    const elbowsMatched = Math.abs(leftElbow.y - rightElbow.y) < 0.24;
     const leftArmAngle = angleAtPoint(leftShoulder, leftElbow, leftWrist);
     const rightArmAngle = angleAtPoint(rightShoulder, rightElbow, rightWrist);
-    const armsMostlyStraight = leftArmAngle > 100 && rightArmAngle > 100;
-    const elbowsNearGuide = armGuide
-      ? Math.abs(leftElbow.x - armGuide.leftElbow.x) < shoulderWidth * 0.55
-        && Math.abs(rightElbow.x - armGuide.rightElbow.x) < shoulderWidth * 0.55
-      : false;
-    const wristsNearGuide = armGuide
-      ? Math.abs(leftWrist.x - armGuide.leftWrist.x) < shoulderWidth * 0.7
-        && Math.abs(rightWrist.x - armGuide.rightWrist.x) < shoulderWidth * 0.7
-      : false;
-    const armSpreadReady = wristsWideEnough || elbowsWideEnough || wristsNearGuide || elbowsNearGuide;
+    const armsMostlyStraight = leftArmAngle > 92 && rightArmAngle > 92;
+    const leftElbowGuideOffset = armGuide ? distance(leftElbow, armGuide.leftElbow) / shoulderWidth : 1;
+    const rightElbowGuideOffset = armGuide ? distance(rightElbow, armGuide.rightElbow) / shoulderWidth : 1;
+    const leftWristGuideOffset = armGuide ? distance(leftWrist, armGuide.leftWrist) / shoulderWidth : 1;
+    const rightWristGuideOffset = armGuide ? distance(rightWrist, armGuide.rightWrist) / shoulderWidth : 1;
+    const meanGuideOffset = (
+      leftElbowGuideOffset
+      + rightElbowGuideOffset
+      + leftWristGuideOffset
+      + rightWristGuideOffset
+    ) / 4;
+    const elbowsNearGuide = leftElbowGuideOffset < 0.72 && rightElbowGuideOffset < 0.72;
+    const wristsNearGuide = leftWristGuideOffset < 0.8 && rightWristGuideOffset < 0.8;
+    const armGuideReady = meanGuideOffset < 0.74 || wristsNearGuide || elbowsNearGuide;
 
     const assessment = buildCalibrationAssessment([
       {
@@ -1751,13 +1746,13 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         shortHint: "Lift wrists",
       },
       {
-        pass: armSpreadReady,
-        hint: "Match the smaller arm outline instead of reaching farther out.",
+        pass: armGuideReady,
+        hint: "Move your arms toward the smaller outline and hold there.",
         shortHint: "Match outline",
       },
       {
         pass: armsMostlyStraight,
-        hint: "Straighten both elbows as you hold the pose.",
+        hint: "Keep both arms gently open and steady.",
         shortHint: "Straighten arms",
       },
       {
@@ -1767,18 +1762,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       },
       {
         pass: elbowsNearHeight,
-        hint: "Bring both elbows a touch closer to shoulder height.",
+        hint: "Bring both elbows a little closer to the arm outline.",
         shortHint: "Lift elbows",
-      },
-      {
-        pass: elbowsWideEnough,
-        hint: "Open both elbows slightly away from your body.",
-        shortHint: "Widen elbows",
-      },
-      {
-        pass: elbowsBetweenShouldersAndWrists,
-        hint: "Keep elbows between your shoulders and wrists.",
-        shortHint: "Align elbows",
       },
       {
         pass: wristsMatched,
@@ -1790,16 +1775,11 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
         hint: "Keep both elbows even.",
         shortHint: "Even elbows",
       },
-      {
-        pass: wristsNearGuide || elbowsNearGuide,
-        hint: "Match the smaller arm outline instead of reaching all the way out.",
-        shortHint: "Match outline",
-      },
-    ], 5, "Hold the T-shape to save this step.", "Hold steady");
+    ], 3, "Hold the T-shape to save this step.", "Hold steady");
 
     return {
       ...assessment,
-      matched: assessment.matched && wristHeightReady && armSpreadReady,
+      matched: armGuideReady && shouldersLevel && (wristHeightReady || elbowsNearHeight),
     };
   }
 
