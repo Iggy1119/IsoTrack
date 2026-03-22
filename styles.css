@@ -1807,7 +1807,9 @@ h3 {
 }
 
 .demo-library-panel-grid {
+  grid-template-columns: 1fr;
   align-items: start;
+  gap: 1rem;
 }
 
 .demo-step {

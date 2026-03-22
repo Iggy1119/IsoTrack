@@ -2906,16 +2906,16 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
 
 function buildHeelRaiseGuideFromBaseline(baseline, activeSideOrLandmarks = "right") {
   const ankleLift = Math.max(
-    0.012,
-    average(distance(baseline.leftKnee, baseline.leftAnkle), distance(baseline.rightKnee, baseline.rightAnkle)) * 0.08
+    0.01,
+    average(distance(baseline.leftKnee, baseline.leftAnkle), distance(baseline.rightKnee, baseline.rightAnkle)) * 0.065
   );
   const heelLift = Math.max(
-    0.024,
-    average(distance(baseline.leftAnkle, baseline.leftHeel), distance(baseline.rightAnkle, baseline.rightHeel)) * 0.85
+    0.02,
+    average(distance(baseline.leftAnkle, baseline.leftHeel), distance(baseline.rightAnkle, baseline.rightHeel)) * 0.72
   );
   const footLift = Math.max(
-    0.018,
-    average(distance(baseline.leftHeel, baseline.leftFootIndex), distance(baseline.rightHeel, baseline.rightFootIndex)) * 0.72
+    0.014,
+    average(distance(baseline.leftHeel, baseline.leftFootIndex), distance(baseline.rightHeel, baseline.rightFootIndex)) * 0.58
   );
   const activeSide = resolveHeelRaiseGuideSide(baseline, activeSideOrLandmarks);
   const points = {
@@ -3246,19 +3246,19 @@ function updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now
 
 function getSteadyCalibrationScoreThreshold(stepKey) {
   if (stepKey === "arms") return 0.36;
-  if (stepKey === "knee") return 0.34;
+  if (stepKey === "knee") return 0.3;
   return 0.55;
 }
 
 function getSteadyCalibrationCaptureMs(stepKey) {
   if (stepKey === "arms") return 3000;
-  if (stepKey === "knee") return 2800;
+  if (stepKey === "knee") return 2400;
   return AUTO_CALIBRATION_STEADY_CAPTURE_MS;
 }
 
 function getSteadyCalibrationMovementThreshold(stepKey) {
   if (stepKey === "arms") return 0.028;
-  if (stepKey === "knee") return 0.026;
+  if (stepKey === "knee") return 0.03;
   return AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD;
 }
 
@@ -3472,8 +3472,8 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       getLiftDelta(baseline.rightAnkle, rightAnkle) * 1.15
     );
     const bestLift = Math.max(leftLift, rightLift);
-    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.1;
-    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.1;
+    const shouldersLevel = Math.abs(leftShoulder.y - rightShoulder.y) < 0.11;
+    const hipsLevel = Math.abs(leftHip.y - rightHip.y) < 0.11;
     const centered = average(leftShoulder.x, rightShoulder.x) > 0.22 && average(leftShoulder.x, rightShoulder.x) < 0.78;
     const lowerBodyScale = Math.max(
       0.12,
@@ -3489,13 +3489,13 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
       [rightHeel, rightHeelRaiseGuide?.rightHeel],
       [landmarks[32], rightHeelRaiseGuide?.rightFootIndex],
     ], lowerBodyScale);
-    const leftHeelReady = leftGuideOffset < 0.34 || leftLift > 0.014;
-    const rightHeelReady = rightGuideOffset < 0.34 || rightLift > 0.014;
+    const leftHeelReady = leftGuideOffset < 0.4 || leftLift > 0.011;
+    const rightHeelReady = rightGuideOffset < 0.4 || rightLift > 0.011;
     const heelGuideReady = leftHeelReady || rightHeelReady;
 
     const assessment = buildCalibrationAssessment([
       {
-        pass: heelGuideReady || bestLift > 0.014,
+        pass: heelGuideReady || bestLift > 0.011,
         hint: "Lift either heel toward the bright outline.",
         shortHint: "Lift either heel",
       },
