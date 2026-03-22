@@ -659,21 +659,22 @@
         </section>
 
         <section class="tab-panel" data-tab-panel="reports">
+        <section class="tab-panel" data-tab-panel="reports">
           <div class="report-grid">
             <div class="panel">
               <p class="eyebrow">Clinician tab</p>
-              <h2>Each session becomes a short care update.</h2>
+              <h2>Each session becomes a clinician-ready care summary.</h2>
               <div class="summary-grid report-cards">
                 <article>
                   <span>Adherence</span>
                   <strong id="report-adherence">0%</strong>
                 </article>
                 <article>
-                  <span>User-entered RPE</span>
+                  <span>Clinician-only effort</span>
                   <strong id="report-fatigue">Pre -- | Post --</strong>
                 </article>
                 <article>
-                  <span>RPE delta</span>
+                  <span>TUT trend</span>
                   <strong id="report-intensity">--</strong>
                 </article>
                 <article>
@@ -681,12 +682,32 @@
                   <strong id="report-status">Awaiting first session</strong>
                 </article>
               </div>
-              <p class="report-text" id="report-text">Generate a plan and complete a session to create the report.</p>
+              <p class="report-text" id="report-text">Generate a plan and complete a session to create the clinician summary.</p>
+        
+              <div class="report-actions">
+                <button class="button button-primary" type="button" id="download-report-pdf">Download PDF Summary</button>
+              </div>
+        
+              <div class="report-summary-shell">
+                <article class="report-note-card">
+                  <p class="panel-label">Clinical summary</p>
+                  <ul class="report-bullet-list" id="report-summary-list">
+                    <li>Complete a session to generate a clinician-facing summary.</li>
+                  </ul>
+                </article>
+                <article class="report-note-card">
+                  <p class="panel-label">Suggested adjustments</p>
+                  <ul class="report-bullet-list" id="report-recommendation-list">
+                    <li>Program suggestions will appear after session data is available.</li>
+                  </ul>
+                </article>
+              </div>
+        
               <div class="report-trend-panel">
                 <div class="report-trend-head">
                   <div>
                     <p class="panel-label">Trend view</p>
-                    <h3>Time under tension and user-entered RPE</h3>
+                    <h3>Clinician-only trend view</h3>
                   </div>
                   <div class="segmented-control" role="tablist" aria-label="Clinician trend view">
                     <button class="segmented-button is-active" type="button" data-report-view="daily">Daily</button>
@@ -697,28 +718,39 @@
                   <p class="report-chart-empty">Complete a session to populate the clinician graph.</p>
                 </div>
               </div>
+        
+              <div class="report-history-shell">
+                <div class="panel-head report-history-head">
+                  <div>
+                    <p class="panel-label">Recent sessions</p>
+                    <h3>Session breakdown for clinician review</h3>
+                  </div>
+                </div>
+                <div class="report-history" id="report-history">
+                  <p class="report-chart-empty">Session history will appear here after the first completed session.</p>
+                </div>
+              </div>
             </div>
-
+        
             <div class="panel care-path-panel">
               <p class="eyebrow">Care pathway</p>
               <div class="flow-list">
                 <div>
                   <strong>Capture</strong>
-                  <p>Baseline and focus areas.</p>
+                  <p>Collect adherence, clinician-only TUT, and user-entered effort patterns after each session.</p>
                 </div>
                 <div>
-                  <strong>Adapt</strong>
-                  <p>Volume shifts on lower-capacity days.</p>
+                  <strong>Translate</strong>
+                  <p>Convert session data into a short care update that avoids discouraging patient-facing decline language.</p>
                 </div>
                 <div>
-                  <strong>Review</strong>
-                  <p>Progression follows adherence and session quality.</p>
+                  <strong>Adjust</strong>
+                  <p>Support clinician-led program changes based on tolerance, trend direction, and session consistency.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
-
         <section class="tab-panel" data-tab-panel="rewards">
           <div class="report-grid">
             <div class="panel wallet-panel">

@@ -697,6 +697,10 @@ const els = {
   reportStatus: document.querySelector("#report-status"),
   reportText: document.querySelector("#report-text"),
   reportChart: document.querySelector("#report-chart"),
+  reportSummaryList: document.querySelector("#report-summary-list"),
+  reportRecommendationList: document.querySelector("#report-recommendation-list"),
+  reportHistory: document.querySelector("#report-history"),
+  downloadReportPdf: document.querySelector("#download-report-pdf"),
   reportViewButtons: Array.from(document.querySelectorAll("[data-report-view]")),
   walletTotal: document.querySelector("#wallet-total"),
   walletStreak: document.querySelector("#wallet-streak"),
@@ -857,7 +861,14 @@ function bindEvents() {
     registerExerciseRep(1, 8, "Manual rep logged. Keep the movement slow and repeatable.");
   });
   els.completeSession.addEventListener("click", completeSession);
+  els.downloadReportPdf?.addEventListener("click", downloadClinicianReportPdf);
 
+
+
+
+
+
+  
   els.reportViewButtons.forEach((button) => {
     button.addEventListener("click", () => {
       state.reportView = button.dataset.reportView || "daily";
@@ -4066,7 +4077,7 @@ function completeSession() {
     status: careStatus,
     text: `${activePlan.patientName} completed a ${estimatedMinutes}-minute session with ${state.session.reps} reps and ${state.session.totalTension} seconds of time under tension across ${sessionExerciseLabel}. User-entered RPE moved from ${preRpe}/10 to ${postRpe}/10. Keep focus on ${activePlan.focuses[0]} next session.`,
   };
-  state.sessionHistory = [
+   state.sessionHistory = [
     ...state.sessionHistory,
     {
       id: Date.now(),
@@ -4079,6 +4090,7 @@ function completeSession() {
       postRpe,
       adherence,
       reps: state.session.reps,
+      durationMinutes: estimatedMinutes,
     },
   ].slice(-42);
 
@@ -4364,22 +4376,43 @@ function renderReport() {
     button.classList.toggle("is-active", button.dataset.reportView === state.reportView);
   });
 
-  if (!state.report) {
-    els.reportAdherence.textContent = "0%";
-    els.reportFatigue.textContent = "Pre -- | Post --";
-    els.reportIntensity.textContent = "--";
-    els.reportStatus.textContent = "Awaiting first session";
-    els.reportText.textContent = "Generate a plan, enter manual RPE, and complete a session to create the report.";
+  const model = buildClinicianReportModel();
+
+  if (!model.hasData) {
+    if (els.reportAdherence) els.reportAdherence.textContent = "0%";
+    if (els.reportFatigue) els.reportFatigue.textContent = "Pre -- | Post --";
+    if (els.reportIntensity) els.reportIntensity.textContent = "--";
+    if (els.reportStatus) els.reportStatus.textContent = "Awaiting first session";
+    if (els.reportText) els.reportText.textContent = "Complete a session to generate the clinician summary.";
+    renderReportBulletList(els.reportSummaryList, [
+      "Complete a session to generate a clinician-facing summary."
+    ]);
+    renderReportBulletList(els.reportRecommendationList, [
+      "Program suggestions will appear after session data is available."
+    ]);
     renderReportChart();
+    renderReportHistory();
+    if (els.downloadReportPdf) els.downloadReportPdf.disabled = true;
     return;
   }
 
-  els.reportAdherence.textContent = `${state.report.adherence}%`;
-  els.reportFatigue.textContent = state.report.fatigueBand;
-  els.reportIntensity.textContent = state.report.intensity;
-  els.reportStatus.textContent = state.report.status;
-  els.reportText.textContent = state.report.text;
+  if (els.reportAdherence) els.reportAdherence.textContent = `${model.adherenceAverage}%`;
+  if (els.reportFatigue) els.reportFatigue.textContent = `Pre ${model.avgPreRpe}/10 | Post ${model.avgPostRpe}/10`;
+  if (els.reportIntensity) els.reportIntensity.textContent = model.tutTrendLabel;
+  if (els.reportStatus) els.reportStatus.textContent = model.careStatus;
+  if (els.reportText) els.reportText.textContent = model.narrative;
+
+  renderReportBulletList(els.reportSummaryList, model.summaryItems);
+  renderReportBulletList(els.reportRecommendationList, model.recommendations);
   renderReportChart();
+  renderReportHistory();
+
+  if (els.downloadReportPdf) els.downloadReportPdf.disabled = false;
+}
+
+function renderReportBulletList(container, items) {
+  if (!container) return;
+  container.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
 }
 
 function renderReportChart() {
@@ -4407,8 +4440,7 @@ function renderReportChart() {
               <span class="report-chart-rpe" style="bottom:${rpeBottom}%">${row.postRpe.toFixed(0)}</span>
             </div>
             <strong>${row.label}</strong>
-            <small>${row.timeUnderTension}s TUT</small>
-            <small>User RPE ${row.postRpe.toFixed(1)}</small>
+            <small>${Math.round(row.timeUnderTension)} sec TUT</small>
           </article>
         `;
       }).join("")}
@@ -4416,52 +4448,8 @@ function renderReportChart() {
   `;
 }
 
-function buildDailyHistoryRows(history) {
-  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
-  const grouped = new Map();
-
-  history.forEach((entry) => {
-    const dayKey = entry.date.slice(0, 10);
-    const existing = grouped.get(dayKey) || {
-      label: formatter.format(new Date(entry.date)),
-      timeUnderTension: 0,
-      rpeTotal: 0,
-      count: 0,
-    };
-    existing.timeUnderTension += Number(entry.timeUnderTension || 0);
-    existing.rpeTotal += Number(entry.postRpe || 0);
-    existing.count += 1;
-    grouped.set(dayKey, existing);
-  });
-
-  return Array.from(grouped.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-7)
-    .map(([, value]) => ({
-      label: value.label,
-      timeUnderTension: value.timeUnderTension,
-      postRpe: value.rpeTotal / Math.max(1, value.count),
-    }));
-}
-
-function buildExerciseHistoryRows(history) {
-  const grouped = new Map();
-
-  history.forEach((entry) => {
-    const key = entry.exercise || "Exercise";
-    const existing = grouped.get(key) || {
-      label: key.length > 16 ? `${key.slice(0, 16)}...` : key,
-      timeUnderTension: 0,
-      rpeTotal: 0,
-      count: 0,
-      lastDate: entry.date,
-    };
-    existing.timeUnderTension += Number(entry.timeUnderTension || 0);
-    existing.rpeTotal += Number(entry.postRpe || 0);
-    existing.count += 1;
-    existing.lastDate = entry.date;
-    grouped.set(key, existing);
-  });
+function renderReportHistory() {
+  if (!els.reportHistory) return;
 
   return Array.from(grouped.values())
     .sort((a, b) => b.lastDate.localeCompare(a.lastDate))
@@ -4521,178 +4509,99 @@ function renderRewards() {
       : `Monthly subscription fully earned back for this month.`
     : `Finish your planned reps this month to earn back the full $${targetValue.toFixed(2)} subscription cost.`;
 }
-
-function setFeedback(message, force = true) {
-  const now = performance.now();
-  if (lastFeedbackMessage === message) return;
-  if (!force && now - lastFeedbackAt < FEEDBACK_COOLDOWN_MS) return;
-  lastFeedbackMessage = message;
-  lastFeedbackAt = now;
-  els.sessionFeedback.textContent = message;
-}
-
-function formatTime(totalSeconds) {
-  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
-  const seconds = String(totalSeconds % 60).padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
-
-function countVisibleLimbPoints(landmarks) {
-  return PRIMARY_LIMB_POINTS.filter(([, index]) => (landmarks[index]?.visibility ?? 0) >= LIMB_VISIBILITY_THRESHOLD).length;
-}
-
-function getNamedLimbPoints(landmarks) {
-  return Object.fromEntries(
-    EXTENDED_LIMB_POINTS.map(([name, index]) => [name, landmarks[index]])
-  );
-}
-
-function getTrackedOverlayTheme() {
-  const matchState = state.session.exerciseMatchState;
-  if (matchState === "matched") {
-    return {
-      strongStroke: "rgba(143, 215, 191, 0.98)",
-      weakStroke: "rgba(143, 215, 191, 0.44)",
-      shadow: "rgba(143, 215, 191, 0.38)",
-      jointOuter: "rgba(9, 14, 12, 0.86)",
-      jointInner: "#e8fff6",
-      jointCore: "#8fd7bf",
-      weakJointInner: "rgba(232, 255, 246, 0.52)",
-      weakJointCore: "rgba(143, 215, 191, 0.45)",
-    };
+  const history = Array.isArray(state.sessionHistory) ? state.sessionHistory.slice().reverse().slice(0, 6) : [];
+  if (!history.length) {
+    els.reportHistory.innerHTML = `<p class="report-chart-empty">Session history will appear here after the first completed session.</p>`;
+    return;
   }
 
-  if (matchState === "close") {
-    return {
-      strongStroke: "rgba(255, 196, 107, 0.98)",
-      weakStroke: "rgba(255, 196, 107, 0.42)",
-      shadow: "rgba(255, 196, 107, 0.36)",
-      jointOuter: "rgba(14, 11, 7, 0.86)",
-      jointInner: "#fff3dc",
-      jointCore: "#ffc46b",
-      weakJointInner: "rgba(255, 243, 220, 0.52)",
-      weakJointCore: "rgba(255, 196, 107, 0.45)",
-    };
-  }
-
-  return {
-    strongStroke: "rgba(89, 220, 255, 0.96)",
-    weakStroke: "rgba(89, 220, 255, 0.42)",
-    shadow: "rgba(89, 220, 255, 0.4)",
-    jointOuter: "rgba(9, 11, 14, 0.85)",
-    jointInner: "#e9fbff",
-    jointCore: "#59dcff",
-    weakJointInner: "rgba(233, 251, 255, 0.52)",
-    weakJointCore: "rgba(89, 220, 255, 0.45)",
-  };
+  els.reportHistory.innerHTML = `
+    <table class="report-history-table">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Focus</th>
+          <th>TUT</th>
+          <th>RPE</th>
+          <th>Reps</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${history.map((entry, index) => `
+          <tr>
+            <td>Session ${history.length - index}</td>
+            <td>${entry.focus || entry.exercise || "--"}</td>
+            <td>${Number(entry.timeUnderTension || 0)} sec</td>
+            <td>Pre ${Number(entry.preRpe || 0)} • Post ${Number(entry.postRpe || 0)}</td>
+            <td>${Number(entry.reps || 0)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
 }
 
-function drawTrackedLimbOverlay(ctx, landmarks, width, height) {
-  const namedPoints = getNamedLimbPoints(landmarks);
-  const theme = getTrackedOverlayTheme();
-
-  ctx.save();
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  LIMB_CONNECTIONS.forEach(([from, to]) => {
-    const start = namedPoints[from];
-    const end = namedPoints[to];
-    if (!start || !end) return;
-
-    const visibility = Math.min(start.visibility ?? 0, end.visibility ?? 0);
-    if (visibility < 0.4) return;
-
-    ctx.beginPath();
-    ctx.moveTo(start.x * width, start.y * height);
-    ctx.lineTo(end.x * width, end.y * height);
-    ctx.lineWidth = visibility >= LIMB_VISIBILITY_THRESHOLD ? 7 : 4;
-    ctx.strokeStyle = visibility >= LIMB_VISIBILITY_THRESHOLD ? theme.strongStroke : theme.weakStroke;
-    ctx.shadowBlur = visibility >= LIMB_VISIBILITY_THRESHOLD ? 12 : 0;
-    ctx.shadowColor = theme.shadow;
-    ctx.stroke();
-  });
-
-  EXTENDED_LIMB_POINTS.forEach(([name]) => {
-    const point = namedPoints[name];
-    if (!point || (point.visibility ?? 0) < 0.35) return;
-
-    const strongPoint = (point.visibility ?? 0) >= LIMB_VISIBILITY_THRESHOLD;
-    const radius = strongPoint ? 7 : 5;
-    const x = point.x * width;
-    const y = point.y * height;
-
-    ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.arc(x, y, radius + 2, 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? theme.jointOuter : "rgba(9, 11, 14, 0.55)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? theme.jointInner : theme.weakJointInner;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x, y, Math.max(2.5, radius - 3), 0, Math.PI * 2);
-    ctx.fillStyle = strongPoint ? theme.jointCore : theme.weakJointCore;
-    ctx.fill();
-  });
-
-  ctx.restore();
-}
-
-function persistState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    activeTab: state.activeTab,
-    auth: state.auth,
-    plan: state.plan,
-    rewards: state.rewards,
-    report: state.report,
-    reportView: state.reportView,
-    sessionHistory: state.sessionHistory,
-    session: {
-      cameraReady: false,
-      running: false,
-      holdActive: false,
-      reps: state.session.reps,
-      holdSeconds: state.session.holdSeconds,
-      totalTension: state.session.totalTension,
-      motionScore: state.session.motionScore,
-      intensityLabel: state.session.intensityLabel,
-      selectedDemo: state.session.selectedDemo,
-      previewDemoIndex: state.session.previewDemoIndex,
-      librarySelectedDemo: state.session.librarySelectedDemo,
-      completed: state.session.completed,
-      preRpe: state.session.preRpe,
-      postRpe: state.session.postRpe,
-      preRpeDraft: state.session.preRpeDraft,
-      postRpeDraft: state.session.postRpeDraft,
-      rpeDirty: state.session.rpeDirty,
-      rpeStatus: state.session.rpeStatus,
-      exerciseReps: state.session.exerciseReps,
-      exerciseHoldSeconds: state.session.exerciseHoldSeconds,
-      exerciseTension: state.session.exerciseTension,
-      completedExercises: state.session.completedExercises,
-      trackedJoints: state.session.trackedJoints,
-      trackingStatus: state.session.trackingStatus,
-      trackingQuality: state.session.trackingQuality,
-      calibrated: state.session.calibrated,
-      baseline: state.session.baseline,
-      calibrationShots: state.session.calibrationShots,
-      currentCalibrationStep: state.session.currentCalibrationStep,
-      demoActive: state.session.demoActive,
-      demoCompleted: state.session.demoCompleted,
-      demoProgress: state.session.demoProgress,
-      exerciseMatchState: "idle",
-      exerciseMatchScore: 0,
-    },
+function buildDailyHistoryRows(history) {
+  if (!Array.isArray(history)) return [];
+  return history.slice(-6).map((entry) => ({
+    label: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(entry.date)),
+    timeUnderTension: Number(entry.timeUnderTension || 0),
+    postRpe: Number(entry.postRpe || 0),
   }));
 }
 
-function restoreState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
+function buildExerciseHistoryRows(history) {
+  if (!Array.isArray(history)) return [];
+  return history.slice(-6).map((entry, index) => ({
+    label: entry.exercise || entry.focus || `Session ${index + 1}`,
+    timeUnderTension: Number(entry.timeUnderTension || 0),
+    postRpe: Number(entry.postRpe || 0),
+  }));
+}
+// =======================
+// CLINICIAN REPORT ENGINE
+// =======================
+
+function buildClinicianReportModel() {
+  const history = Array.isArray(state.sessionHistory) ? state.sessionHistory : [];
+
+  if (!history.length) {
+    return { hasData: false };
+  }
+
+  const latest = history[history.length - 1];
+  const average = (values) =>
+    values.length ? values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length : 0;
+
+  const adherenceAverage = Math.round(average(history.map((entry) => entry.adherence)));
+  const avgPreRpe = average(history.map((entry) => entry.preRpe));
+  const avgPostRpe = average(history.map((entry) => entry.postRpe));
+  const avgTut = average(history.map((entry) => entry.timeUnderTension));
+
+  return {
+    hasData: true,
+    adherenceAverage,
+    avgPreRpe: Number(avgPreRpe.toFixed(1)),
+    avgPostRpe: Number(avgPostRpe.toFixed(1)),
+    tutTrendLabel: `${Math.round(avgTut)}s avg`,
+    careStatus: latest.postRpe >= 8 ? "Review exertion before progression" : "Ready for clinician review",
+    narrative: `${latest.focus || "Patient program"} shows ${Math.round(avgTut)} seconds average time under tension across ${history.length} session${history.length === 1 ? "" : "s"}. Latest session recorded ${latest.timeUnderTension || 0} seconds TUT with RPE moving from ${latest.preRpe || 0}/10 to ${latest.postRpe || 0}/10.`,
+    summaryItems: [
+      `Average clinician-only TUT: ${Math.round(avgTut)} seconds`,
+      `Average effort: Pre ${avgPreRpe.toFixed(1)}/10 and Post ${avgPostRpe.toFixed(1)}/10`,
+      `Recent focus: ${latest.focus || latest.exercise || "Program review"}`
+    ],
+    recommendations: [
+      "Review tolerance and progression using clinician judgment.",
+      "Use TUT and RPE together to decide whether the plan should stay the same, regress, or progress."
+    ]
+  };
+}
+
+function renderReportHistory() {
+  if (!els.reportHistory) return;
+
+  const history = state.sessionHistory || [];
 
   try {
     const parsed = JSON.parse(raw);
@@ -4730,5 +4639,14 @@ function restoreState() {
     state.session.exerciseMatchScore = 0;
   } catch (error) {
     console.error("Unable to restore demo state", error);
+  if (!history.length) {
+    els.reportHistory.innerHTML = "<p>No sessions yet</p>";
+    return;
   }
+
+  els.reportHistory.innerHTML = history.map(entry => `
+    <div style="margin-bottom:10px;">
+      ${entry.timeUnderTension}s | RPE ${entry.postRpe}
+    </div>
+  `).join("");
 }
