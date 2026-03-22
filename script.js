@@ -544,7 +544,6 @@ const els = {
   alternateList: document.querySelector("#alternate-list"),
   sessionPlanTitle: document.querySelector("#session-plan-title"),
   sessionPlanNote: document.querySelector("#session-plan-note"),
-  recommendedDemoList: document.querySelector("#recommended-demo-list"),
   allDemoList: document.querySelector("#all-demo-list"),
   camera: document.querySelector("#camera"),
   trackingCanvas: document.querySelector("#tracking-canvas"),
@@ -1138,7 +1137,7 @@ function renderSessionDemos() {
   const planLabel = state.plan ? `${state.plan.patientName}'s session lab` : "Session lab";
 
   els.sessionPlanTitle.textContent = planLabel;
-  els.sessionPlanNote.textContent = state.plan ? "Instruction demos" : "Demo defaults";
+  els.sessionPlanNote.textContent = "Current demo";
 
   const selectedIndex = Math.min(state.session.selectedDemo || 0, Math.max(0, demos.length - 1));
   state.session.selectedDemo = Math.max(0, selectedIndex);
@@ -1168,32 +1167,6 @@ function renderSessionDemos() {
   }
 
   renderDemoPreview(selected);
-
-  els.recommendedDemoList.innerHTML = demos
-    .map((item, index) => `
-      <article class="demo-card ${index === state.session.selectedDemo ? "is-selected" : ""}" data-demo-index="${index}">
-        <div class="demo-card-top">
-          <span class="demo-card-kicker">${item.typeLabel}</span>
-          <span class="demo-card-status">${item.statusLabel}</span>
-        </div>
-        <strong>${index + 1}. ${item.title}</strong>
-        <p>${item.description}</p>
-        <div class="demo-card-tags">
-          <span class="demo-chip">${item.focus}</span>
-          <span class="demo-chip">${item.targetLabel}</span>
-          <span class="demo-chip">${item.equipment}</span>
-        </div>
-      </article>
-    `)
-    .join("");
-
-  els.recommendedDemoList.querySelectorAll(".demo-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.session.selectedDemo = Number(card.dataset.demoIndex);
-      renderSessionDemos();
-      persistState();
-    });
-  });
 }
 
 function renderAllDemos() {
