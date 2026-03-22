@@ -56,6 +56,6 @@ http://127.0.0.1:4173
 
 ## Authors
 - Ignatius Ho
+- Djordje Spasovic
 - Dong Jin
 - Hrish Dave
-- Djordje Spasovic
