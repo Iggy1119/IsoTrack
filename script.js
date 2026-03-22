@@ -1340,8 +1340,8 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
     x: shoulderCenterX + halfShoulderWidth,
     y: targetY,
   };
-  const compactUpperArmLength = Math.max(0.045, liveShoulderWidth * 0.26);
-  const compactForearmLength = Math.max(0.045, liveShoulderWidth * 0.24);
+  const compactUpperArmLength = Math.max(0.055, liveShoulderWidth * 0.33);
+  const compactForearmLength = Math.max(0.055, liveShoulderWidth * 0.31);
   const leftUpperArmLength = Math.min(
     Math.max(0.07, distance(baseline.leftShoulder, baseline.leftElbow) * scale),
     compactUpperArmLength
@@ -1359,19 +1359,19 @@ function buildArmsGuideFromBaseline(baseline, landmarks) {
     compactForearmLength
   );
   const leftElbow = {
-    x: Math.max(0.2, leftShoulder.x - leftUpperArmLength),
+    x: Math.max(0.16, leftShoulder.x - leftUpperArmLength),
     y: targetY,
   };
   const rightElbow = {
-    x: Math.min(0.8, rightShoulder.x + rightUpperArmLength),
+    x: Math.min(0.84, rightShoulder.x + rightUpperArmLength),
     y: targetY,
   };
   const leftWrist = {
-    x: Math.max(0.18, leftElbow.x - leftForearmLength),
+    x: Math.max(0.14, leftElbow.x - leftForearmLength),
     y: targetY,
   };
   const rightWrist = {
-    x: Math.min(0.82, rightElbow.x + rightForearmLength),
+    x: Math.min(0.86, rightElbow.x + rightForearmLength),
     y: targetY,
   };
 
@@ -1663,7 +1663,7 @@ function updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now
   }
 
   const movement = getCalibrationSnapshotMovement(currentStep.key, calibrationSteadySnapshot, snapshot);
-  if (movement > AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD) {
+  if (movement > getSteadyCalibrationMovementThreshold(currentStep.key)) {
     calibrationSteadyStartedAt = now;
     calibrationSteadySnapshot = snapshot;
     calibrationSamples = [snapshot];
@@ -1673,7 +1673,7 @@ function updateSteadyCalibrationFallback(currentStep, landmarks, assessment, now
   calibrationSteadySnapshot = snapshot;
   calibrationSamples.push(snapshot);
 
-  if (now - calibrationSteadyStartedAt < AUTO_CALIBRATION_STEADY_CAPTURE_MS) {
+  if (now - calibrationSteadyStartedAt < getSteadyCalibrationCaptureMs(currentStep.key)) {
     return false;
   }
 
@@ -1686,6 +1686,16 @@ function getSteadyCalibrationScoreThreshold(stepKey) {
   if (stepKey === "arms") return 0.36;
   if (stepKey === "knee") return 0.45;
   return 0.55;
+}
+
+function getSteadyCalibrationCaptureMs(stepKey) {
+  if (stepKey === "arms") return 3000;
+  return AUTO_CALIBRATION_STEADY_CAPTURE_MS;
+}
+
+function getSteadyCalibrationMovementThreshold(stepKey) {
+  if (stepKey === "arms") return 0.028;
+  return AUTO_CALIBRATION_STEADY_MOVEMENT_THRESHOLD;
 }
 
 function getCalibrationSnapshotMovement(stepKey, previousSnapshot, nextSnapshot) {
@@ -1884,7 +1894,7 @@ function getCalibrationPoseAssessment(stepKey, landmarks, baseline) {
 
     return {
       ...assessment,
-      matched: armGuideReady && shouldersLevel && (wristHeightReady || elbowsNearHeight),
+      matched: armGuideReady && shouldersLevel && (wristHeightReady || elbowsNearHeight || wristsNearGuide),
     };
   }
 
